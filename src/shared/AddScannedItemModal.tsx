@@ -1,6 +1,7 @@
 // src/shared/AddScannedItemModal.tsx
 import { useEffect, useRef, useState } from "react";
 import { fileToDataUrl } from "../lib/persist";
+import { compressImageDataUrl, estimateDataUrlBytes } from "@/lib/image";
 import { parseScannedItem } from "../lib/parse-item";
 import type { ParsedItem } from "../lib/parse-item";
 
@@ -45,7 +46,12 @@ export function AddScannedItemModal(props: {
     if (!f) return;
     setBusy(true);
     try {
-      setFrontDataUrl(await fileToDataUrl(f));
+      const raw = await fileToDataUrl(f);
+      let compressed = await compressImageDataUrl(raw, { maxW: 1400, maxH: 1400, quality: 0.72 });
+      if (estimateDataUrlBytes(compressed) > 900_000) {
+        compressed = await compressImageDataUrl(raw, { maxW: 1200, maxH: 1200, quality: 0.62 });
+      }
+      setFrontDataUrl(compressed);
     } finally {
       setBusy(false);
     }
@@ -57,7 +63,12 @@ export function AddScannedItemModal(props: {
     if (!f) return;
     setBusy(true);
     try {
-      setIngredientsDataUrl(await fileToDataUrl(f));
+      const raw = await fileToDataUrl(f);
+      let compressed = await compressImageDataUrl(raw, { maxW: 1600, maxH: 1600, quality: 0.72 });
+      if (estimateDataUrlBytes(compressed) > 900_000) {
+        compressed = await compressImageDataUrl(raw, { maxW: 1200, maxH: 1200, quality: 0.62 });
+      }
+      setIngredientsDataUrl(compressed);
     } finally {
       setBusy(false);
     }
