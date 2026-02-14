@@ -15,20 +15,96 @@ export default function ScanSection() {
 
   const canScanIngredients = !!frontImage && !loading;
 
+  /* ── Build chip groups from new response shape ── */
+
   const entitiesByCategory = useMemo(() => {
-    const cats = result?.normalized?.categories || {};
-    const out: { label: string; items: string[] }[] = [];
-    const order = ["Sweeteners", "Stimulants", "Sugars", "Vitamins", "Minerals", "Other"];
-    for (const k of order) {
-      const arr = Array.isArray(cats[k]) ? cats[k] : [];
-      if (arr.length) out.push({ label: k, items: arr.map(String) });
+    if (!result) return [];
+    const groups: { label: string; items: string[] }[] = [];
+
+    // Sweeteners — authoritative source is additives.sweeteners
+    const sweeteners: string[] = Array.isArray(result.additives?.sweeteners)
+      ? result.additives.sweeteners.map(String)
+      : [];
+    if (sweeteners.length) groups.push({ label: "Sweeteners", items: sweeteners });
+
+    // Stimulants — from entities + caffeine_mg fallback
+    const stimulants = (Array.isArray(result.detectedEntities) ? result.detectedEntities : [])
+      .filter((e: any) => e.category === "Stimulants")
+      .map((e: any) => String(e.name));
+    if (
+      result.nutritionFacts?.caffeine_mg != null &&
+      !stimulants.some((s: string) => s.toLowerCase() === "caffeine")
+    ) {
+      stimulants.push("Caffeine");
     }
-    // fallback: if only detectedEntities exists (stub mode)
-    if (!out.length && Array.isArray(result?.normalized?.detectedEntities) && result.normalized.detectedEntities.length) {
-      out.push({ label: "Detected", items: result.normalized.detectedEntities.map(String) });
-    }
-    return out;
+    if (stimulants.length) groups.push({ label: "Stimulants", items: stimulants });
+
+    // Sugars
+    const sugars = (Array.isArray(result.detectedEntities) ? result.detectedEntities : [])
+      .filter((e: any) => e.category === "Sugars")
+      .map((e: any) => String(e.name));
+    if (sugars.length) groups.push({ label: "Sugars", items: sugars });
+
+    // Vitamins — only evidence-backed (server already filtered, but guard anyway)
+    const vitamins = (Array.isArray(result.detectedEntities) ? result.detectedEntities : [])
+      .filter((e: any) => e.category === "Vitamins" && Array.isArray(e.evidence) && e.evidence.length > 0)
+      .map((e: any) => String(e.name));
+    if (vitamins.length) groups.push({ label: "Vitamins", items: vitamins });
+
+    // Minerals — only evidence-backed
+    const minerals = (Array.isArray(result.detectedEntities) ? result.detectedEntities : [])
+      .filter((e: any) => e.category === "Minerals" && Array.isArray(e.evidence) && e.evidence.length > 0)
+      .map((e: any) => String(e.name));
+    if (minerals.length) groups.push({ label: "Minerals", items: minerals });
+
+    // Other
+    const other = (Array.isArray(result.detectedEntities) ? result.detectedEntities : [])
+      .filter((e: any) => e.category === "Other")
+      .map((e: any) => String(e.name));
+    if (other.length) groups.push({ label: "Other", items: other });
+
+    return groups;
   }, [result]);
+
+  /* ── "Detected:" summary line — prioritises sweeteners > caffeine > sugar > calories ── */
+
+  const summaryLine = useMemo(() => {
+    if (!result) return "";
+    const parts: string[] = [];
+
+    const sw: string[] = Array.isArray(result.additives?.sweeteners) ? result.additives.sweeteners : [];
+    if (sw.length === 1) parts.push(`sweetener (${sw[0]})`);
+    else if (sw.length > 1) parts.push(`sweeteners (${sw.length}): ${sw.join(", ")}`);
+
+    const caffMg = result.nutritionFacts?.caffeine_mg;
+    const hasCaffeineEntity = (Array.isArray(result.detectedEntities) ? result.detectedEntities : []).some(
+      (e: any) => String(e.name).toLowerCase() === "caffeine",
+    );
+    if (caffMg != null) parts.push(`caffeine ${caffMg} mg`);
+    else if (hasCaffeineEntity) parts.push("caffeine (approx)");
+
+    const sugarG = result.nutritionFacts?.sugar_g;
+    if (sugarG != null) parts.push(sugarG === 0 ? "sugar 0 g" : `sugar ${sugarG} g`);
+
+    const cal = result.nutritionFacts?.calories;
+    if (cal != null) parts.push(cal === 0 ? "0 cal" : `${cal} cal`);
+
+    return parts.length ? parts.join(" · ") : "";
+  }, [result]);
+
+  /* ── Kind sub-label ── */
+
+  const kindLabel = useMemo(() => {
+    if (!result?.kind) return "";
+    const map: Record<string, string> = {
+      food_drink: "Food / Drink",
+      supplement: "Supplement",
+      medication: "Medication",
+    };
+    return map[result.kind] || "";
+  }, [result]);
+
+  /* ── Handlers ── */
 
   async function handleCapture(file: File, kind: "front" | "ingredients") {
     setError(null);
@@ -39,7 +115,6 @@ export default function ScanSection() {
       reader.readAsDataURL(file);
     });
 
-    // compress to avoid 413 and speed up uploads
     const compressed = await compressImageDataUrl(dataUrl, {
       maxW: kind === "front" ? 900 : 1200,
       maxH: kind === "front" ? 900 : 1400,
@@ -50,7 +125,6 @@ export default function ScanSection() {
     if (kind === "front") {
       setFrontImage(compressed);
       setStep("front");
-      // reset downstream state
       setIngredientsImage(null);
       setResult(null);
       setProductName("");
@@ -74,31 +148,36 @@ export default function ScanSection() {
         }),
       });
       const json = await r.json();
-      if (!r.ok) {
-        throw new Error(json?.error || `HTTP ${r.status}`);
-      }
+      if (!r.ok) throw new Error(json?.error || `HTTP ${r.status}`);
       setResult(json);
-      if (typeof json?.productName === "string") setProductName(json.productName);
+      setProductName(
+        typeof json?.productName === "string" && json.productName.trim()
+          ? json.productName
+          : "(unnamed item)",
+      );
       setStep("done");
     } catch (e: any) {
       setError(String(e?.message || e));
       setResult({
         ok: true,
         productName: null,
-        normalized: { detectedEntities: [], categories: {} },
+        kind: "unknown",
+        detectedEntities: [],
+        nutritionFacts: { calories: null, sugar_g: null, caffeine_mg: null },
+        additives: { sweeteners: [], preservatives: [], acids: [] },
         signals: [
           {
-            type: "no_notable_interaction",
             severity: "low",
-            confidence: "low",
             headline: "NO NOTABLE INTERACTION PATTERN FOUND",
             explanation:
-              "I couldn't read enough label text to classify this item reliably. This is interpretive and depends on dose, timing, and individual variability.",
+              "I couldn't read enough label text to classify this item reliably. " +
+              "This is interpretive and depends on dose, timing, and individual variability.",
             related: [],
           },
         ],
-        meta: { mode: "stub" },
+        meta: { mode: "stub", notes: ["client-side fallback"] },
       });
+      setProductName("(unnamed item)");
       setStep("done");
     } finally {
       setLoading(false);
@@ -113,6 +192,12 @@ export default function ScanSection() {
     setError(null);
     setProductName("");
   }
+
+  /* ── Render ── */
+
+  const modeLabel =
+    result?.meta?.mode === "openai" ? "Read from label" : "Couldn't read label reliably";
+  const subText = kindLabel ? `${modeLabel} · ${kindLabel}` : modeLabel;
 
   return (
     <section className="scan-section">
@@ -137,7 +222,8 @@ export default function ScanSection() {
 
           <label
             className={
-              "scan-section__btn " + (canScanIngredients ? "scan-section__btn--accent" : "scan-section__btn--disabled")
+              "scan-section__btn " +
+              (canScanIngredients ? "scan-section__btn--accent" : "scan-section__btn--disabled")
             }
             title={canScanIngredients ? "" : "Scan the front first"}
           >
@@ -157,7 +243,9 @@ export default function ScanSection() {
           </label>
         </div>
 
-        <div className="scan-section__hint">Most interaction patterns are identified from the ingredients label on the back.</div>
+        <div className="scan-section__hint">
+          Most interaction patterns are identified from the ingredients label on the back.
+        </div>
 
         <div className="scan-section__status">
           <div>Front captured {frontImage ? "✅" : "—"}</div>
@@ -178,20 +266,19 @@ export default function ScanSection() {
 
         {step === "done" && result && (
           <div className="scan-section__result">
+            {/* ── Scanned header ── */}
             <div className="scan-section__scannedHeader">
               <div className="scan-section__scannedCheck">✅</div>
               <div className="scan-section__scannedMeta">
                 <div className="scan-section__scannedTitle">
                   <input
                     className="scan-section__nameInput"
-                    value={productName || ""}
-                    placeholder="Scanned item"
+                    value={productName}
+                    placeholder="(unnamed item)"
                     onChange={(e) => setProductName(e.target.value)}
                   />
                 </div>
-                <div className="scan-section__scannedSub">
-                  {result?.meta?.mode === "openai" ? "Read from label" : "Couldn't read label reliably"}
-                </div>
+                <div className="scan-section__scannedSub">{subText}</div>
               </div>
               <details className="scan-section__photosToggle">
                 <summary>Tap to view photos</summary>
@@ -202,6 +289,14 @@ export default function ScanSection() {
               </details>
             </div>
 
+            {/* ── "Detected:" summary ── */}
+            {summaryLine && (
+              <div className="scan-section__detectedLine">
+                <strong>Detected:</strong> {summaryLine}
+              </div>
+            )}
+
+            {/* ── Chip groups ── */}
             {entitiesByCategory.length > 0 && (
               <div className="scan-section__entities">
                 {entitiesByCategory.map((c) => (
@@ -219,10 +314,15 @@ export default function ScanSection() {
               </div>
             )}
 
+            {/* ── Signal cards (severity-based) ── */}
             {Array.isArray(result.signals) &&
               result.signals.map((s: any, idx: number) => (
                 <div className="scan-section__signal" key={idx}>
-                  <div className={"scan-section__badge scan-section__badge--" + String(s.type || "")}>
+                  <div
+                    className={
+                      "scan-section__badge scan-section__badge--" + String(s.severity || "low")
+                    }
+                  >
                     {String(s.headline || "").toUpperCase()}
                   </div>
                   <div className="scan-section__explain">{String(s.explanation || "")}</div>
