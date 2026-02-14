@@ -11,6 +11,18 @@ type Supp = ScannedItemDraft & {
 
 const LS_KEY = "veda.supps.v1";
 
+function confidenceLabel(c: number): string {
+  if (c >= 0.75) return "High";
+  if (c >= 0.45) return "Med";
+  return "Low";
+}
+
+function confidenceClass(c: number): string {
+  if (c >= 0.75) return "conf--high";
+  if (c >= 0.45) return "conf--med";
+  return "conf--low";
+}
+
 export default function SupplementsPage() {
   const [supps, setSupps] = useState<Supp[]>(() => loadLS<Supp[]>(LS_KEY, []));
   const [showModal, setShowModal] = useState(false);
@@ -59,24 +71,49 @@ export default function SupplementsPage() {
         <ul className="supps-page__list">
           {supps.map((s) => (
             <li key={s.id} className="supps-page__card">
-              <div className="supps-page__thumbs">
-                <img src={s.frontDataUrl} alt={`${s.name} front`} className="supps-page__thumb" />
-                <img src={s.ingredientsDataUrl} alt={`${s.name} ingredients`} className="supps-page__thumb" />
-              </div>
-              <div className="supps-page__card-info">
-                <div className="supps-page__card-name">{s.name}</div>
-                <div className="supps-page__card-meta">
-                  {s.brand && <span>{s.brand}</span>}
-                  {s.strengthPerUnit != null && s.strengthUnit && (
-                    <span>{s.strengthPerUnit} {s.strengthUnit}{s.form ? ` · ${s.form}` : ""}</span>
-                  )}
-                  {s.servingSizeText && <span>{s.servingSizeText}</span>}
+              <div className="supps-page__card-body">
+                <div className="supps-page__card-row">
+                  <div className="supps-page__card-primary">
+                    <div className="supps-page__card-name">{s.name}</div>
+                    {s.brand && <div className="supps-page__card-brand">{s.brand}</div>}
+                  </div>
+                  <button className="supps-page__remove" onClick={() => removeSupp(s.id)} title="Remove">
+                    ✕
+                  </button>
                 </div>
-                {/* TODO: show ✅/⚠️ overlap/interaction indicators here */}
+
+                <div className="supps-page__card-fields">
+                  {s.strengthPerUnit != null && s.strengthUnit && (
+                    <div className="supps-page__field">
+                      <span className="supps-page__field-label">Strength</span>
+                      <span className="supps-page__field-value">{s.strengthPerUnit} {s.strengthUnit}</span>
+                    </div>
+                  )}
+                  {s.form && (
+                    <div className="supps-page__field">
+                      <span className="supps-page__field-label">Form</span>
+                      <span className="supps-page__field-value">{s.form}</span>
+                    </div>
+                  )}
+                  {s.servingSizeText && (
+                    <div className="supps-page__field">
+                      <span className="supps-page__field-label">Serving</span>
+                      <span className="supps-page__field-value">{s.servingSizeText}</span>
+                    </div>
+                  )}
+                  <div className="supps-page__field">
+                    <span className="supps-page__field-label">Confidence</span>
+                    <span className={`supps-page__confidence ${confidenceClass(s.parseConfidence)}`}>
+                      {confidenceLabel(s.parseConfidence)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="supps-page__thumbs">
+                  <img src={s.frontDataUrl} alt={`${s.name} front`} className="supps-page__thumb" />
+                  <img src={s.ingredientsDataUrl} alt={`${s.name} ingredients`} className="supps-page__thumb" />
+                </div>
               </div>
-              <button className="supps-page__remove" onClick={() => removeSupp(s.id)} title="Remove">
-                ✕
-              </button>
             </li>
           ))}
         </ul>

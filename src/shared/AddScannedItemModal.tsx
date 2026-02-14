@@ -19,17 +19,22 @@ export type ScannedItemDraft = {
   parseMode: "openai" | "stub";
 };
 
+type ParseStatus = "idle" | "parsing" | "parsed" | "failed";
+
 export function AddScannedItemModal(props: {
   kind: "med" | "supp";
   onCancel: () => void;
   onConfirm: (draft: ScannedItemDraft) => void;
 }) {
-  const [name, setName] = useState(props.kind === "med" ? "New medication" : "New supplement");
+  const defaultName = props.kind === "med" ? "New medication" : "New supplement";
+  const [name, setName] = useState(defaultName);
   const [frontDataUrl, setFrontDataUrl] = useState<string | null>(null);
   const [ingredientsDataUrl, setIngredientsDataUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [parsing, setParsing] = useState(false);
-  const [parsed, setParsed] = useState<ParsedItem | null>(null);
+  const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
+  const [parsedItem, setParsedItem] = useState<ParsedItem | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const userEditedName = useRef(false);
 
   const frontRef = useRef<HTMLInputElement | null>(null);
   const ingRef = useRef<HTMLInputElement | null>(null);
@@ -58,47 +63,81 @@ export function AddScannedItemModal(props: {
     }
   }
 
-  // Auto-parse once both images are captured
+  // Auto-parse ONCE when both images are captured
   useEffect(() => {
     if (!frontDataUrl || !ingredientsDataUrl) return;
     let cancelled = false;
-    setParsing(true);
-    parseScannedItem(props.kind, frontDataUrl, ingredientsDataUrl).then((item) => {
-      if (cancelled) return;
-      setParsed(item);
-      // Auto-fill name from parsed displayName (user can still edit)
-      if (item.displayName && item.mode !== "stub") {
-        setName(item.displayName);
-      }
-      setParsing(false);
-    });
+    setParseStatus("parsing");
+    setParsedItem(null);
+
+    parseScannedItem(props.kind, frontDataUrl, ingredientsDataUrl)
+      .then((item) => {
+        if (cancelled) return;
+        console.log("[parse] response", item);
+        setParsedItem(item);
+        if (!userEditedName.current) {
+          if (item.mode === "openai" && item.displayName) {
+            setName(item.displayName);
+          } else {
+            setName("Unrecognized item");
+          }
+        }
+        setParseStatus("parsed");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("[parse] error", err);
+        setParseStatus("failed");
+        if (!userEditedName.current) {
+          setName("Unrecognized item");
+        }
+      });
+
     return () => { cancelled = true; };
   }, [frontDataUrl, ingredientsDataUrl, props.kind]);
 
+  const isParsing = parseStatus === "parsing";
   const canIng = !!frontDataUrl;
-  const canConfirm = !!frontDataUrl && !!ingredientsDataUrl && name.trim().length > 0 && !parsing;
+  const canConfirm =
+    !!frontDataUrl && !!ingredientsDataUrl && name.trim().length > 0 && !isParsing && !isSaving;
 
   function handleConfirm() {
+    if (isSaving) return;
+    setIsSaving(true);
+
     props.onConfirm({
       name: name.trim(),
       frontDataUrl: frontDataUrl!,
       ingredientsDataUrl: ingredientsDataUrl!,
-      brand: parsed?.brand ?? null,
-      form: parsed?.form ?? null,
-      strengthPerUnit: parsed?.strengthPerUnit ?? null,
-      strengthUnit: parsed?.strengthUnit ?? null,
-      servingSizeText: parsed?.servingSizeText ?? null,
-      rawTextHints: parsed?.rawTextHints ?? [],
-      parseConfidence: parsed?.confidence ?? 0,
-      parseMode: parsed?.mode ?? "stub",
+      brand: parsedItem?.brand ?? null,
+      form: parsedItem?.form ?? null,
+      strengthPerUnit: parsedItem?.strengthPerUnit ?? null,
+      strengthUnit: parsedItem?.strengthUnit ?? null,
+      servingSizeText: parsedItem?.servingSizeText ?? null,
+      rawTextHints: parsedItem?.rawTextHints ?? [],
+      parseConfidence: parsedItem?.confidence ?? 0,
+      parseMode: parsedItem?.mode ?? "stub",
     });
+
+    // Reset local state
+    setName(defaultName);
+    setFrontDataUrl(null);
+    setIngredientsDataUrl(null);
+    setParsedItem(null);
+    setParseStatus("idle");
+    userEditedName.current = false;
+    setIsSaving(false);
   }
 
-  // Helper to render the strength line
+  // Helper
   const strengthLine =
-    parsed?.strengthPerUnit != null && parsed?.strengthUnit
-      ? `${parsed.strengthPerUnit} ${parsed.strengthUnit}`
+    parsedItem?.strengthPerUnit != null && parsedItem?.strengthUnit
+      ? `${parsedItem.strengthPerUnit} ${parsedItem.strengthUnit}`
       : null;
+
+  const isStubOrFailed =
+    parseStatus === "failed" ||
+    (parseStatus === "parsed" && parsedItem?.mode === "stub");
 
   return (
     <div style={styles.backdrop}>
@@ -119,10 +158,18 @@ export function AddScannedItemModal(props: {
           <label style={styles.label}>Name</label>
           <input
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              userEditedName.current = true;
+            }}
             style={styles.input}
             placeholder={props.kind === "med" ? "e.g. Brand + dosage" : "e.g. Magnesium glycinate"}
           />
+          {parseStatus === "parsed" && parsedItem?.mode === "openai" && strengthLine && (
+            <div style={styles.detectedHint}>
+              Detected: {strengthLine}{parsedItem.form ? ` · ${parsedItem.form}` : ""}
+            </div>
+          )}
         </div>
 
         {/* hidden inputs */}
@@ -131,21 +178,21 @@ export function AddScannedItemModal(props: {
 
         <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
           <button
-            disabled={busy || parsing}
+            disabled={busy || isParsing}
             onClick={() => frontRef.current?.click()}
-            style={{ ...styles.btn, opacity: (busy || parsing) ? 0.6 : 1 }}
+            style={{ ...styles.btn, opacity: (busy || isParsing) ? 0.6 : 1 }}
           >
             {frontDataUrl ? "Re-scan product front" : "Scan product front"}
           </button>
 
           <button
-            disabled={!canIng || busy || parsing}
+            disabled={!canIng || busy || isParsing}
             onClick={() => ingRef.current?.click()}
             style={{
               ...styles.btn,
               background: canIng ? "rgba(108,92,231,0.30)" : "rgba(255,255,255,0.08)",
               borderColor: canIng ? "rgba(108,92,231,0.45)" : "rgba(255,255,255,0.14)",
-              opacity: (!canIng || busy || parsing) ? 0.6 : 1,
+              opacity: (!canIng || busy || isParsing) ? 0.6 : 1,
             }}
             title={!canIng ? "Scan the front first" : ""}
           >
@@ -158,47 +205,60 @@ export function AddScannedItemModal(props: {
           {ingredientsDataUrl && <img src={ingredientsDataUrl} alt="Ingredients" style={styles.preview} />}
         </div>
 
-        {/* Parsing status / parsed details */}
-        {parsing && (
+        {/* Parsing spinner */}
+        {isParsing && (
           <div style={styles.parseStatus}>Reading label…</div>
         )}
 
-        {parsed && !parsing && (
+        {/* Amber warning for stub / failure */}
+        {isStubOrFailed && (
+          <div style={styles.stubWarning}>
+            Couldn't read the label on this device/deployment.
+            {parsedItem?.rawTextHints?.length
+              ? ` (${parsedItem.rawTextHints.join(", ")})`
+              : ""}
+          </div>
+        )}
+
+        {/* Parsed details — only for successful openai parse */}
+        {parseStatus === "parsed" && parsedItem?.mode === "openai" && (
           <div style={styles.parsedDetails}>
-            {parsed.brand && (
+            {parsedItem.brand && (
               <div style={styles.detailRow}>
                 <span style={styles.detailLabel}>Brand</span>
-                <span>{parsed.brand}</span>
+                <span>{parsedItem.brand}</span>
               </div>
             )}
             {strengthLine && (
               <div style={styles.detailRow}>
                 <span style={styles.detailLabel}>Strength</span>
-                <span>{strengthLine}{parsed.form ? ` (${parsed.form})` : ""}</span>
+                <span>{strengthLine}{parsedItem.form ? ` (${parsedItem.form})` : ""}</span>
               </div>
             )}
-            {parsed.servingSizeText && (
+            {parsedItem.servingSizeText && (
               <div style={styles.detailRow}>
                 <span style={styles.detailLabel}>Serving</span>
-                <span>{parsed.servingSizeText}</span>
+                <span>{parsedItem.servingSizeText}</span>
               </div>
             )}
-            {parsed.mode === "stub" && (
-              <div style={{ fontSize: 12, opacity: 0.5, marginTop: 4 }}>
-                Could not read label — you can edit the name manually.
-              </div>
-            )}
+          </div>
+        )}
+
+        {/* Dev debug */}
+        {import.meta.env.DEV && (
+          <div style={styles.debugLine}>
+            [debug] status={parseStatus} mode={parsedItem?.mode ?? "–"} conf={parsedItem?.confidence ?? "–"}
           </div>
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
           <button onClick={props.onCancel} style={styles.ghostBtn}>Cancel</button>
           <button
-            disabled={!canConfirm || busy}
+            disabled={!canConfirm || busy || isSaving}
             onClick={handleConfirm}
-            style={{ ...styles.primaryBtn, opacity: (!canConfirm || busy) ? 0.55 : 1 }}
+            style={{ ...styles.primaryBtn, opacity: (!canConfirm || busy || isSaving) ? 0.55 : 1 }}
           >
-            Add to your {props.kind === "med" ? "medications" : "supplements"}
+            {isSaving ? "Adding…" : `Add to your ${props.kind === "med" ? "medications" : "supplements"}`}
           </button>
         </div>
       </div>
@@ -250,6 +310,11 @@ const styles: Record<string, any> = {
     marginTop: 12, padding: "10px 14px", borderRadius: 12,
     background: "rgba(108,92,231,0.10)", fontSize: 13, opacity: 0.8,
   },
+  stubWarning: {
+    marginTop: 12, padding: "10px 14px", borderRadius: 12,
+    background: "rgba(230,126,34,0.12)", border: "1px solid rgba(230,126,34,0.3)",
+    fontSize: 13, color: "rgba(230,168,80,0.95)",
+  },
   parsedDetails: {
     marginTop: 12, padding: "10px 14px", borderRadius: 12,
     background: "rgba(255,255,255,0.04)", fontSize: 13,
@@ -257,4 +322,11 @@ const styles: Record<string, any> = {
   },
   detailRow: { display: "flex", gap: 8 },
   detailLabel: { opacity: 0.55, minWidth: 64 },
+  detectedHint: {
+    marginTop: 6, fontSize: 12, opacity: 0.65,
+    color: "rgba(108,92,231,0.9)",
+  },
+  debugLine: {
+    marginTop: 8, fontSize: 10, opacity: 0.4, fontFamily: "monospace",
+  },
 };

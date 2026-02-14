@@ -11,6 +11,18 @@ type Med = ScannedItemDraft & {
 
 const LS_KEY = "veda.meds.v1";
 
+function confidenceLabel(c: number): string {
+  if (c >= 0.75) return "High";
+  if (c >= 0.45) return "Med";
+  return "Low";
+}
+
+function confidenceClass(c: number): string {
+  if (c >= 0.75) return "conf--high";
+  if (c >= 0.45) return "conf--med";
+  return "conf--low";
+}
+
 export default function MedicationsPage() {
   const [meds, setMeds] = useState<Med[]>(() => loadLS<Med[]>(LS_KEY, []));
   const [showModal, setShowModal] = useState(false);
@@ -59,24 +71,49 @@ export default function MedicationsPage() {
         <ul className="meds-page__list">
           {meds.map((m) => (
             <li key={m.id} className="meds-page__card">
-              <div className="meds-page__thumbs">
-                <img src={m.frontDataUrl} alt={`${m.name} front`} className="meds-page__thumb" />
-                <img src={m.ingredientsDataUrl} alt={`${m.name} ingredients`} className="meds-page__thumb" />
-              </div>
-              <div className="meds-page__card-info">
-                <div className="meds-page__card-name">{m.name}</div>
-                <div className="meds-page__card-meta">
-                  {m.brand && <span>{m.brand}</span>}
-                  {m.strengthPerUnit != null && m.strengthUnit && (
-                    <span>{m.strengthPerUnit} {m.strengthUnit}{m.form ? ` · ${m.form}` : ""}</span>
-                  )}
-                  {m.servingSizeText && <span>{m.servingSizeText}</span>}
+              <div className="meds-page__card-body">
+                <div className="meds-page__card-row">
+                  <div className="meds-page__card-primary">
+                    <div className="meds-page__card-name">{m.name}</div>
+                    {m.brand && <div className="meds-page__card-brand">{m.brand}</div>}
+                  </div>
+                  <button className="meds-page__remove" onClick={() => removeMed(m.id)} title="Remove">
+                    ✕
+                  </button>
                 </div>
-                {/* TODO: show ✅/⚠️ interaction indicators here */}
+
+                <div className="meds-page__card-fields">
+                  {m.strengthPerUnit != null && m.strengthUnit && (
+                    <div className="meds-page__field">
+                      <span className="meds-page__field-label">Strength</span>
+                      <span className="meds-page__field-value">{m.strengthPerUnit} {m.strengthUnit}</span>
+                    </div>
+                  )}
+                  {m.form && (
+                    <div className="meds-page__field">
+                      <span className="meds-page__field-label">Form</span>
+                      <span className="meds-page__field-value">{m.form}</span>
+                    </div>
+                  )}
+                  {m.servingSizeText && (
+                    <div className="meds-page__field">
+                      <span className="meds-page__field-label">Serving</span>
+                      <span className="meds-page__field-value">{m.servingSizeText}</span>
+                    </div>
+                  )}
+                  <div className="meds-page__field">
+                    <span className="meds-page__field-label">Confidence</span>
+                    <span className={`meds-page__confidence ${confidenceClass(m.parseConfidence)}`}>
+                      {confidenceLabel(m.parseConfidence)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="meds-page__thumbs">
+                  <img src={m.frontDataUrl} alt={`${m.name} front`} className="meds-page__thumb" />
+                  <img src={m.ingredientsDataUrl} alt={`${m.name} ingredients`} className="meds-page__thumb" />
+                </div>
               </div>
-              <button className="meds-page__remove" onClick={() => removeMed(m.id)} title="Remove">
-                ✕
-              </button>
             </li>
           ))}
         </ul>

@@ -65,50 +65,106 @@
 }
 
 .meds-page__card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
+  padding: 14px;
   border-radius: var(--radius-md);
   background: var(--veda-surface);
   border: 1px solid var(--veda-border);
 }
 
-.meds-page__thumbs {
+.meds-page__card-body {
   display: flex;
-  gap: 6px;
-  flex-shrink: 0;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.meds-page__thumb {
-  width: 44px;
-  height: 44px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid var(--veda-border);
+.meds-page__card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-.meds-page__card-info {
-  flex: 1;
+.meds-page__card-primary {
   min-width: 0;
 }
 
 .meds-page__card-name {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.meds-page__card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  margin-top: 3px;
-  font-size: 0.76rem;
+.meds-page__card-brand {
+  font-size: 0.78rem;
   color: var(--veda-text-muted);
-  line-height: 1.4;
+  margin-top: 1px;
+}
+
+/* Structured fields */
+.meds-page__card-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 16px;
+}
+
+.meds-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.meds-page__field-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.5;
+}
+
+.meds-page__field-value {
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+/* Confidence badge */
+.meds-page__confidence {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.conf--high {
+  background: rgba(46, 204, 113, 0.15);
+  color: var(--veda-green);
+}
+
+.conf--med {
+  background: rgba(230, 126, 34, 0.15);
+  color: var(--veda-orange);
+}
+
+.conf--low {
+  background: rgba(136, 136, 160, 0.15);
+  color: var(--veda-text-muted);
+}
+
+/* Small proof thumbnails */
+.meds-page__thumbs {
+  display: flex;
+  gap: 6px;
+}
+
+.meds-page__thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--veda-border);
+  opacity: 0.75;
 }
 
 .meds-page__remove {

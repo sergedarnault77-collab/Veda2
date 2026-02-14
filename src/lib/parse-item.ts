@@ -13,7 +13,7 @@ export type ParsedItem = {
   mode: "openai" | "stub";
 };
 
-function stubItem(kind: "med" | "supp"): ParsedItem {
+function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
   return {
     displayName: kind === "med" ? "New medication" : "New supplement",
     brand: null,
@@ -21,7 +21,7 @@ function stubItem(kind: "med" | "supp"): ParsedItem {
     strengthPerUnit: null,
     strengthUnit: null,
     servingSizeText: null,
-    rawTextHints: [],
+    rawTextHints: hint ? [hint] : ["local fallback – API server not reachable"],
     confidence: 0,
     mode: "stub",
   };
@@ -49,7 +49,7 @@ export async function parseScannedItem(
 
     if (!res.ok) {
       console.warn(`[parse-item] HTTP ${res.status}`);
-      return stubItem(kind);
+      return stubItem(kind, `HTTP ${res.status} from /api/parse-item`);
     }
 
     const json = await res.json();
@@ -58,10 +58,10 @@ export async function parseScannedItem(
     }
 
     console.warn("[parse-item] unexpected response shape", json);
-    return stubItem(kind);
+    return stubItem(kind, "unexpected response shape from API");
   } catch (err) {
     // Network error, dev mode without Vercel, etc.
     console.warn("[parse-item] fetch failed, using stub", err);
-    return stubItem(kind);
+    return stubItem(kind, "fetch failed – dev mode without API server?");
   }
 }

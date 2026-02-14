@@ -58,7 +58,7 @@ const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
 
 // ── Stub fallback (no API key) ──
 
-function stubParse(kind: string): ParsedItem {
+function stubParse(kind: string, hints?: string[]): ParsedItem {
   return {
     displayName: kind === "med" ? "New medication" : "New supplement",
     brand: null,
@@ -66,7 +66,7 @@ function stubParse(kind: string): ParsedItem {
     strengthPerUnit: null,
     strengthUnit: null,
     servingSizeText: null,
-    rawTextHints: [],
+    rawTextHints: hints ?? [],
     confidence: 0,
     mode: "stub",
   };
@@ -100,6 +100,7 @@ async function callOpenAI(
   ingredientsDataUrl: string
 ): Promise<ParsedItem> {
   const apiKey = process.env.OPENAI_API_KEY;
+  console.log("[parse-item] OPENAI_API_KEY present:", !!apiKey);
   if (!apiKey) throw new Error("NO_KEY");
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -211,21 +212,21 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    // Try OpenAI; fall back to stub
+    // Try OpenAI; fall back to stub with diagnostic rawTextHints
     let item: ParsedItem;
     try {
       item = await callOpenAI(front, ing);
     } catch (e: any) {
       if (e?.message === "NO_KEY") {
-        // No API key configured — return stub
-        item = stubParse(kind);
+        console.log("[parse-item] OPENAI_API_KEY missing, returning stub");
+        item = stubParse(kind, ["OPENAI_API_KEY missing"]);
       } else {
-        // Log and return stub on transient failures
         console.error("[parse-item] OpenAI error:", e?.message ?? e);
-        item = stubParse(kind);
+        item = stubParse(kind, [`OpenAI error: ${String(e?.message ?? "unknown").slice(0, 120)}`]);
       }
     }
 
+    console.log("[parse-item] mode=%s confidence=%s", item.mode, item.confidence);
     return send(res, 200, { ok: true, item });
   } catch (e: any) {
     return send(res, 500, { ok: false, error: e?.message ?? "Server error" });
