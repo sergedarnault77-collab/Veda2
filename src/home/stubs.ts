@@ -102,16 +102,15 @@ export const STUB_ANALYZE_RESPONSE: AnalyzeResponse = {
   ok: true,
   signals: [
     {
-      type: "timing_conflict",
-      severity: "likely",
-      headline: "Timing consideration often flagged",
+      type: "no_notable_interaction",
+      severity: "info",
+      headline: "No notable interaction pattern found",
       explanation:
-        "Magnesium taken close in time to certain antibiotics is commonly associated with reduced absorption. Some people separate timing to avoid overlap.",
-      confidence: "medium",
-      related: ["Magnesium", "Antibiotic (reported)"],
+        "Based on the text provided and your saved list, no common interaction pattern was flagged. This is not exhaustive and depends on dose and timing.",
+      confidence: "low",
     },
   ],
-  normalized: { detectedEntities: ["Magnesium"] },
+  normalized: { detectedEntities: ["Caffeine", "Aspartame", "Acesulfame K"] },
   meta: { mode: "stub", timestampISO: new Date().toISOString() },
 };
 

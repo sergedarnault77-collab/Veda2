@@ -1,18 +1,40 @@
 // src/lib/image.ts
+// browser-only utilities (used by scan modal to reduce payload size before calling /api/*)
+
+export type CompressOpts = {
+  maxW?: number;      // max width in px
+  maxH?: number;      // max height in px
+  quality?: number;   // 0..1 (jpeg quality)
+  mimeType?: "image/jpeg" | "image/webp";
+};
 
 /**
- * Down-scale + JPEG-compress a data-URL image.
- * Returns a smaller data:image/jpeg;base64,… string.
+ * Compress a data URL image in the browser using Canvas.
+ * IMPORTANT: This must never run on the server. Guarded with typeof window.
  */
 export async function compressImageDataUrl(
   dataUrl: string,
-  opts?: { maxW?: number; maxH?: number; quality?: number }
+  opts: CompressOpts = {}
 ): Promise<string> {
-  const maxW = opts?.maxW ?? 1400;
-  const maxH = opts?.maxH ?? 1400;
-  const quality = opts?.quality ?? 0.72;
+  if (typeof window === "undefined") {
+    // Vercel/Node build safety — this function is browser-only.
+    throw new Error("compressImageDataUrl called on server");
+  }
 
+  const {
+    maxW = 1400,
+    maxH = 1400,
+    quality = 0.72,
+    mimeType = "image/jpeg",
+  } = opts;
+
+  if (!dataUrl?.startsWith("data:image/")) {
+    throw new Error("Invalid dataUrl");
+  }
+
+  // Load image
   const img = new Image();
+  img.decoding = "async";
   img.src = dataUrl;
 
   await new Promise<void>((resolve, reject) => {
@@ -20,24 +42,33 @@ export async function compressImageDataUrl(
     img.onerror = () => reject(new Error("Failed to load image"));
   });
 
-  let { width, height } = img;
+  const srcW = img.naturalWidth || img.width;
+  const srcH = img.naturalHeight || img.height;
 
-  const scale = Math.min(maxW / width, maxH / height, 1);
-  width = Math.round(width * scale);
-  height = Math.round(height * scale);
+  if (!srcW || !srcH) {
+    throw new Error("Image has invalid dimensions");
+  }
+
+  // Scale down (never upscale)
+  const scale = Math.min(maxW / srcW, maxH / srcH, 1);
+  const outW = Math.max(1, Math.round(srcW * scale));
+  const outH = Math.max(1, Math.round(srcH * scale));
 
   const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = outW;
+  canvas.height = outH;
 
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: false });
   if (!ctx) throw new Error("No canvas context");
 
-  ctx.drawImage(img, 0, 0, width, height);
+  // Better downscaling quality
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
 
-  // convert to jpeg (smaller than png)
-  const out = canvas.toDataURL("image/jpeg", quality);
-  return out;
+  ctx.clearRect(0, 0, outW, outH);
+  ctx.drawImage(img, 0, 0, outW, outH);
+
+  return canvas.toDataURL(mimeType, quality);
 }
 
 /** Approximate byte-length of a base64 data URL. */
