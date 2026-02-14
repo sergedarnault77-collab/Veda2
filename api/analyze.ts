@@ -55,12 +55,35 @@ function detectEntities(inputText: string): string[] {
   const t = inputText.toLowerCase();
   const hits: string[] = [];
   const rules: Array<[string, string]> = [
-    ["magnesium", "Magnesium"],
+    // Sweeteners
+    ["aspartame", "Aspartame"],
+    ["acesulfame", "Acesulfame K"],
+    ["sucralose", "Sucralose"],
+    ["saccharin", "Saccharin"],
+    ["stevia", "Stevia"],
+    // Stimulants
     ["caffeine", "Caffeine"],
-    ["vitamin d", "Vitamin D"],
-    ["melatonin", "Melatonin"],
+    ["taurine", "Taurine"],
+    ["guarana", "Guarana"],
+    // Sugar & calories
+    ["sugar", "Sugar"],
+    ["glucose", "Glucose"],
+    ["fructose", "Fructose"],
+    ["high fructose corn syrup", "HFCS"],
+    // Minerals
+    ["magnesium", "Magnesium"],
     ["zinc", "Zinc"],
     ["iron", "Iron"],
+    ["calcium", "Calcium"],
+    ["potassium", "Potassium"],
+    // Vitamins / fortification
+    ["vitamin d", "Vitamin D"],
+    ["vitamin c", "Vitamin C"],
+    ["vitamin b12", "Vitamin B12"],
+    ["vitamin b6", "Vitamin B6"],
+    ["niacin", "Niacin"],
+    // Other supplements
+    ["melatonin", "Melatonin"],
     ["ashwagandha", "Ashwagandha"],
     ["st john", "St. John's wort"],
     ["omega", "Omega-3"],

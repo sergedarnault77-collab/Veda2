@@ -81,7 +81,7 @@
   margin-bottom: 12px;
 }
 
-/* Image previews */
+/* Image previews (pre-results: bigger) */
 .scan-section__previews {
   display: flex;
   gap: 10px;
@@ -89,18 +89,103 @@
 }
 
 .scan-section__previews img {
+  width: 120px;
+  border-radius: 12px;
   object-fit: cover;
   border: 1px solid var(--veda-border);
 }
 
-/* Detected entities */
-.scan-section__entities {
+/* Image previews (post-results: compact) */
+.scan-section__previews--compact img {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+}
+
+/* ── Post-results: scanned item header ── */
+
+.scan-section__scanned {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(46, 204, 113, 0.08);
+  border: 1px solid rgba(46, 204, 113, 0.18);
+  margin-bottom: 8px;
+}
+
+.scan-section__scanned-check {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.scan-section__scanned-name {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+  color: var(--veda-text);
+  outline: none;
+  padding: 2px 0;
+}
+
+.scan-section__scanned-name:focus {
+  border-bottom-color: var(--veda-accent);
+}
+
+/* Photo accordion toggle */
+.scan-section__photo-toggle {
+  display: block;
+  width: 100%;
+  padding: 6px 0;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--veda-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+
+.scan-section__photo-toggle:hover {
+  opacity: 1;
+  color: var(--veda-accent);
+}
+
+/* ── Grouped entity chips ── */
+
+.scan-section__chip-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 14px;
 }
 
+.scan-section__chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.scan-section__chip-cat {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--veda-text-muted);
+  opacity: 0.65;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+/* Entity chip (shared across grouped and flat) */
 .scan-section__entity {
   font-size: 0.72rem;
   font-weight: 500;
@@ -110,7 +195,20 @@
   color: var(--veda-accent);
 }
 
-/* Signal results */
+/* Summary line */
+.scan-section__summary-line {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.78rem;
+  color: var(--veda-text-muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* ── Signal results ── */
+
 .scan-section__signals {
   display: flex;
   flex-direction: column;
