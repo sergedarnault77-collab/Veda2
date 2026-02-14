@@ -1,263 +1,213 @@
-export const config = {
-  runtime: "edge",
+export const config = { runtime: "edge" };
+
+type AnalyzeRequest = {
+  frontImageDataUrl: string;
+  ingredientsImageDataUrl: string;
 };
 
-/* ── Types ── */
-
-type Severity = "low" | "medium" | "high";
-type ProductKind = "supplement" | "medication" | "food_drink" | "unknown";
-type EntityCategory = "Sweeteners" | "Stimulants" | "Sugars" | "Vitamins" | "Minerals" | "Other";
-
-export interface EntityItem {
-  name: string;
-  category: EntityCategory;
-  confidence: number;
-  evidence: string[];
-}
-
-export interface NutritionFacts {
-  calories: number | null;
-  sugar_g: number | null;
-  caffeine_mg: number | null;
-}
-
-export interface Additives {
-  sweeteners: string[];
-  preservatives: string[];
-  acids: string[];
-}
-
-export interface AnalyzeSignal {
-  severity: Severity;
-  headline: string;
-  explanation: string;
-  related: string[];
-}
-
-export interface AnalyzeResponse {
+type AnalyzeResponse = {
   ok: true;
   productName: string | null;
-  kind: ProductKind;
-  detectedEntities: EntityItem[];
-  nutritionFacts: NutritionFacts;
-  additives: Additives;
-  signals: AnalyzeSignal[];
-  meta: { mode: "openai" | "stub"; notes: string[] };
+  normalized: {
+    detectedEntities: string[];
+    categories: Record<string, string[]>;
+  };
+  signals: Array<{
+    type: string;
+    severity: "low" | "medium" | "high";
+    headline: string;
+    explanation: string;
+    confidence: number; // 0..1
+    relatedEntities: string[];
+  }>;
+  meta: { mode: "openai" | "stub"; reason?: string };
+};
+
+const MAX_IMAGE_BYTES = 1_450_000; // ~1.4MB
+const OPENAI_URL = "https://api.openai.com/v1/responses";
+
+function json(content: unknown, status = 200) {
+  return new Response(JSON.stringify(content), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
 }
 
-/* ── Helpers ── */
-
-function isDataImage(s: unknown): s is string {
-  return typeof s === "string" && s.startsWith("data:image/");
-}
-
-function b64SizeBytes(dataUrl: string): number {
-  const i = dataUrl.indexOf("base64,");
-  if (i === -1) return dataUrl.length;
-  const b64 = dataUrl.slice(i + 7);
+function approxBytesFromDataUrl(dataUrl: string) {
+  const idx = dataUrl.indexOf(",");
+  const b64 = idx >= 0 ? dataUrl.slice(idx + 1) : dataUrl;
   return Math.floor((b64.length * 3) / 4);
 }
 
-function stub(msg: string): AnalyzeResponse {
-  console.log("[analyze] stub:", msg);
+function isDataImage(v: unknown): v is string {
+  return typeof v === "string" && v.startsWith("data:image/");
+}
+
+/**
+ * Responses API can return output_text at the top level (convenience helper)
+ * or nested inside output[].content[].text. Handle both.
+ */
+function extractOutputText(resp: any): string {
+  if (typeof resp?.output_text === "string" && resp.output_text.trim()) {
+    return resp.output_text.trim();
+  }
+  const out = resp?.output;
+  if (Array.isArray(out)) {
+    for (const item of out) {
+      const content = item?.content;
+      if (Array.isArray(content)) {
+        for (const c of content) {
+          const t = c?.text;
+          if (typeof t === "string" && t.trim()) return t.trim();
+        }
+      }
+    }
+  }
+  throw new Error("No output_text found in Responses API response");
+}
+
+/* ── JSON Schema (strict-mode compatible: all objects have additionalProperties:false) ── */
+
+const SCHEMA = {
+  name: "veda_scan_analyze",
+  strict: true,
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      productName: { type: ["string", "null"] },
+      categories: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          Sweeteners: { type: "array", items: { type: "string" } },
+          Stimulants: { type: "array", items: { type: "string" } },
+          Sugars: { type: "array", items: { type: "string" } },
+          Calories: { type: "array", items: { type: "string" } },
+          Vitamins: { type: "array", items: { type: "string" } },
+          Minerals: { type: "array", items: { type: "string" } },
+          Supplements: { type: "array", items: { type: "string" } },
+          Other: { type: "array", items: { type: "string" } },
+        },
+        required: [
+          "Sweeteners", "Stimulants", "Sugars", "Calories",
+          "Vitamins", "Minerals", "Supplements", "Other",
+        ],
+      },
+      detectedEntities: { type: "array", items: { type: "string" } },
+      signals: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            type: { type: "string" },
+            severity: { type: "string", enum: ["low", "medium", "high"] },
+            headline: { type: "string" },
+            explanation: { type: "string" },
+            confidence: { type: "number" },
+            relatedEntities: { type: "array", items: { type: "string" } },
+          },
+          required: ["type", "severity", "headline", "explanation", "confidence", "relatedEntities"],
+        },
+      },
+    },
+    required: ["productName", "categories", "detectedEntities", "signals"],
+  },
+};
+
+/* ── Stub response ── */
+
+function stub(reason: string): AnalyzeResponse {
+  console.log("[analyze] stub:", reason);
   return {
     ok: true,
     productName: null,
-    kind: "unknown",
-    detectedEntities: [],
-    nutritionFacts: { calories: null, sugar_g: null, caffeine_mg: null },
-    additives: { sweeteners: [], preservatives: [], acids: [] },
+    normalized: { detectedEntities: [], categories: {} },
     signals: [
       {
+        type: "no_read",
         severity: "low",
-        headline: "NO NOTABLE INTERACTION PATTERN FOUND",
+        headline: "Couldn't read label reliably",
         explanation:
           "I couldn't read enough label text to classify this item reliably. " +
           "This is interpretive and depends on dose, timing, and individual variability.",
-        related: [],
+        confidence: 0.1,
+        relatedEntities: [],
       },
     ],
-    meta: { mode: "stub", notes: [msg] },
+    meta: { mode: "stub", reason },
   };
-}
-
-/* ── Post-processor: strip hallucinated vitamins/minerals, sync sweeteners ── */
-
-function postProcess(raw: any): void {
-  // 1. Strip vitamins/minerals whose evidence[] is empty or doesn't mention the nutrient
-  if (Array.isArray(raw.detectedEntities)) {
-    raw.detectedEntities = raw.detectedEntities.filter((e: any) => {
-      if (e.category !== "Vitamins" && e.category !== "Minerals") return true;
-      const ev = Array.isArray(e.evidence) ? e.evidence : [];
-      if (ev.length === 0) return false;
-      const name = String(e.name || "").toLowerCase();
-      if (!name) return false;
-      return ev.some((s: string) => String(s).toLowerCase().includes(name));
-    });
-  }
-
-  // 2. If additives.sweeteners has entries that aren't in detectedEntities, inject them
-  const sweeteners: string[] = Array.isArray(raw.additives?.sweeteners) ? raw.additives.sweeteners : [];
-  const entityNames = new Set(
-    (raw.detectedEntities || []).map((e: any) => String(e.name).toLowerCase()),
-  );
-  for (const sw of sweeteners) {
-    if (!entityNames.has(String(sw).toLowerCase())) {
-      raw.detectedEntities = raw.detectedEntities || [];
-      raw.detectedEntities.push({
-        name: sw,
-        category: "Sweeteners",
-        confidence: 0.85,
-        evidence: ["ingredients label indicates sweetener"],
-      });
-    }
-  }
-
-  // 3. Null out empty / whitespace-only productName
-  if (typeof raw.productName === "string" && !raw.productName.trim()) {
-    raw.productName = null;
-  }
 }
 
 /* ── Handler ── */
 
-export default async function handler(req: Request): Promise<Response> {
-  const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+export default async function handler(req: Request) {
+  if (req.method !== "POST") return json({ ok: false, error: "Use POST" }, 405);
 
-  if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
-
-  let body: any = null;
-  try { body = await req.json(); } catch { return json({ ok: false, error: "Invalid JSON" }, 400); }
-
-  const frontImageDataUrl = body?.frontImageDataUrl;
-  const ingredientsImageDataUrl = body?.ingredientsImageDataUrl;
-
-  if (!isDataImage(frontImageDataUrl) || !isDataImage(ingredientsImageDataUrl)) {
-    return json({ ok: false, error: "Both images required (data:image/...)" }, 400);
+  let body: AnalyzeRequest | null = null;
+  try {
+    body = (await req.json()) as AnalyzeRequest;
+  } catch {
+    return json({ ok: false, error: "Invalid JSON" }, 400);
   }
 
-  const maxBytes = 1_400_000;
-  if (b64SizeBytes(frontImageDataUrl) > maxBytes || b64SizeBytes(ingredientsImageDataUrl) > maxBytes) {
-    return json({ ok: false, error: "Images too large (compress more)" }, 413);
+  const front = body?.frontImageDataUrl;
+  const ingr = body?.ingredientsImageDataUrl;
+
+  if (!isDataImage(front) || !isDataImage(ingr)) {
+    return json({ ok: false, error: "Both images must be data:image/* URLs" }, 400);
   }
 
-  const apiKey = (process.env.OPENAI_API_KEY || "").trim();
-  if (!apiKey) return json(stub("OPENAI_API_KEY missing"));
+  if (approxBytesFromDataUrl(front) > MAX_IMAGE_BYTES || approxBytesFromDataUrl(ingr) > MAX_IMAGE_BYTES) {
+    return json({ ok: false, error: "Images too large (client should compress)" }, 413);
+  }
 
-  /* ── JSON schema for structured output ── */
+  const apiKey = ((globalThis as any)?.process?.env?.OPENAI_API_KEY ?? "").trim();
+  if (!apiKey) return json(stub("OPENAI_API_KEY missing"), 200);
 
-  const schema = {
-    name: "VedaAnalyzeResponse",
-    strict: true,
-    schema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        productName: { type: ["string", "null"] },
-        kind: { type: "string", enum: ["supplement", "medication", "food_drink", "unknown"] },
-        detectedEntities: {
-          type: "array",
-          items: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              name: { type: "string" },
-              category: { type: "string", enum: ["Sweeteners", "Stimulants", "Sugars", "Vitamins", "Minerals", "Other"] },
-              confidence: { type: "number" },
-              evidence: { type: "array", items: { type: "string" } },
-            },
-            required: ["name", "category", "confidence", "evidence"],
-          },
-        },
-        nutritionFacts: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            calories: { type: ["number", "null"] },
-            sugar_g: { type: ["number", "null"] },
-            caffeine_mg: { type: ["number", "null"] },
-          },
-          required: ["calories", "sugar_g", "caffeine_mg"],
-        },
-        additives: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            sweeteners: { type: "array", items: { type: "string" } },
-            preservatives: { type: "array", items: { type: "string" } },
-            acids: { type: "array", items: { type: "string" } },
-          },
-          required: ["sweeteners", "preservatives", "acids"],
-        },
-        signals: {
-          type: "array",
-          items: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              severity: { type: "string", enum: ["low", "medium", "high"] },
-              headline: { type: "string" },
-              explanation: { type: "string" },
-              related: { type: "array", items: { type: "string" } },
-            },
-            required: ["severity", "headline", "explanation", "related"],
-          },
-        },
-      },
-      required: ["productName", "kind", "detectedEntities", "nutritionFacts", "additives", "signals"],
-    },
-  };
+  /* ── Prompts ── */
 
-  /* ── System + user prompt ── */
+  const system = [
+    "You are Veda's label reader.",
+    "",
+    "Goal:",
+    "- Identify the PRODUCT NAME from the front image.",
+    "- Read INGREDIENTS/NUTRITION info from the ingredients label image.",
+    "- Return evidence-based entities grouped into categories.",
+    "- Do NOT hallucinate vitamins/minerals. Only include if explicitly present on the label text.",
+    "",
+    "Categories to use (keys):",
+    "Sweeteners, Stimulants, Sugars, Calories, Vitamins, Minerals, Supplements, Other",
+    "",
+    "Rules:",
+    "- Interpretive language only. No medical advice.",
+    "- Avoid: 'stop', 'should', 'causes', 'treats'.",
+    "- If uncertain, omit the entity rather than guessing.",
+    "- Sweeteners: list every artificial/non-caloric sweetener found (e.g. Aspartame, Acesulfame K, Sucralose, Stevia).",
+    "- Stimulants: include caffeine if present on the label.",
+    "- Vitamins/Minerals: ONLY include if explicitly printed on the ingredients or nutrition panel. Do NOT infer from product type.",
+    "- Calories: include calorie amount string if visible (e.g. '0 kcal', '140 kcal').",
+    "- Sugars: include sugar amount string if visible (e.g. '0g sugar', '39g sugar').",
+    "- If the item is a beverage like Coke Zero, it should typically surface sweeteners and caffeine, NOT magnesium/vitamin D unless explicitly on label.",
+  ].join("\n");
 
-  const input = [
-    {
-      role: "system",
-      content: [
-        "You are Veda. Extract facts from product label photos. Output MUST be valid JSON matching the schema.",
-        "",
-        "STRICT RULES:",
-        "1. No medical advice. No diagnosis. Never use 'stop', 'should', 'causes', or 'treats'. Use interpretive language: 'commonly associated with', 'tends to', 'often flagged'.",
-        "2. Do NOT invent vitamins or minerals. Only include category='Vitamins' or 'Minerals' if the nutrient is EXPLICITLY printed on the ingredients or nutrition facts panel. For each such entity you MUST include at least one evidence string that contains the nutrient name verbatim (e.g. evidence: ['Vitamin D 0.75µg per 100ml']).",
-        "3. If the product is a soft drink / beverage and the label lists sweeteners or caffeine, PRIORITISE those in detectedEntities and mention them in signals.",
-        "4. If you are unsure about an entity, OMIT it rather than guess. For weak reads use confidence < 0.5 and still provide evidence strings.",
-        "5. Prefer the INGREDIENTS image for additives, detectedEntities, and acids. Prefer the FRONT image for productName / brand. Prefer the nutrition facts panel for caffeine_mg, sugar_g, and calories.",
-        "6. productName: the product name as printed on the front label. If you cannot read it clearly, return null. Do not guess or hallucinate a name.",
-        "7. kind: classify as 'supplement', 'medication', 'food_drink', or 'unknown'.",
-        "8. additives.sweeteners: list every artificial/non-caloric sweetener found on the ingredients list (e.g. Aspartame, Acesulfame K, Sucralose, Stevia).",
-        "9. Return JSON only. No markdown fences. No extra keys.",
-      ].join("\n"),
-    },
-    {
-      role: "user",
-      content: [
-        { type: "text", text: "Front of product (read product name / brand):" },
-        { type: "image_url", image_url: { url: frontImageDataUrl } },
-        { type: "text", text: "Ingredients / nutrition label (extract ingredients, amounts, additives):" },
-        { type: "image_url", image_url: { url: ingredientsImageDataUrl } },
-        {
-          type: "text",
-          text: [
-            "Return:",
-            "- productName: as printed on front, or null",
-            "- kind: supplement | medication | food_drink | unknown",
-            "- detectedEntities: key entities with category, confidence 0–1, and evidence snippets copied from label text",
-            "- nutritionFacts: { calories, sugar_g, caffeine_mg } — null if not on label",
-            "- additives: { sweeteners[], preservatives[], acids[] } from ingredients list",
-            "- signals: 1–3 interpretive signals (severity + headline + explanation). For a plain beverage use severity 'low'.",
-            "",
-            "CRITICAL: For Vitamins/Minerals, each evidence[] MUST contain a snippet with the nutrient name. If no such snippet exists on the label, do NOT include that entity.",
-          ].join("\n"),
-        },
-      ],
-    },
-  ];
+  const userText = [
+    "Return JSON matching the schema exactly.",
+    "",
+    "Return:",
+    "- productName: as printed on the front, or null if unreadable",
+    "- categories: group entities into the 8 category keys (empty array if none)",
+    "- detectedEntities: flat list of all entity names found",
+    "- signals: 1–3 interpretive signals. For a plain beverage use severity 'low'. Include confidence 0–1.",
+    "",
+    "CRITICAL: Do NOT include Vitamins or Minerals unless the label explicitly names them.",
+  ].join("\n");
 
-  /* ── Call OpenAI ── */
+  /* ── Call OpenAI Responses API ── */
 
   try {
-    const r = await fetch("https://api.openai.com/v1/responses", {
+    const res = await fetch(OPENAI_URL, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -265,59 +215,92 @@ export default async function handler(req: Request): Promise<Response> {
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        input,
-        response_format: { type: "json_schema", json_schema: schema },
+        input: [
+          {
+            role: "system",
+            content: [{ type: "input_text", text: system }],
+          },
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: "Front image:" },
+              { type: "input_image", image_url: front, detail: "low" },
+              { type: "input_text", text: "Ingredients/Nutrition label image:" },
+              { type: "input_image", image_url: ingr, detail: "high" },
+              { type: "input_text", text: userText },
+            ],
+          },
+        ],
+        // Responses API: structured output goes in text.format, NOT response_format
+        text: {
+          format: {
+            type: "json_schema",
+            json_schema: SCHEMA,
+          },
+        },
       }),
     });
 
-    if (!r.ok) {
-      const t = await r.text();
-      console.error("[analyze] OpenAI error:", r.status, t.slice(0, 200));
-      return json(stub(`OpenAI error: ${r.status} ${t.slice(0, 120)}`));
+    const raw = await res.text();
+
+    if (!res.ok) {
+      console.log("[analyze] OpenAI HTTP", res.status, raw.slice(0, 500));
+      return json(stub(`OpenAI HTTP ${res.status}`), 200);
     }
 
-    const data = await r.json();
-    const text = data?.output?.[0]?.content?.[0]?.text;
-    if (typeof text !== "string") {
-      console.error("[analyze] Unexpected response shape:", JSON.stringify(data).slice(0, 300));
-      return json(stub("Unexpected OpenAI response shape"));
+    const parsedResp = JSON.parse(raw);
+    const outText = extractOutputText(parsedResp);
+    const obj = JSON.parse(outText);
+
+    /* ── Normalize ── */
+
+    // Build categories: only keep non-empty arrays
+    const categories: Record<string, string[]> = {};
+    if (obj.categories && typeof obj.categories === "object") {
+      for (const [k, v] of Object.entries(obj.categories)) {
+        if (Array.isArray(v) && v.length > 0) categories[k] = v.map(String);
+      }
     }
 
-    const parsed = JSON.parse(text);
+    // Build detectedEntities; ensure every category item is represented
+    const detectedEntities: string[] = Array.isArray(obj.detectedEntities)
+      ? obj.detectedEntities.map(String)
+      : [];
+    const entitySet = new Set(detectedEntities.map((s) => s.toLowerCase()));
+    for (const arr of Object.values(categories)) {
+      for (const name of arr) {
+        if (!entitySet.has(name.toLowerCase())) {
+          detectedEntities.push(name);
+          entitySet.add(name.toLowerCase());
+        }
+      }
+    }
 
-    // Run anti-hallucination post-processor
-    postProcess(parsed);
+    // Clean productName
+    const productName =
+      typeof obj.productName === "string" && obj.productName.trim()
+        ? obj.productName.trim()
+        : null;
 
-    const resp: AnalyzeResponse = {
+    const result: AnalyzeResponse = {
       ok: true,
-      productName: typeof parsed.productName === "string" ? parsed.productName : null,
-      kind: ["supplement", "medication", "food_drink", "unknown"].includes(parsed.kind) ? parsed.kind : "unknown",
-      detectedEntities: Array.isArray(parsed.detectedEntities) ? parsed.detectedEntities : [],
-      nutritionFacts: {
-        calories: typeof parsed.nutritionFacts?.calories === "number" ? parsed.nutritionFacts.calories : null,
-        sugar_g: typeof parsed.nutritionFacts?.sugar_g === "number" ? parsed.nutritionFacts.sugar_g : null,
-        caffeine_mg: typeof parsed.nutritionFacts?.caffeine_mg === "number" ? parsed.nutritionFacts.caffeine_mg : null,
-      },
-      additives: {
-        sweeteners: Array.isArray(parsed.additives?.sweeteners) ? parsed.additives.sweeteners.map(String) : [],
-        preservatives: Array.isArray(parsed.additives?.preservatives) ? parsed.additives.preservatives.map(String) : [],
-        acids: Array.isArray(parsed.additives?.acids) ? parsed.additives.acids.map(String) : [],
-      },
-      signals: Array.isArray(parsed.signals) ? parsed.signals : [],
-      meta: { mode: "openai", notes: [] },
+      productName,
+      normalized: { detectedEntities, categories },
+      signals: Array.isArray(obj.signals) ? obj.signals : [],
+      meta: { mode: "openai" },
     };
 
     console.log(
-      "[analyze] mode=openai product=%s kind=%s entities=%d sweeteners=%d signals=%d",
-      resp.productName,
-      resp.kind,
-      resp.detectedEntities.length,
-      resp.additives.sweeteners.length,
-      resp.signals.length,
+      "[analyze] mode=openai product=%s cats=%s entities=%d signals=%d",
+      result.productName,
+      Object.keys(categories).join(","),
+      detectedEntities.length,
+      result.signals.length,
     );
-    return json(resp);
-  } catch (e: any) {
-    console.error("[analyze] exception:", e?.message || e);
-    return json(stub(`Exception: ${String(e?.message || e)}`));
+
+    return json(result);
+  } catch (err: any) {
+    console.error("[analyze] error:", err?.message || err);
+    return json(stub(`Error: ${String(err?.message || err).slice(0, 120)}`));
   }
 }

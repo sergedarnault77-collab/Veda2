@@ -15,93 +15,56 @@ export default function ScanSection() {
 
   const canScanIngredients = !!frontImage && !loading;
 
-  /* ── Build chip groups from new response shape ── */
+  /* ── Build chip groups from normalized.categories ── */
 
   const entitiesByCategory = useMemo(() => {
-    if (!result) return [];
+    const cats: Record<string, string[]> = result?.normalized?.categories || {};
     const groups: { label: string; items: string[] }[] = [];
-
-    // Sweeteners — authoritative source is additives.sweeteners
-    const sweeteners: string[] = Array.isArray(result.additives?.sweeteners)
-      ? result.additives.sweeteners.map(String)
-      : [];
-    if (sweeteners.length) groups.push({ label: "Sweeteners", items: sweeteners });
-
-    // Stimulants — from entities + caffeine_mg fallback
-    const stimulants = (Array.isArray(result.detectedEntities) ? result.detectedEntities : [])
-      .filter((e: any) => e.category === "Stimulants")
-      .map((e: any) => String(e.name));
-    if (
-      result.nutritionFacts?.caffeine_mg != null &&
-      !stimulants.some((s: string) => s.toLowerCase() === "caffeine")
-    ) {
-      stimulants.push("Caffeine");
+    // Display order — skip Calories (shown in summary line instead)
+    const order = ["Sweeteners", "Stimulants", "Sugars", "Vitamins", "Minerals", "Supplements", "Other"];
+    for (const k of order) {
+      const arr = Array.isArray(cats[k]) ? cats[k] : [];
+      if (arr.length) groups.push({ label: k, items: arr.map(String) });
     }
-    if (stimulants.length) groups.push({ label: "Stimulants", items: stimulants });
-
-    // Sugars
-    const sugars = (Array.isArray(result.detectedEntities) ? result.detectedEntities : [])
-      .filter((e: any) => e.category === "Sugars")
-      .map((e: any) => String(e.name));
-    if (sugars.length) groups.push({ label: "Sugars", items: sugars });
-
-    // Vitamins — only evidence-backed (server already filtered, but guard anyway)
-    const vitamins = (Array.isArray(result.detectedEntities) ? result.detectedEntities : [])
-      .filter((e: any) => e.category === "Vitamins" && Array.isArray(e.evidence) && e.evidence.length > 0)
-      .map((e: any) => String(e.name));
-    if (vitamins.length) groups.push({ label: "Vitamins", items: vitamins });
-
-    // Minerals — only evidence-backed
-    const minerals = (Array.isArray(result.detectedEntities) ? result.detectedEntities : [])
-      .filter((e: any) => e.category === "Minerals" && Array.isArray(e.evidence) && e.evidence.length > 0)
-      .map((e: any) => String(e.name));
-    if (minerals.length) groups.push({ label: "Minerals", items: minerals });
-
-    // Other
-    const other = (Array.isArray(result.detectedEntities) ? result.detectedEntities : [])
-      .filter((e: any) => e.category === "Other")
-      .map((e: any) => String(e.name));
-    if (other.length) groups.push({ label: "Other", items: other });
-
+    // Fallback: if no categories but detectedEntities exist (stub / legacy)
+    if (
+      !groups.length &&
+      Array.isArray(result?.normalized?.detectedEntities) &&
+      result.normalized.detectedEntities.length
+    ) {
+      groups.push({ label: "Detected", items: result.normalized.detectedEntities.map(String) });
+    }
     return groups;
   }, [result]);
 
   /* ── "Detected:" summary line — prioritises sweeteners > caffeine > sugar > calories ── */
 
   const summaryLine = useMemo(() => {
-    if (!result) return "";
+    const cats: Record<string, string[]> = result?.normalized?.categories || {};
     const parts: string[] = [];
 
-    const sw: string[] = Array.isArray(result.additives?.sweeteners) ? result.additives.sweeteners : [];
+    // Sweeteners
+    const sw = Array.isArray(cats.Sweeteners) ? cats.Sweeteners : [];
     if (sw.length === 1) parts.push(`sweetener (${sw[0]})`);
     else if (sw.length > 1) parts.push(`sweeteners (${sw.length}): ${sw.join(", ")}`);
 
-    const caffMg = result.nutritionFacts?.caffeine_mg;
-    const hasCaffeineEntity = (Array.isArray(result.detectedEntities) ? result.detectedEntities : []).some(
-      (e: any) => String(e.name).toLowerCase() === "caffeine",
-    );
-    if (caffMg != null) parts.push(`caffeine ${caffMg} mg`);
-    else if (hasCaffeineEntity) parts.push("caffeine (approx)");
+    // Caffeine / stimulants
+    const stim = Array.isArray(cats.Stimulants) ? cats.Stimulants : [];
+    if (stim.some((s) => s.toLowerCase().includes("caffeine"))) {
+      parts.push("caffeine");
+    } else if (stim.length) {
+      parts.push(stim.join(", ").toLowerCase());
+    }
 
-    const sugarG = result.nutritionFacts?.sugar_g;
-    if (sugarG != null) parts.push(sugarG === 0 ? "sugar 0 g" : `sugar ${sugarG} g`);
+    // Sugars
+    const sugars = Array.isArray(cats.Sugars) ? cats.Sugars : [];
+    if (sugars.length) parts.push(sugars.join(", "));
 
-    const cal = result.nutritionFacts?.calories;
-    if (cal != null) parts.push(cal === 0 ? "0 cal" : `${cal} cal`);
+    // Calories
+    const cal = Array.isArray(cats.Calories) ? cats.Calories : [];
+    if (cal.length) parts.push(cal.join(", "));
 
     return parts.length ? parts.join(" · ") : "";
-  }, [result]);
-
-  /* ── Kind sub-label ── */
-
-  const kindLabel = useMemo(() => {
-    if (!result?.kind) return "";
-    const map: Record<string, string> = {
-      food_drink: "Food / Drink",
-      supplement: "Supplement",
-      medication: "Medication",
-    };
-    return map[result.kind] || "";
   }, [result]);
 
   /* ── Handlers ── */
@@ -148,7 +111,7 @@ export default function ScanSection() {
         }),
       });
       const json = await r.json();
-      if (!r.ok) throw new Error(json?.error || `HTTP ${r.status}`);
+      if (!json.ok) throw new Error(json?.error || `HTTP ${r.status}`);
       setResult(json);
       setProductName(
         typeof json?.productName === "string" && json.productName.trim()
@@ -161,21 +124,20 @@ export default function ScanSection() {
       setResult({
         ok: true,
         productName: null,
-        kind: "unknown",
-        detectedEntities: [],
-        nutritionFacts: { calories: null, sugar_g: null, caffeine_mg: null },
-        additives: { sweeteners: [], preservatives: [], acids: [] },
+        normalized: { detectedEntities: [], categories: {} },
         signals: [
           {
+            type: "no_read",
             severity: "low",
-            headline: "NO NOTABLE INTERACTION PATTERN FOUND",
+            headline: "Couldn't read label reliably",
             explanation:
               "I couldn't read enough label text to classify this item reliably. " +
               "This is interpretive and depends on dose, timing, and individual variability.",
-            related: [],
+            confidence: 0.1,
+            relatedEntities: [],
           },
         ],
-        meta: { mode: "stub", notes: ["client-side fallback"] },
+        meta: { mode: "stub", reason: "client-side fallback" },
       });
       setProductName("(unnamed item)");
       setStep("done");
@@ -197,7 +159,6 @@ export default function ScanSection() {
 
   const modeLabel =
     result?.meta?.mode === "openai" ? "Read from label" : "Couldn't read label reliably";
-  const subText = kindLabel ? `${modeLabel} · ${kindLabel}` : modeLabel;
 
   return (
     <section className="scan-section">
@@ -278,7 +239,7 @@ export default function ScanSection() {
                     onChange={(e) => setProductName(e.target.value)}
                   />
                 </div>
-                <div className="scan-section__scannedSub">{subText}</div>
+                <div className="scan-section__scannedSub">{modeLabel}</div>
               </div>
               <details className="scan-section__photosToggle">
                 <summary>Tap to view photos</summary>
@@ -326,8 +287,10 @@ export default function ScanSection() {
                     {String(s.headline || "").toUpperCase()}
                   </div>
                   <div className="scan-section__explain">{String(s.explanation || "")}</div>
-                  {Array.isArray(s.related) && s.related.length > 0 && (
-                    <div className="scan-section__related">Related: {s.related.join(", ")}</div>
+                  {Array.isArray(s.relatedEntities) && s.relatedEntities.length > 0 && (
+                    <div className="scan-section__related">
+                      Related: {s.relatedEntities.join(", ")}
+                    </div>
                   )}
                 </div>
               ))}
