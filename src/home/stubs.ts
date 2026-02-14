@@ -3,10 +3,21 @@
 
 // ── Types ──
 
+/** Multi-step scan flow: idle → front label capture → ingredients capture → result */
+export type ScanStage = "idle" | "front" | "ingredients";
+
+export interface NutrientRow {
+  nutrientId: string;
+  name: string;
+  unit: "mg" | "µg" | "IU";
+  amountToday: number;
+  dailyReference: number;
+}
+
 export interface Supplement {
   id: string;
   name: string;
-  nutrients: Record<string, number>; // nutrient name → mg or IU
+  nutrients: NutrientRow[];
 }
 
 export interface ExposureEntry {
@@ -16,13 +27,28 @@ export interface ExposureEntry {
   color: string;
 }
 
-export interface InteractionResult {
-  kind:
-    | "interaction_detected"
-    | "amplification_likely"
-    | "timing_conflict"
-    | "no_notable_interaction";
-  summary: string;
+export type SignalType =
+  | "timing_conflict"
+  | "amplification"
+  | "duplication"
+  | "contraindication_flag"
+  | "low_value"
+  | "no_notable_interaction";
+
+export interface Signal {
+  type: SignalType;
+  severity: "info" | "possible" | "likely";
+  headline: string;
+  explanation: string;
+  confidence: "low" | "medium" | "high";
+  related?: string[];
+}
+
+export interface AnalyzeResponse {
+  ok: true;
+  signals: Signal[];
+  normalized: { detectedEntities: string[] };
+  meta: { mode: "stub"; timestampISO: string };
 }
 
 export interface SignalExplanation {
@@ -31,36 +57,34 @@ export interface SignalExplanation {
 }
 
 // ── Stub supplements ──
+// TODO: Pull from real user data + reference database.
 
 export const STUB_SUPPLEMENTS: Supplement[] = [
   {
     id: "s1",
     name: "Magnesium Glycinate",
-    nutrients: { Magnesium: 400, Glycine: 2000 },
+    nutrients: [
+      { nutrientId: "mag", name: "Magnesium", unit: "mg", amountToday: 400, dailyReference: 420 },
+      { nutrientId: "gly", name: "Glycine", unit: "mg", amountToday: 2000, dailyReference: 3000 },
+    ],
   },
   {
     id: "s2",
     name: "Vitamin D3 + K2",
-    nutrients: { "Vitamin D": 5000, "Vitamin K2": 100 },
+    nutrients: [
+      { nutrientId: "vitd", name: "Vitamin D", unit: "IU", amountToday: 5000, dailyReference: 4000 },
+      { nutrientId: "vitk2", name: "Vitamin K2", unit: "µg", amountToday: 100, dailyReference: 120 },
+    ],
   },
   {
     id: "s3",
     name: "Omega-3 Fish Oil",
-    nutrients: { EPA: 900, DHA: 600 },
+    nutrients: [
+      { nutrientId: "epa", name: "EPA", unit: "mg", amountToday: 900, dailyReference: 500 },
+      { nutrientId: "dha", name: "DHA", unit: "mg", amountToday: 600, dailyReference: 500 },
+    ],
   },
 ];
-
-// ── Daily reference values (simplified) ──
-// TODO: Pull from a real reference database.
-
-export const DAILY_REFERENCE: Record<string, number> = {
-  Magnesium: 420,
-  Glycine: 3000,
-  "Vitamin D": 4000,
-  "Vitamin K2": 120,
-  EPA: 500,
-  DHA: 500,
-};
 
 // ── Stub exposure data (from scanned items today) ──
 
@@ -71,13 +95,24 @@ export const STUB_EXPOSURE: ExposureEntry[] = [
   { label: "Caffeine", value: 180, unit: "mg", color: "var(--bar-caffeine)" },
 ];
 
-// ── Stub interaction result ──
-// TODO: Wire to AI reasoning engine.
+// ── Stub analyze response (local fallback when API is unavailable) ──
+// TODO: Remove once /api/analyze is live.
 
-export const STUB_INTERACTION: InteractionResult = {
-  kind: "interaction_detected",
-  summary:
-    "Magnesium is commonly associated with reduced absorption of certain antibiotics when taken at the same time. This combination is often flagged for timing considerations.",
+export const STUB_ANALYZE_RESPONSE: AnalyzeResponse = {
+  ok: true,
+  signals: [
+    {
+      type: "timing_conflict",
+      severity: "likely",
+      headline: "Timing consideration often flagged",
+      explanation:
+        "Magnesium taken close in time to certain antibiotics is commonly associated with reduced absorption. Some people separate timing to avoid overlap.",
+      confidence: "medium",
+      related: ["Magnesium", "Antibiotic (reported)"],
+    },
+  ],
+  normalized: { detectedEntities: ["Magnesium"] },
+  meta: { mode: "stub", timestampISO: new Date().toISOString() },
 };
 
 // ── Stub explaining signals ──

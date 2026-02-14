@@ -1,64 +1,109 @@
 import { useState } from "react";
-import type { InteractionResult } from "./stubs";
-import { STUB_INTERACTION } from "./stubs";
+import type { ScanStage, Signal, AnalyzeResponse } from "./stubs";
+import { STUB_ANALYZE_RESPONSE } from "./stubs";
 import "./ScanSection.css";
 
-/* TODO: Replace stub with real camera / barcode scan + AI reasoning. */
-function stubScan(): Promise<InteractionResult> {
-  return new Promise((res) => setTimeout(() => res(STUB_INTERACTION), 800));
+/** Call /api/analyze; fall back to stub data in local dev. */
+async function analyzeLabel(inputText: string): Promise<AnalyzeResponse> {
+  try {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inputText }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return (await res.json()) as AnalyzeResponse;
+  } catch {
+    // TODO: Remove fallback once Vercel deployment is live.
+    return {
+      ...STUB_ANALYZE_RESPONSE,
+      meta: { mode: "stub", timestampISO: new Date().toISOString() },
+    };
+  }
 }
 
-const KIND_LABELS: Record<InteractionResult["kind"], string> = {
-  interaction_detected: "Interaction detected",
-  amplification_likely: "Amplification likely",
-  timing_conflict: "Timing conflict",
-  no_notable_interaction: "No notable interaction found",
-};
-
-const KIND_CLASSES: Record<InteractionResult["kind"], string> = {
-  interaction_detected: "badge--warn",
-  amplification_likely: "badge--warn",
-  timing_conflict: "badge--caution",
-  no_notable_interaction: "badge--clear",
+const SEVERITY_CLASS: Record<Signal["severity"], string> = {
+  likely: "badge--warn",
+  possible: "badge--caution",
+  info: "badge--clear",
 };
 
 export function ScanSection() {
-  const [result, setResult] = useState<InteractionResult | null>(null);
-  const [scanning, setScanning] = useState(false);
+  const [stage, setStage] = useState<ScanStage>("idle");
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [entities, setEntities] = useState<string[]>([]);
+  const [analysing, setAnalysing] = useState(false);
 
-  async function handleScan() {
-    setScanning(true);
-    setResult(null);
-    const r = await stubScan();
-    setResult(r);
-    setScanning(false);
+  async function handleIngredients() {
+    setStage("ingredients");
+    setAnalysing(true);
+    // TODO: Replace placeholder text with real OCR / camera output.
+    const data = await analyzeLabel("magnesium glycinate 400mg, vitamin d 5000iu");
+    setSignals(data.signals);
+    setEntities(data.normalized.detectedEntities);
+    setAnalysing(false);
   }
 
   return (
     <section className="scan-section" aria-label="Scan for interactions">
       <h2 className="scan-section__title">Avoiding Harm</h2>
 
-      <button
-        className="scan-section__cta"
-        onClick={handleScan}
-        disabled={scanning}
-      >
-        <span className="scan-section__icon" aria-hidden="true">
-          {/* camera icon (inline SVG keeps deps at zero) */}
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-            <circle cx="12" cy="13" r="4" />
-          </svg>
-        </span>
-        {scanning ? "Scanning…" : "Scan to see how this impacts your system"}
-      </button>
+      <p className="scan-section__headline">
+        Scan to see how this impacts your system
+      </p>
 
-      {result && (
-        <div className="scan-section__result">
-          <span className={`scan-section__badge ${KIND_CLASSES[result.kind]}`}>
-            {KIND_LABELS[result.kind]}
-          </span>
-          <p className="scan-section__summary">{result.summary}</p>
+      <div className="scanActions">
+        <button
+          className="scanBtn"
+          onClick={() => {
+            setSignals([]);
+            setEntities([]);
+            setStage("front");
+          }}
+        >
+          Scan product front
+        </button>
+
+        <button
+          className="scanBtn primary"
+          disabled={stage === "idle" || analysing}
+          onClick={handleIngredients}
+          title={stage === "idle" ? "Scan the front first" : undefined}
+        >
+          {analysing ? "Reading ingredients…" : "Scan ingredients label"}
+        </button>
+
+        <p className="scanHint">
+          Most interaction patterns are identified from the ingredients label on
+          the back.
+        </p>
+      </div>
+
+      {/* Detected entities */}
+      {entities.length > 0 && (
+        <div className="scan-section__entities">
+          {entities.map((e) => (
+            <span key={e} className="scan-section__entity">{e}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Signals from /api/analyze */}
+      {signals.length > 0 && (
+        <div className="scan-section__signals">
+          {signals.map((s, i) => (
+            <div key={i} className="scan-section__result">
+              <span className={`scan-section__badge ${SEVERITY_CLASS[s.severity]}`}>
+                {s.headline}
+              </span>
+              <p className="scan-section__summary">{s.explanation}</p>
+              {s.related && s.related.length > 0 && (
+                <p className="scan-section__related">
+                  Related: {s.related.join(", ")}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </section>

@@ -1,10 +1,10 @@
 import { ScanSection } from "./ScanSection";
-import { ExposureBars } from "./ExposureBars";
+import { DailyReferenceBars } from "./DailyReferenceBars";
 import { StackCoverage } from "./StackCoverage";
 import { ExplainingSignals } from "./ExplainingSignals";
 import "./HomePage.css";
 
-export function HomePage() {
+export default function HomePage() {
   return (
     <main className="home">
       <header className="home__header">
@@ -14,7 +14,7 @@ export function HomePage() {
       {/* A + B: Scan (dominant) with Exposure bars beside it on wider viewports */}
       <div className="home__top-row">
         <ScanSection />
-        <ExposureBars />
+        <DailyReferenceBars />
       </div>
 
       {/* C: Stack coverage */}

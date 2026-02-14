@@ -13,42 +13,95 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--veda-text-muted);
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
-.scan-section__cta {
+.scan-section__headline {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--veda-text);
+  margin-bottom: 18px;
+  line-height: 1.4;
+}
+
+/* Two-button scan actions */
+.scanActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scanBtn {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   width: 100%;
-  padding: 16px 20px;
-  font-size: 1rem;
+  padding: 14px 20px;
+  font-size: 0.92rem;
   font-weight: 500;
-  color: #fff;
-  background: var(--veda-accent);
-  border: none;
+  color: var(--veda-text);
+  background: var(--veda-bg);
+  border: 1px solid var(--veda-border);
   border-radius: var(--radius-md);
-  transition: background 0.15s, box-shadow 0.15s;
-  text-align: left;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  text-align: center;
 }
 
-.scan-section__cta:hover:not(:disabled) {
+.scanBtn:hover:not(:disabled) {
+  border-color: var(--veda-accent);
+  background: var(--veda-surface-hover);
+}
+
+.scanBtn.primary {
+  color: #fff;
+  background: var(--veda-accent);
+  border-color: var(--veda-accent);
+}
+
+.scanBtn.primary:hover:not(:disabled) {
   background: #5a4bd4;
   box-shadow: 0 0 20px var(--veda-accent-glow);
 }
 
-.scan-section__cta:disabled {
-  opacity: 0.6;
+.scanBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-.scan-section__icon {
-  flex-shrink: 0;
+.scanHint {
+  font-size: 0.78rem;
+  color: var(--veda-text-muted);
+  line-height: 1.5;
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* Detected entities */
+.scan-section__entities {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
 }
 
-/* Result area */
+.scan-section__entity {
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(108, 92, 231, 0.12);
+  color: var(--veda-accent);
+}
+
+/* Signal results */
+.scan-section__signals {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .scan-section__result {
-  margin-top: 16px;
   padding: 16px;
   background: var(--veda-bg);
   border-radius: var(--radius-md);
@@ -84,4 +137,11 @@
   font-size: 0.9rem;
   line-height: 1.6;
   color: var(--veda-text-muted);
+}
+
+.scan-section__related {
+  font-size: 0.76rem;
+  color: var(--veda-text-muted);
+  opacity: 0.7;
+  margin-top: 8px;
 }

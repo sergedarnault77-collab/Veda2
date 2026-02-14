@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { STUB_SUPPLEMENTS, DAILY_REFERENCE } from "./stubs";
-import type { Supplement } from "./stubs";
+import { STUB_SUPPLEMENTS } from "./stubs";
+import type { NutrientRow } from "./stubs";
 import "./StackCoverage.css";
 
 function coverageColor(pct: number): string {
@@ -22,16 +22,24 @@ export function StackCoverage() {
     });
   }
 
-  /* Aggregate nutrients only from confirmed supplements */
-  const totals = useMemo(() => {
-    const agg: Record<string, number> = {};
-    STUB_SUPPLEMENTS.forEach((s: Supplement) => {
-      if (!confirmed.has(s.id)) return;
-      for (const [nutrient, amount] of Object.entries(s.nutrients)) {
-        agg[nutrient] = (agg[nutrient] ?? 0) + amount;
+  /* Aggregate NutrientRows across confirmed supplements */
+  const rows = useMemo(() => {
+    const map = new Map<string, NutrientRow>();
+    for (const supp of STUB_SUPPLEMENTS) {
+      if (!confirmed.has(supp.id)) continue;
+      for (const n of supp.nutrients) {
+        const existing = map.get(n.nutrientId);
+        if (existing) {
+          map.set(n.nutrientId, {
+            ...existing,
+            amountToday: existing.amountToday + n.amountToday,
+          });
+        } else {
+          map.set(n.nutrientId, { ...n });
+        }
       }
-    });
-    return agg;
+    }
+    return Array.from(map.values());
   }, [confirmed]);
 
   const noneConfirmed = confirmed.size === 0;
@@ -67,13 +75,17 @@ export function StackCoverage() {
       {/* Nutrient bars */}
       {!noneConfirmed && (
         <ul className="coverage__list">
-          {Object.entries(totals).map(([nutrient, amount]) => {
-            const ref = DAILY_REFERENCE[nutrient];
-            const pct = ref ? Math.round((amount / ref) * 100) : 0;
+          {rows.map((row) => {
+            const pct = row.dailyReference > 0
+              ? Math.round((row.amountToday / row.dailyReference) * 100)
+              : 0;
             return (
-              <li key={nutrient} className="coverage__row">
+              <li key={row.nutrientId} className="coverage__row">
                 <div className="coverage__row-header">
-                  <span className="coverage__nutrient">{nutrient}</span>
+                  <span className="coverage__nutrient">{row.name}</span>
+                  <span className="coverage__amount">
+                    {row.amountToday} {row.unit}
+                  </span>
                   <span className="coverage__pct" style={{ color: coverageColor(pct) }}>
                     {pct}%
                   </span>

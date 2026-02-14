@@ -57,7 +57,7 @@ body {
 #root {
   max-width: 480px;
   margin: 0 auto;
-  padding: 16px 16px 48px;
+  padding: 16px 16px 80px; /* extra bottom clearance for fixed tab bar */
 }
 
 button {

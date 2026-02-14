@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { STUB_EXPOSURE } from "./stubs";
-import "./ExposureBars.css";
+import "./DailyReferenceBars.css";
 
-export function ExposureBars() {
+export function DailyReferenceBars() {
   const [showTooltip, setShowTooltip] = useState(false);
 
   /* Arbitrary visual max per metric for bar width. Not a goal — just a scale. */

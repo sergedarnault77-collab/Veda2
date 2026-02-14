@@ -63,19 +63,29 @@
 
 .coverage__row-header {
   display: flex;
-  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
   margin-bottom: 3px;
 }
 
 .coverage__nutrient {
+  flex: 1;
   font-size: 0.82rem;
   color: var(--veda-text);
+}
+
+.coverage__amount {
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--veda-text-muted);
 }
 
 .coverage__pct {
   font-size: 0.82rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+  text-align: right;
 }
 
 .coverage__track {
