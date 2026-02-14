@@ -4,11 +4,8 @@ import { AddScannedItemModal } from "../shared/AddScannedItemModal";
 import type { ScannedItemDraft } from "../shared/AddScannedItemModal";
 import "./MedicationsPage.css";
 
-type Med = {
+type Med = ScannedItemDraft & {
   id: string;
-  name: string;
-  frontDataUrl: string;
-  ingredientsDataUrl: string;
   createdAtISO: string;
 };
 
@@ -24,7 +21,7 @@ export default function MedicationsPage() {
       id: crypto.randomUUID(),
       createdAtISO: new Date().toISOString(),
     };
-    const next = [item, ...meds]; // prepend
+    const next = [item, ...meds];
     setMeds(next);
     saveLS(LS_KEY, next);
     setShowModal(false);
@@ -68,6 +65,13 @@ export default function MedicationsPage() {
               </div>
               <div className="meds-page__card-info">
                 <div className="meds-page__card-name">{m.name}</div>
+                <div className="meds-page__card-meta">
+                  {m.brand && <span>{m.brand}</span>}
+                  {m.strengthPerUnit != null && m.strengthUnit && (
+                    <span>{m.strengthPerUnit} {m.strengthUnit}{m.form ? ` · ${m.form}` : ""}</span>
+                  )}
+                  {m.servingSizeText && <span>{m.servingSizeText}</span>}
+                </div>
                 {/* TODO: show ✅/⚠️ interaction indicators here */}
               </div>
               <button className="meds-page__remove" onClick={() => removeMed(m.id)} title="Remove">

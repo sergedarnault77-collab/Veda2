@@ -101,6 +101,16 @@
   white-space: nowrap;
 }
 
+.supps-page__card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 3px;
+  font-size: 0.76rem;
+  color: var(--veda-text-muted);
+  line-height: 1.4;
+}
+
 .supps-page__remove {
   padding: 6px 10px;
   font-size: 0.78rem;

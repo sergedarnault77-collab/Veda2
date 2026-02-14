@@ -4,11 +4,8 @@ import { AddScannedItemModal } from "../shared/AddScannedItemModal";
 import type { ScannedItemDraft } from "../shared/AddScannedItemModal";
 import "./SupplementsPage.css";
 
-type Supp = {
+type Supp = ScannedItemDraft & {
   id: string;
-  name: string;
-  frontDataUrl: string;
-  ingredientsDataUrl: string;
   createdAtISO: string;
 };
 
@@ -24,7 +21,7 @@ export default function SupplementsPage() {
       id: crypto.randomUUID(),
       createdAtISO: new Date().toISOString(),
     };
-    const next = [item, ...supps]; // prepend
+    const next = [item, ...supps];
     setSupps(next);
     saveLS(LS_KEY, next);
     setShowModal(false);
@@ -68,6 +65,13 @@ export default function SupplementsPage() {
               </div>
               <div className="supps-page__card-info">
                 <div className="supps-page__card-name">{s.name}</div>
+                <div className="supps-page__card-meta">
+                  {s.brand && <span>{s.brand}</span>}
+                  {s.strengthPerUnit != null && s.strengthUnit && (
+                    <span>{s.strengthPerUnit} {s.strengthUnit}{s.form ? ` · ${s.form}` : ""}</span>
+                  )}
+                  {s.servingSizeText && <span>{s.servingSizeText}</span>}
+                </div>
                 {/* TODO: show ✅/⚠️ overlap/interaction indicators here */}
               </div>
               <button className="supps-page__remove" onClick={() => removeSupp(s.id)} title="Remove">
