@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { compressImageDataUrl } from "@/lib/image";
+import { compressImageDataUrl } from "../lib/image";
 import "./ScanSection.css";
 
 type ScanStep = "idle" | "front" | "ingredients" | "done";
