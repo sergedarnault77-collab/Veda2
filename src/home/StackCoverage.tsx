@@ -1,7 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { STUB_SUPPLEMENTS } from "./stubs";
 import type { NutrientRow } from "./stubs";
+import { loadLS, saveLS } from "../lib/persist";
 import "./StackCoverage.css";
+
+const LS_KEY = "veda:confirmed-supps";
 
 function coverageColor(pct: number): string {
   if (pct < 25) return "var(--veda-red)";
@@ -11,7 +14,13 @@ function coverageColor(pct: number): string {
 }
 
 export function StackCoverage() {
-  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [confirmed, setConfirmed] = useState<Set<string>>(
+    () => new Set(loadLS<string[]>(LS_KEY, []))
+  );
+
+  useEffect(() => {
+    saveLS(LS_KEY, Array.from(confirmed));
+  }, [confirmed]);
 
   function toggle(id: string) {
     setConfirmed((prev) => {

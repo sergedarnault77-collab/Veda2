@@ -6,20 +6,38 @@
   margin: 0 auto;
 }
 
+.meds-page__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
 .meds-page__heading {
   font-size: 1.25rem;
   font-weight: 700;
-  margin-bottom: 12px;
+}
+
+.meds-page__add-btn {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 12px;
+  border: 1px solid rgba(108, 92, 231, 0.45);
+  background: rgba(108, 92, 231, 0.2);
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
 }
 
 .meds-page__intro {
   opacity: 0.75;
   line-height: 1.4;
   font-size: 0.92rem;
+  margin-bottom: 16px;
 }
 
 .meds-page__empty {
-  margin-top: 16px;
   padding: 16px;
   border-radius: var(--radius-lg);
   background: var(--veda-surface);
@@ -36,4 +54,60 @@
   opacity: 0.65;
   font-size: 0.84rem;
   line-height: 1.5;
+}
+
+/* Card list */
+.meds-page__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.meds-page__card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+}
+
+.meds-page__thumbs {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.meds-page__thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--veda-border);
+}
+
+.meds-page__card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.meds-page__card-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meds-page__remove {
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  border: 1px solid var(--veda-border);
+  background: transparent;
+  color: var(--veda-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
 }

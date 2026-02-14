@@ -1,24 +1,90 @@
+import { useState } from "react";
+import { loadLS, saveLS } from "../lib/persist";
+import { AddScannedItemModal } from "../shared/AddScannedItemModal";
+import type { ScannedItemDraft } from "../shared/AddScannedItemModal";
 import "./MedicationsPage.css";
 
-/* TODO: Add medication CRUD, interaction flags (✅/⚠️), and explain pop-up. */
+type Med = {
+  id: string;
+  name: string;
+  frontDataUrl: string;
+  ingredientsDataUrl: string;
+  createdAtISO: string;
+};
+
+const LS_KEY = "veda.meds.v1";
 
 export default function MedicationsPage() {
+  const [meds, setMeds] = useState<Med[]>(() => loadLS<Med[]>(LS_KEY, []));
+  const [showModal, setShowModal] = useState(false);
+
+  function addMed(draft: ScannedItemDraft) {
+    const item: Med = {
+      ...draft,
+      id: crypto.randomUUID(),
+      createdAtISO: new Date().toISOString(),
+    };
+    const next = [item, ...meds]; // prepend
+    setMeds(next);
+    saveLS(LS_KEY, next);
+    setShowModal(false);
+  }
+
+  function removeMed(id: string) {
+    const next = meds.filter((m) => m.id !== id);
+    setMeds(next);
+    saveLS(LS_KEY, next);
+  }
+
   return (
     <div className="meds-page">
-      <h1 className="meds-page__heading">Your medications</h1>
+      <div className="meds-page__top">
+        <h1 className="meds-page__heading">Your medications</h1>
+        <button className="meds-page__add-btn" onClick={() => setShowModal(true)}>
+          + Add
+        </button>
+      </div>
       <p className="meds-page__intro">
         Maintain your medications here. We'll show interaction flags between
         items you've added.
       </p>
 
-      <div className="meds-page__empty">
-        <div className="meds-page__empty-label">No medications yet.</div>
-        <div className="meds-page__empty-hint">
-          {/* TODO: add medication + show ✅/⚠️ indicators and an explain pop-up. */}
-          Next step: add medication + show ✅/⚠️ indicators and an explain
-          pop-up.
+      {meds.length === 0 && (
+        <div className="meds-page__empty">
+          <div className="meds-page__empty-label">No medications added yet.</div>
+          <div className="meds-page__empty-hint">
+            Tap "+ Add" to photograph a medication and its label.
+          </div>
         </div>
-      </div>
+      )}
+
+      {meds.length > 0 && (
+        <ul className="meds-page__list">
+          {meds.map((m) => (
+            <li key={m.id} className="meds-page__card">
+              <div className="meds-page__thumbs">
+                <img src={m.frontDataUrl} alt={`${m.name} front`} className="meds-page__thumb" />
+                <img src={m.ingredientsDataUrl} alt={`${m.name} ingredients`} className="meds-page__thumb" />
+              </div>
+              <div className="meds-page__card-info">
+                <div className="meds-page__card-name">{m.name}</div>
+                {/* TODO: show ✅/⚠️ interaction indicators here */}
+              </div>
+              <button className="meds-page__remove" onClick={() => removeMed(m.id)} title="Remove">
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {showModal && (
+        <AddScannedItemModal
+          kind="med"
+          onCancel={() => setShowModal(false)}
+          onConfirm={addMed}
+        />
+      )}
     </div>
   );
 }

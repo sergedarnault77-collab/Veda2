@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { Signal, AnalyzeResponse } from "./stubs";
 import { STUB_ANALYZE_RESPONSE } from "./stubs";
+import { fileToDataUrl } from "../lib/persist";
 import "./ScanSection.css";
 
 /** Call /api/analyze; fall back to stub data in local dev. */
@@ -41,19 +42,19 @@ export default function ScanSection() {
   const [entities, setEntities] = useState<string[]>([]);
   const [analysing, setAnalysing] = useState(false);
 
-  function onPickFrontFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickFrontFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setFrontImageUrl(url);
+    const dataUrl = await fileToDataUrl(file);
+    setFrontImageUrl(dataUrl);
     e.target.value = "";
   }
 
-  function onPickIngredientsFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickIngredientsFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setIngredientsImageUrl(url);
+    const dataUrl = await fileToDataUrl(file);
+    setIngredientsImageUrl(dataUrl);
     e.target.value = "";
     // TODO: Once OCR is wired, extract text from image and call analyzeLabel().
   }
