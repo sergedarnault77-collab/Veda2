@@ -1,4 +1,4 @@
-import { ScanSection } from "./ScanSection";
+import ScanSection from "./ScanSection";
 import { DailyReferenceBars } from "./DailyReferenceBars";
 import { StackCoverage } from "./StackCoverage";
 import { ExplainingSignals } from "./ExplainingSignals";

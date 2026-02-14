@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { ScanStage, Signal, AnalyzeResponse } from "./stubs";
+import { useRef, useState } from "react";
+import type { Signal, AnalyzeResponse } from "./stubs";
 import { STUB_ANALYZE_RESPONSE } from "./stubs";
 import "./ScanSection.css";
 
@@ -28,56 +28,120 @@ const SEVERITY_CLASS: Record<Signal["severity"], string> = {
   info: "badge--clear",
 };
 
-export function ScanSection() {
-  const [stage, setStage] = useState<ScanStage>("idle");
+export default function ScanSection() {
+  // ── Camera capture state ──
+  const [frontImageUrl, setFrontImageUrl] = useState<string | null>(null);
+  const [ingredientsImageUrl, setIngredientsImageUrl] = useState<string | null>(null);
+
+  const frontInputRef = useRef<HTMLInputElement | null>(null);
+  const ingredientsInputRef = useRef<HTMLInputElement | null>(null);
+
+  // ── Text-based analyze state (kept separate until OCR is wired) ──
   const [signals, setSignals] = useState<Signal[]>([]);
   const [entities, setEntities] = useState<string[]>([]);
   const [analysing, setAnalysing] = useState(false);
 
-  async function handleIngredients() {
-    setStage("ingredients");
+  function onPickFrontFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setFrontImageUrl(url);
+    e.target.value = "";
+  }
+
+  function onPickIngredientsFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setIngredientsImageUrl(url);
+    e.target.value = "";
+    // TODO: Once OCR is wired, extract text from image and call analyzeLabel().
+  }
+
+  /** Temporary: text-based analyze (until OCR replaces it). */
+  async function handleManualAnalyze() {
     setAnalysing(true);
-    // TODO: Replace placeholder text with real OCR / camera output.
     const data = await analyzeLabel("magnesium glycinate 400mg, vitamin d 5000iu");
     setSignals(data.signals);
     setEntities(data.normalized.detectedEntities);
     setAnalysing(false);
   }
 
+  const canScanIngredients = !!frontImageUrl;
+
   return (
     <section className="scan-section" aria-label="Scan for interactions">
-      <h2 className="scan-section__title">Avoiding Harm</h2>
+      {/* Hidden camera inputs */}
+      <input
+        ref={frontInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: "none" }}
+        onChange={onPickFrontFile}
+      />
+      <input
+        ref={ingredientsInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: "none" }}
+        onChange={onPickIngredientsFile}
+      />
 
-      <p className="scan-section__headline">
-        Scan to see how this impacts your system
-      </p>
+      <div className="scan-section__header">
+        <h2>Avoiding harm</h2>
+        <p className="scan-section__sub">
+          Most interaction patterns are identified from the ingredients label on
+          the back.
+        </p>
+      </div>
 
-      <div className="scanActions">
+      <div className="scan-section__actions">
         <button
-          className="scanBtn"
-          onClick={() => {
-            setSignals([]);
-            setEntities([]);
-            setStage("front");
-          }}
+          className="scan-section__btn"
+          onClick={() => frontInputRef.current?.click()}
         >
           Scan product front
         </button>
 
         <button
-          className="scanBtn primary"
-          disabled={stage === "idle" || analysing}
-          onClick={handleIngredients}
-          title={stage === "idle" ? "Scan the front first" : undefined}
+          className={`scan-section__btn ${canScanIngredients ? "is-primary" : "is-disabled"}`}
+          disabled={!canScanIngredients}
+          onClick={() => ingredientsInputRef.current?.click()}
+          title={!canScanIngredients ? "Scan the front first" : ""}
         >
-          {analysing ? "Reading ingredients…" : "Scan ingredients label"}
+          Scan ingredients label
         </button>
-
-        <p className="scanHint">
-          Most interaction patterns are identified from the ingredients label on
-          the back.
-        </p>
       </div>
+
+      <div className="scan-section__status">
+        <div>{frontImageUrl ? "Front captured ✅" : "Front: not captured yet"}</div>
+        <div>{ingredientsImageUrl ? "Ingredients captured ✅" : "Ingredients: not captured yet"}</div>
+      </div>
+
+      {/* Tiny previews so you can verify on phone */}
+      <div className="scan-section__previews">
+        {frontImageUrl && (
+          <img src={frontImageUrl} alt="Front preview" style={{ width: 120, borderRadius: 12 }} />
+        )}
+        {ingredientsImageUrl && (
+          <img src={ingredientsImageUrl} alt="Ingredients preview" style={{ width: 120, borderRadius: 12 }} />
+        )}
+      </div>
+
+      {/* IMPORTANT: do not run /api/analyze yet from photos (needs OCR).
+          Temporary manual trigger for the text-based flow. */}
+      {ingredientsImageUrl && signals.length === 0 && (
+        <button
+          className="scan-section__btn is-primary"
+          style={{ marginTop: 12, width: "100%" }}
+          onClick={handleManualAnalyze}
+          disabled={analysing}
+        >
+          {analysing ? "Analysing…" : "Run analysis (stub)"}
+        </button>
+      )}
 
       {/* Detected entities */}
       {entities.length > 0 && (
