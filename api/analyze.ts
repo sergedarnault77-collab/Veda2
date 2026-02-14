@@ -327,10 +327,16 @@ export default async function handler(req: Request): Promise<Response> {
             },
             { type: "input_image", image_url: frontImageDataUrl, detail: "low" as const },
             { type: "input_image", image_url: ingredientsImageDataUrl, detail: "high" as const },
-            { type: "output_text", format: { type: "json_schema", json_schema: schema } },
           ],
         },
       ],
+      // Structured output: must be top-level text.format, NOT an output_text content item
+      text: {
+        format: {
+          type: "json_schema",
+          json_schema: schema,
+        },
+      },
     };
 
     const r = await fetch("https://api.openai.com/v1/responses", {
