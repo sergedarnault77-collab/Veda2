@@ -1,0 +1,66 @@
+/* ── Veda 2.0 — Global Reset & Tokens ── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* palette */
+  --veda-bg: #0e0e12;
+  --veda-surface: #1a1a24;
+  --veda-surface-hover: #24243a;
+  --veda-border: #2a2a3c;
+  --veda-text: #e8e8f0;
+  --veda-text-muted: #8888a0;
+  --veda-accent: #6c5ce7;
+  --veda-accent-glow: rgba(108, 92, 231, 0.25);
+
+  /* coverage colors */
+  --veda-red: #e74c3c;
+  --veda-orange: #e67e22;
+  --veda-green: #2ecc71;
+  --veda-magenta: #e056a0;
+
+  /* exposure bar fills */
+  --bar-sugar: #f39c12;
+  --bar-sweetener: #9b59b6;
+  --bar-calorie: #3498db;
+  --bar-caffeine: #1abc9c;
+
+  /* typography */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--veda-bg);
+  color: var(--veda-text);
+  line-height: 1.6;
+  min-height: 100dvh;
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}

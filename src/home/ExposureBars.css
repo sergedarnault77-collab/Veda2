@@ -1,0 +1,84 @@
+/* ── Section B — Daily Exposure Bars ── */
+
+.exposure {
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.exposure__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.exposure__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--veda-text-muted);
+}
+
+.exposure__info {
+  width: 22px;
+  height: 22px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+  color: var(--veda-text-muted);
+  background: var(--veda-bg);
+  border: 1px solid var(--veda-border);
+  border-radius: 50%;
+  padding: 0;
+}
+
+.exposure__tooltip {
+  font-size: 0.8rem;
+  color: var(--veda-text-muted);
+  background: var(--veda-bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.exposure__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.exposure__label-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.exposure__label {
+  font-size: 0.82rem;
+  color: var(--veda-text);
+}
+
+.exposure__value {
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--veda-text-muted);
+}
+
+.exposure__track {
+  height: 6px;
+  background: var(--veda-bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.exposure__fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}

@@ -1,0 +1,50 @@
+/* ── Section D — Explaining Signals ── */
+
+.signals {
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.signals__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--veda-text-muted);
+  margin-bottom: 14px;
+}
+
+.signals__card {
+  background: var(--veda-bg);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.signals__card:last-of-type {
+  margin-bottom: 16px;
+}
+
+.signals__card-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--veda-text);
+  margin-bottom: 6px;
+}
+
+.signals__card-body {
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: var(--veda-text-muted);
+}
+
+.signals__disclaimer {
+  font-size: 0.72rem;
+  color: var(--veda-text-muted);
+  opacity: 0.7;
+  text-align: center;
+  line-height: 1.5;
+  padding-top: 4px;
+}

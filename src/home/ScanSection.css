@@ -1,0 +1,87 @@
+/* ── Section A — Scan / Avoiding Harm ── */
+
+.scan-section {
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px;
+}
+
+.scan-section__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--veda-text-muted);
+  margin-bottom: 16px;
+}
+
+.scan-section__cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+  background: var(--veda-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  transition: background 0.15s, box-shadow 0.15s;
+  text-align: left;
+}
+
+.scan-section__cta:hover:not(:disabled) {
+  background: #5a4bd4;
+  box-shadow: 0 0 20px var(--veda-accent-glow);
+}
+
+.scan-section__cta:disabled {
+  opacity: 0.6;
+}
+
+.scan-section__icon {
+  flex-shrink: 0;
+  display: flex;
+}
+
+/* Result area */
+.scan-section__result {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--veda-bg);
+  border-radius: var(--radius-md);
+}
+
+.scan-section__badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
+.badge--warn {
+  background: rgba(231, 76, 60, 0.15);
+  color: var(--veda-red);
+}
+
+.badge--caution {
+  background: rgba(230, 126, 34, 0.15);
+  color: var(--veda-orange);
+}
+
+.badge--clear {
+  background: rgba(46, 204, 113, 0.15);
+  color: var(--veda-green);
+}
+
+.scan-section__summary {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--veda-text-muted);
+}
