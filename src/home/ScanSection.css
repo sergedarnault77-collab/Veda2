@@ -1,38 +1,54 @@
 /* ── Section A — Scan / Avoiding Harm ── */
 
-.scan-section {
-  background: var(--veda-surface);
-  border: 1px solid var(--veda-border);
-  border-radius: var(--radius-lg);
-  padding: 24px 20px;
+.scan-section { }
+.scan-section__card { }
+.scan-section__title { letter-spacing: 0.12em; opacity: 0.85; }
+
+.scan-section__nameInput {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+  outline: none;
 }
 
-/* Header */
-.scan-section__header {
-  margin-bottom: 18px;
-}
-
-.scan-section__header h2 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.scan-section__sub {
-  font-size: 0.82rem;
-  color: var(--veda-text-muted);
-  line-height: 1.5;
-}
-
-/* Action buttons */
-.scan-section__actions {
+.scan-section__scannedHeader {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 10px;
 }
+
+.scan-section__scannedCheck {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(108, 92, 231, 0.22);
+}
+
+.scan-section__scannedMeta { flex: 1; }
+.scan-section__scannedSub { opacity: 0.75; font-size: 12px; margin-top: 2px; }
+
+.scan-section__photosToggle summary {
+  cursor: pointer;
+  opacity: 0.8;
+  font-size: 12px;
+  user-select: none;
+}
+
+.scan-section__ctaRow { display: grid; gap: 10px; }
 
 .scan-section__btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -46,217 +62,59 @@
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
-.scan-section__btn:hover:not(:disabled) {
-  border-color: var(--veda-accent);
-  background: var(--veda-surface-hover);
-}
+.scan-section__btn input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
-.scan-section__btn.is-primary {
+.scan-section__btn--primary {
   color: #fff;
   background: var(--veda-accent);
   border-color: var(--veda-accent);
 }
 
-.scan-section__btn.is-primary:hover:not(:disabled) {
-  background: #5a4bd4;
-  box-shadow: 0 0 20px var(--veda-accent-glow);
+.scan-section__btn--accent {
+  color: #fff;
+  background: var(--veda-accent);
+  border-color: var(--veda-accent);
 }
 
-.scan-section__btn.is-disabled,
-.scan-section__btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* Capture status */
-.scan-section__status {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.78rem;
-  color: var(--veda-text-muted);
-  margin-bottom: 12px;
-}
-
-/* Image previews (pre-results: bigger) */
-.scan-section__previews {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-
-.scan-section__previews img {
-  width: 120px;
-  border-radius: 12px;
-  object-fit: cover;
-  border: 1px solid var(--veda-border);
-}
-
-/* Image previews (post-results: compact) */
-.scan-section__previews--compact img {
-  width: 80px;
-  height: 80px;
-  border-radius: 10px;
-}
-
-/* ── Post-results: scanned item header ── */
-
-.scan-section__scanned {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  background: rgba(46, 204, 113, 0.08);
-  border: 1px solid rgba(46, 204, 113, 0.18);
-  margin-bottom: 8px;
-}
-
-.scan-section__scanned-check {
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.scan-section__scanned-name {
-  flex: 1;
-  font-size: 0.95rem;
-  font-weight: 600;
-  font-family: inherit;
-  background: transparent;
-  border: none;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
-  color: var(--veda-text);
-  outline: none;
-  padding: 2px 0;
-}
-
-.scan-section__scanned-name:focus {
-  border-bottom-color: var(--veda-accent);
-}
-
-/* Photo accordion toggle */
-.scan-section__photo-toggle {
-  display: block;
-  width: 100%;
-  padding: 6px 0;
-  font-family: inherit;
-  font-size: 0.75rem;
-  color: var(--veda-text-muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  margin-bottom: 8px;
-  opacity: 0.7;
-}
-
-.scan-section__photo-toggle:hover {
-  opacity: 1;
-  color: var(--veda-accent);
-}
-
-/* ── Grouped entity chips ── */
-
-.scan-section__chip-groups {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.scan-section__chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.scan-section__chip-cat {
-  font-size: 0.68rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--veda-text-muted);
-  opacity: 0.65;
-  min-width: 80px;
-  flex-shrink: 0;
-}
-
-/* Entity chip (shared across grouped and flat) */
-.scan-section__entity {
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(108, 92, 231, 0.12);
-  color: var(--veda-accent);
-}
-
-/* Summary line */
-.scan-section__summary-line {
+.scan-section__btn--run {
   margin-top: 12px;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
-  font-size: 0.78rem;
-  color: var(--veda-text-muted);
-  line-height: 1.5;
-  font-style: italic;
+  color: #fff;
+  background: var(--veda-accent);
+  border-color: var(--veda-accent);
 }
 
-/* ── Signal results ── */
-
-.scan-section__signals {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.scan-section__btn--secondary {
   margin-top: 14px;
+  background: var(--veda-surface);
 }
 
-.scan-section__result {
-  padding: 16px;
-  background: var(--veda-bg);
-  border-radius: var(--radius-md);
-}
+.scan-section__btn--disabled { opacity: 0.5; cursor: not-allowed; }
+.scan-section__btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.scan-section__badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 4px 10px;
-  border-radius: 999px;
-  margin-bottom: 10px;
-}
+.scan-section__hint { opacity: 0.75; font-size: 12px; margin-top: 8px; }
+.scan-section__status { display: grid; gap: 6px; opacity: 0.8; margin-top: 10px; }
 
-.badge--warn {
-  background: rgba(231, 76, 60, 0.15);
-  color: var(--veda-red);
-}
+.scan-section__photos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+.scan-section__photos img { width: 100%; border-radius: 12px; display: block; }
 
-.badge--caution {
-  background: rgba(230, 126, 34, 0.15);
-  color: var(--veda-orange);
-}
+.scan-section__entities { display: grid; gap: 10px; margin: 10px 0 14px; }
 
-.badge--clear {
-  background: rgba(46, 204, 113, 0.15);
-  color: var(--veda-green);
-}
+.scan-section__entityGroup { display: grid; gap: 6px; }
+.scan-section__entityLabel { font-size: 11px; letter-spacing: 0.12em; opacity: 0.75; text-transform: uppercase; }
+.scan-section__entityRow { display: flex; flex-wrap: wrap; gap: 8px; }
 
-.scan-section__summary {
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: var(--veda-text-muted);
-}
+.scan-section__entity { padding: 8px 10px; border-radius: 999px; background: rgba(108, 92, 231, 0.18); border: 1px solid rgba(108, 92, 231, 0.28); font-size: 0.82rem; }
 
-.scan-section__related {
-  font-size: 0.76rem;
-  color: var(--veda-text-muted);
-  opacity: 0.7;
-  margin-top: 8px;
-}
+.scan-section__signal { margin-top: 10px; padding: 12px; border-radius: 14px; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.06); }
+.scan-section__badge { padding: 10px 12px; border-radius: 999px; display: inline-block; font-weight: 800; letter-spacing: 0.08em; font-size: 0.75rem; }
+
+.scan-section__badge--no_notable_interaction { background: rgba(46, 204, 113, 0.15); color: var(--veda-green); }
+.scan-section__badge--interaction_detected { background: rgba(231, 76, 60, 0.15); color: var(--veda-red); }
+.scan-section__badge--amplification_likely { background: rgba(230, 126, 34, 0.15); color: var(--veda-orange); }
+.scan-section__badge--timing_conflict { background: rgba(230, 126, 34, 0.15); color: var(--veda-orange); }
+
+.scan-section__explain { margin-top: 10px; opacity: 0.85; line-height: 1.6; font-size: 0.9rem; }
+.scan-section__related { margin-top: 8px; opacity: 0.7; font-size: 12px; }
+.scan-section__error { margin-top: 10px; color: #ffb4b4; font-size: 0.85rem; }

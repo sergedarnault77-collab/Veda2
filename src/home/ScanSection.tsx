@@ -1,309 +1,243 @@
-import { useRef, useState } from "react";
-import type { Signal, AnalyzeResponse } from "./stubs";
-import { STUB_ANALYZE_RESPONSE } from "./stubs";
-import { fileToDataUrl } from "../lib/persist";
+import { useMemo, useState } from "react";
 import { compressImageDataUrl } from "@/lib/image";
 import "./ScanSection.css";
 
-// ── Entity → category mapping (client-side grouping) ──
-
-const ENTITY_CAT: Record<string, string> = {
-  Aspartame: "Sweeteners",
-  "Acesulfame K": "Sweeteners",
-  Sucralose: "Sweeteners",
-  Saccharin: "Sweeteners",
-  Stevia: "Sweeteners",
-  Caffeine: "Stimulants",
-  Taurine: "Stimulants",
-  Guarana: "Stimulants",
-  Sugar: "Sugar & calories",
-  Glucose: "Sugar & calories",
-  Fructose: "Sugar & calories",
-  HFCS: "Sugar & calories",
-  Magnesium: "Minerals",
-  Zinc: "Minerals",
-  Iron: "Minerals",
-  Calcium: "Minerals",
-  Potassium: "Minerals",
-  "Vitamin D": "Fortification",
-  "Vitamin C": "Fortification",
-  "Vitamin B12": "Fortification",
-  "Vitamin B6": "Fortification",
-  Niacin: "Fortification",
-  "Omega-3": "Fatty acids",
-  Melatonin: "Hormones",
-  Ashwagandha: "Adaptogens",
-  "St. John's wort": "Herbals",
-};
-
-const CAT_ORDER = [
-  "Sweeteners",
-  "Stimulants",
-  "Sugar & calories",
-  "Minerals",
-  "Fortification",
-  "Fatty acids",
-  "Hormones",
-  "Adaptogens",
-  "Herbals",
-  "Other",
-];
-
-type EntityGroup = { category: string; items: string[] };
-
-function groupEntities(entities: string[]): EntityGroup[] {
-  const map = new Map<string, string[]>();
-  for (const e of entities) {
-    const cat = ENTITY_CAT[e] ?? "Other";
-    if (!map.has(cat)) map.set(cat, []);
-    map.get(cat)!.push(e);
-  }
-  return CAT_ORDER.filter((c) => map.has(c)).map((c) => ({ category: c, items: map.get(c)! }));
-}
-
-function buildSummary(groups: EntityGroup[]): string {
-  return groups
-    .map((g) =>
-      g.items.length === 1
-        ? g.items[0].toLowerCase()
-        : `${g.category.toLowerCase()} (${g.items.length})`
-    )
-    .join(" · ");
-}
-
-// ── Analyze helper ──
-
-async function analyzeLabel(inputText: string): Promise<AnalyzeResponse> {
-  try {
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inputText }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return (await res.json()) as AnalyzeResponse;
-  } catch {
-    return {
-      ...STUB_ANALYZE_RESPONSE,
-      meta: { mode: "stub", timestampISO: new Date().toISOString() },
-    };
-  }
-}
-
-const SEVERITY_CLASS: Record<Signal["severity"], string> = {
-  likely: "badge--warn",
-  possible: "badge--caution",
-  info: "badge--clear",
-};
-
-// ── Component ──
+type ScanStep = "idle" | "front" | "ingredients" | "done";
 
 export default function ScanSection() {
-  // Camera capture
-  const [frontImageUrl, setFrontImageUrl] = useState<string | null>(null);
-  const [ingredientsImageUrl, setIngredientsImageUrl] = useState<string | null>(null);
-  const frontInputRef = useRef<HTMLInputElement | null>(null);
-  const ingredientsInputRef = useRef<HTMLInputElement | null>(null);
+  const [step, setStep] = useState<ScanStep>("idle");
+  const [frontImage, setFrontImage] = useState<string | null>(null);
+  const [ingredientsImage, setIngredientsImage] = useState<string | null>(null);
+  const [productName, setProductName] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<any>(null);
 
-  // Analysis results
-  const [signals, setSignals] = useState<Signal[]>([]);
-  const [entities, setEntities] = useState<string[]>([]);
-  const [analysing, setAnalysing] = useState(false);
+  const canScanIngredients = !!frontImage && !loading;
 
-  // Post-results UI
-  const [productName, setProductName] = useState("Scanned item");
-  const [showPhotos, setShowPhotos] = useState(false);
+  const entitiesByCategory = useMemo(() => {
+    const cats = result?.normalized?.categories || {};
+    const out: { label: string; items: string[] }[] = [];
+    const order = ["Sweeteners", "Stimulants", "Sugars", "Vitamins", "Minerals", "Other"];
+    for (const k of order) {
+      const arr = Array.isArray(cats[k]) ? cats[k] : [];
+      if (arr.length) out.push({ label: k, items: arr.map(String) });
+    }
+    // fallback: if only detectedEntities exists (stub mode)
+    if (!out.length && Array.isArray(result?.normalized?.detectedEntities) && result.normalized.detectedEntities.length) {
+      out.push({ label: "Detected", items: result.normalized.detectedEntities.map(String) });
+    }
+    return out;
+  }, [result]);
 
-  async function onPickFrontFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const raw = await fileToDataUrl(file);
-    setFrontImageUrl(await compressImageDataUrl(raw));
-    e.target.value = "";
+  async function handleCapture(file: File, kind: "front" | "ingredients") {
+    setError(null);
+    const reader = new FileReader();
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      reader.onerror = () => reject(new Error("Failed to read image"));
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsDataURL(file);
+    });
+
+    // compress to avoid 413 and speed up uploads
+    const compressed = await compressImageDataUrl(dataUrl, {
+      maxW: kind === "front" ? 900 : 1200,
+      maxH: kind === "front" ? 900 : 1400,
+      quality: kind === "front" ? 0.72 : 0.78,
+      mimeType: "image/jpeg",
+    });
+
+    if (kind === "front") {
+      setFrontImage(compressed);
+      setStep("front");
+      // reset downstream state
+      setIngredientsImage(null);
+      setResult(null);
+      setProductName("");
+    } else {
+      setIngredientsImage(compressed);
+      setStep("ingredients");
+    }
   }
 
-  async function onPickIngredientsFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const raw = await fileToDataUrl(file);
-    setIngredientsImageUrl(await compressImageDataUrl(raw));
-    e.target.value = "";
+  async function runAnalysis() {
+    if (!frontImage || !ingredientsImage) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          frontImageDataUrl: frontImage,
+          ingredientsImageDataUrl: ingredientsImage,
+        }),
+      });
+      const json = await r.json();
+      if (!r.ok) {
+        throw new Error(json?.error || `HTTP ${r.status}`);
+      }
+      setResult(json);
+      if (typeof json?.productName === "string") setProductName(json.productName);
+      setStep("done");
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setResult({
+        ok: true,
+        productName: null,
+        normalized: { detectedEntities: [], categories: {} },
+        signals: [
+          {
+            type: "no_notable_interaction",
+            severity: "low",
+            confidence: "low",
+            headline: "NO NOTABLE INTERACTION PATTERN FOUND",
+            explanation:
+              "I couldn't read enough label text to classify this item reliably. This is interpretive and depends on dose, timing, and individual variability.",
+            related: [],
+          },
+        ],
+        meta: { mode: "stub" },
+      });
+      setStep("done");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function handleAnalyze() {
-    setAnalysing(true);
-    // Stub input text until OCR is wired to the scanned images
-    const data = await analyzeLabel(
-      "carbonated water, caramel colour, phosphoric acid, aspartame, " +
-        "acesulfame K, caffeine, natural flavourings, citric acid"
-    );
-    setSignals(data.signals);
-    setEntities(data.normalized.detectedEntities);
-    setAnalysing(false);
+  function reset() {
+    setStep("idle");
+    setFrontImage(null);
+    setIngredientsImage(null);
+    setResult(null);
+    setError(null);
+    setProductName("");
   }
-
-  function resetScan() {
-    setFrontImageUrl(null);
-    setIngredientsImageUrl(null);
-    setSignals([]);
-    setEntities([]);
-    setProductName("Scanned item");
-    setShowPhotos(false);
-  }
-
-  const canScanIngredients = !!frontImageUrl;
-  const hasResults = signals.length > 0;
-  const entityGroups = groupEntities(entities);
-  const summaryText = buildSummary(entityGroups);
 
   return (
-    <section className="scan-section" aria-label="Scan for interactions">
-      {/* Hidden camera inputs */}
-      <input
-        ref={frontInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        style={{ display: "none" }}
-        onChange={onPickFrontFile}
-      />
-      <input
-        ref={ingredientsInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        style={{ display: "none" }}
-        onChange={onPickIngredientsFile}
-      />
+    <section className="scan-section">
+      <div className="scan-section__card">
+        <div className="scan-section__title">Scan to see how this impacts your system</div>
 
-      <div className="scan-section__header">
-        <h2>Avoiding harm</h2>
-        <p className="scan-section__sub">
-          Most interaction patterns are identified from the ingredients label on
-          the back.
-        </p>
-      </div>
-
-      {/* ════ Pre-results: scanning flow ════ */}
-      {!hasResults && (
-        <>
-          <div className="scan-section__actions">
-            <button
-              className="scan-section__btn"
-              onClick={() => frontInputRef.current?.click()}
-            >
-              {frontImageUrl ? "Re-scan product front" : "Scan product front"}
-            </button>
-            <button
-              className={`scan-section__btn ${canScanIngredients ? "is-primary" : "is-disabled"}`}
-              disabled={!canScanIngredients}
-              onClick={() => ingredientsInputRef.current?.click()}
-              title={!canScanIngredients ? "Scan the front first" : ""}
-            >
-              {ingredientsImageUrl ? "Re-scan ingredients label" : "Scan ingredients label"}
-            </button>
-          </div>
-
-          <div className="scan-section__status">
-            <div>{frontImageUrl ? "Front captured ✅" : "Front: not captured yet"}</div>
-            <div>{ingredientsImageUrl ? "Ingredients captured ✅" : "Ingredients: not captured yet"}</div>
-          </div>
-
-          <div className="scan-section__previews">
-            {frontImageUrl && <img src={frontImageUrl} alt="Front" />}
-            {ingredientsImageUrl && <img src={ingredientsImageUrl} alt="Ingredients" />}
-          </div>
-
-          {ingredientsImageUrl && (
-            <button
-              className="scan-section__btn is-primary"
-              style={{ marginTop: 12, width: "100%" }}
-              onClick={handleAnalyze}
-              disabled={analysing}
-            >
-              {analysing ? "Analysing…" : "Run analysis"}
-            </button>
-          )}
-        </>
-      )}
-
-      {/* ════ Post-results: collapsed view ════ */}
-      {hasResults && (
-        <>
-          {/* Compact scanned-item header */}
-          <div className="scan-section__scanned">
-            <span className="scan-section__scanned-check">✅</span>
+        <div className="scan-section__ctaRow">
+          <label className="scan-section__btn scan-section__btn--primary">
             <input
-              className="scan-section__scanned-name"
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              aria-label="Product name"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                e.target.value = "";
+                handleCapture(f, "front");
+              }}
             />
-          </div>
+            {frontImage ? "Re-scan product front" : "Scan product front"}
+          </label>
 
-          {/* Collapsible photos */}
-          <button
-            className="scan-section__photo-toggle"
-            onClick={() => setShowPhotos((p) => !p)}
+          <label
+            className={
+              "scan-section__btn " + (canScanIngredients ? "scan-section__btn--accent" : "scan-section__btn--disabled")
+            }
+            title={canScanIngredients ? "" : "Scan the front first"}
           >
-            {showPhotos ? "Hide photos ▲" : "Tap to view photos ▼"}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={!canScanIngredients}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                e.target.value = "";
+                handleCapture(f, "ingredients");
+              }}
+            />
+            {ingredientsImage ? "Re-scan ingredients label" : "Scan ingredients label"}
+          </label>
+        </div>
+
+        <div className="scan-section__hint">Most interaction patterns are identified from the ingredients label on the back.</div>
+
+        <div className="scan-section__status">
+          <div>Front captured {frontImage ? "✅" : "—"}</div>
+          <div>Ingredients captured {ingredientsImage ? "✅" : "—"}</div>
+        </div>
+
+        {frontImage && ingredientsImage && step !== "done" && (
+          <button
+            className="scan-section__btn scan-section__btn--run"
+            disabled={loading}
+            onClick={runAnalysis}
+          >
+            {loading ? "Reading ingredients..." : "Analyze"}
           </button>
+        )}
 
-          {showPhotos && (
-            <div className="scan-section__previews scan-section__previews--compact">
-              {frontImageUrl && <img src={frontImageUrl} alt="Front" />}
-              {ingredientsImageUrl && <img src={ingredientsImageUrl} alt="Ingredients" />}
+        {error && <div className="scan-section__error">{error}</div>}
+
+        {step === "done" && result && (
+          <div className="scan-section__result">
+            <div className="scan-section__scannedHeader">
+              <div className="scan-section__scannedCheck">✅</div>
+              <div className="scan-section__scannedMeta">
+                <div className="scan-section__scannedTitle">
+                  <input
+                    className="scan-section__nameInput"
+                    value={productName || ""}
+                    placeholder="Scanned item"
+                    onChange={(e) => setProductName(e.target.value)}
+                  />
+                </div>
+                <div className="scan-section__scannedSub">
+                  {result?.meta?.mode === "openai" ? "Read from label" : "Couldn't read label reliably"}
+                </div>
+              </div>
+              <details className="scan-section__photosToggle">
+                <summary>Tap to view photos</summary>
+                <div className="scan-section__photos">
+                  {frontImage && <img src={frontImage} alt="front" />}
+                  {ingredientsImage && <img src={ingredientsImage} alt="ingredients" />}
+                </div>
+              </details>
             </div>
-          )}
 
-          {/* Grouped entity chips */}
-          {entityGroups.length > 0 && (
-            <div className="scan-section__chip-groups">
-              {entityGroups.map((g) => (
-                <div key={g.category} className="scan-section__chip-row">
-                  <span className="scan-section__chip-cat">{g.category}</span>
-                  {g.items.map((item) => (
-                    <span key={item} className="scan-section__entity">{item}</span>
-                  ))}
+            {entitiesByCategory.length > 0 && (
+              <div className="scan-section__entities">
+                {entitiesByCategory.map((c) => (
+                  <div key={c.label} className="scan-section__entityGroup">
+                    <div className="scan-section__entityLabel">{c.label}</div>
+                    <div className="scan-section__entityRow">
+                      {c.items.map((e) => (
+                        <span className="scan-section__entity" key={c.label + ":" + e}>
+                          {e}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {Array.isArray(result.signals) &&
+              result.signals.map((s: any, idx: number) => (
+                <div className="scan-section__signal" key={idx}>
+                  <div className={"scan-section__badge scan-section__badge--" + String(s.type || "")}>
+                    {String(s.headline || "").toUpperCase()}
+                  </div>
+                  <div className="scan-section__explain">{String(s.explanation || "")}</div>
+                  {Array.isArray(s.related) && s.related.length > 0 && (
+                    <div className="scan-section__related">Related: {s.related.join(", ")}</div>
+                  )}
                 </div>
               ))}
-            </div>
-          )}
 
-          {/* Summary line */}
-          {summaryText && (
-            <div className="scan-section__summary-line">
-              Detected: {summaryText}
-            </div>
-          )}
-
-          {/* Signal cards */}
-          <div className="scan-section__signals">
-            {signals.map((s, i) => (
-              <div key={i} className="scan-section__result">
-                <span className={`scan-section__badge ${SEVERITY_CLASS[s.severity]}`}>
-                  {s.headline}
-                </span>
-                <p className="scan-section__summary">{s.explanation}</p>
-                {s.related && s.related.length > 0 && (
-                  <p className="scan-section__related">
-                    Related: {s.related.join(", ")}
-                  </p>
-                )}
-              </div>
-            ))}
+            <button className="scan-section__btn scan-section__btn--secondary" onClick={reset}>
+              Scan another item
+            </button>
           </div>
-
-          {/* Rescan */}
-          <button
-            className="scan-section__btn"
-            style={{ marginTop: 14 }}
-            onClick={resetScan}
-          >
-            Scan another item
-          </button>
-        </>
-      )}
+        )}
+      </div>
     </section>
   );
 }
