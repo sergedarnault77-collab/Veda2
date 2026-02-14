@@ -298,6 +298,13 @@ export default function ScanSection() {
             <button className="scan-section__btn scan-section__btn--secondary" onClick={reset}>
               Scan another item
             </button>
+
+            {/* Debug: show why we fell back to stub */}
+            {result?.meta && (
+              <div className="scan-section__debug">
+                mode={result.meta.mode} · reason={result.meta.reason || "n/a"}
+              </div>
+            )}
           </div>
         )}
       </div>
