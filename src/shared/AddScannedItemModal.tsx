@@ -1,229 +1,172 @@
 // src/shared/AddScannedItemModal.tsx
 import { useEffect, useRef, useState } from "react";
-import { fileToDataUrl } from "../lib/persist";
-import { compressImageDataUrl, estimateDataUrlBytes } from "@/lib/image";
 import { parseScannedItem } from "../lib/parse-item";
-import type { ParsedItem } from "../lib/parse-item";
+import { compressImageDataUrl } from "../lib/image";
+import "./AddScannedItemModal.css";
 
-export type ScannedItemDraft = {
-  name: string;
-  frontDataUrl: string;
-  ingredientsDataUrl: string;
-  // Parsed fields (may be null if parse failed or stub)
+type Kind = "med" | "supp";
+
+/** Shape of a confirmed scanned item. Consumers persist this. */
+export type ScannedItem = {
+  displayName: string;
   brand: string | null;
-  form: ParsedItem["form"];
+  form: string | null;
   strengthPerUnit: number | null;
-  strengthUnit: ParsedItem["strengthUnit"];
+  strengthUnit: string | null;
   servingSizeText: string | null;
   rawTextHints: string[];
-  parseConfidence: number;
-  parseMode: "openai" | "stub";
+  confidence: number;
+  mode: "openai" | "stub";
+  frontImage: string;
+  ingredientsImage: string;
+  createdAtISO: string;
 };
+
+interface Props {
+  kind: Kind;
+  onConfirm(item: ScannedItem): void;
+  onClose(): void;
+}
 
 type ParseStatus = "idle" | "parsing" | "parsed" | "failed";
 
-export function AddScannedItemModal(props: {
-  kind: "med" | "supp";
-  onCancel: () => void;
-  onConfirm: (draft: ScannedItemDraft) => void;
-}) {
-  const defaultName = props.kind === "med" ? "New medication" : "New supplement";
-  const [name, setName] = useState(defaultName);
-  const [frontDataUrl, setFrontDataUrl] = useState<string | null>(null);
-  const [ingredientsDataUrl, setIngredientsDataUrl] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
-  const [parsedItem, setParsedItem] = useState<ParsedItem | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+export default function AddScannedItemModal({ kind, onConfirm, onClose }: Props) {
+  const [frontImage, setFrontImage] = useState<string | null>(null);
+  const [ingredientsImage, setIngredientsImage] = useState<string | null>(null);
+
+  const [name, setName] = useState("");
   const userEditedName = useRef(false);
 
-  const frontRef = useRef<HTMLInputElement | null>(null);
-  const ingRef = useRef<HTMLInputElement | null>(null);
+  const [parsedItem, setParsedItem] = useState<any | null>(null);
+  const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  async function onPickFront(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    setBusy(true);
-    try {
-      const raw = await fileToDataUrl(f);
-      let compressed = await compressImageDataUrl(raw, { maxW: 1400, maxH: 1400, quality: 0.72 });
-      if (estimateDataUrlBytes(compressed) > 900_000) {
-        compressed = await compressImageDataUrl(raw, { maxW: 1200, maxH: 1200, quality: 0.62 });
-      }
-      setFrontDataUrl(compressed);
-    } finally {
-      setBusy(false);
-    }
+  const frontInputRef = useRef<HTMLInputElement>(null);
+  const ingredientsInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFrontCapture(file: File) {
+    const dataUrl = await fileToDataUrl(file);
+    const compressed = await compressImageDataUrl(dataUrl, {
+      maxW: 1200,
+      maxH: 1200,
+      quality: 0.85,
+    });
+    setFrontImage(compressed);
   }
 
-  async function onPickIng(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    setBusy(true);
-    try {
-      const raw = await fileToDataUrl(f);
-      let compressed = await compressImageDataUrl(raw, { maxW: 1600, maxH: 1600, quality: 0.72 });
-      if (estimateDataUrlBytes(compressed) > 900_000) {
-        compressed = await compressImageDataUrl(raw, { maxW: 1200, maxH: 1200, quality: 0.62 });
-      }
-      setIngredientsDataUrl(compressed);
-    } finally {
-      setBusy(false);
-    }
+  async function handleIngredientsCapture(file: File) {
+    const dataUrl = await fileToDataUrl(file);
+    const compressed = await compressImageDataUrl(dataUrl, {
+      maxW: 1600,
+      maxH: 1600,
+      quality: 0.9,
+    });
+    setIngredientsImage(compressed);
   }
 
-  // Auto-parse ONCE when both images are captured
   useEffect(() => {
-    if (!frontDataUrl || !ingredientsDataUrl) return;
+    if (!frontImage || !ingredientsImage) return;
+
     let cancelled = false;
     setParseStatus("parsing");
-    setParsedItem(null);
+    setErrorMsg(null);
 
-    parseScannedItem(props.kind, frontDataUrl, ingredientsDataUrl)
+    parseScannedItem(kind, frontImage, ingredientsImage)
       .then((item) => {
         if (cancelled) return;
+
         console.log("[parse] response", item);
         setParsedItem(item);
+
         if (!userEditedName.current) {
-          if (item.mode === "openai" && item.displayName) {
-            setName(item.displayName);
-          } else {
-            setName("Unrecognized item");
-          }
+          setName(item.displayName || "Unrecognized item");
         }
+
         setParseStatus("parsed");
       })
       .catch((err) => {
+        console.error("[parse] failed", err);
         if (cancelled) return;
-        console.error("[parse] error", err);
         setParseStatus("failed");
+        setParsedItem(null);
         if (!userEditedName.current) {
           setName("Unrecognized item");
         }
+        setErrorMsg(
+          err?.message ||
+            "Couldn't read the label on this device/deployment."
+        );
       });
 
-    return () => { cancelled = true; };
-  }, [frontDataUrl, ingredientsDataUrl, props.kind]);
+    return () => {
+      cancelled = true;
+    };
+  }, [frontImage, ingredientsImage, kind]);
 
-  const isParsing = parseStatus === "parsing";
-  const canIng = !!frontDataUrl;
   const canConfirm =
-    !!frontDataUrl && !!ingredientsDataUrl && name.trim().length > 0 && !isParsing && !isSaving;
+    !!frontImage && !!ingredientsImage && !!name.trim() && parseStatus !== "parsing";
 
-  function handleConfirm() {
-    if (isSaving) return;
-    setIsSaving(true);
-
-    props.onConfirm({
-      name: name.trim(),
-      frontDataUrl: frontDataUrl!,
-      ingredientsDataUrl: ingredientsDataUrl!,
+  function confirm() {
+    const item: ScannedItem = {
+      displayName: name.trim() || "Unrecognized item",
       brand: parsedItem?.brand ?? null,
       form: parsedItem?.form ?? null,
       strengthPerUnit: parsedItem?.strengthPerUnit ?? null,
       strengthUnit: parsedItem?.strengthUnit ?? null,
       servingSizeText: parsedItem?.servingSizeText ?? null,
       rawTextHints: parsedItem?.rawTextHints ?? [],
-      parseConfidence: parsedItem?.confidence ?? 0,
-      parseMode: parsedItem?.mode ?? "stub",
-    });
-
-    // Reset local state
-    setName(defaultName);
-    setFrontDataUrl(null);
-    setIngredientsDataUrl(null);
-    setParsedItem(null);
-    setParseStatus("idle");
-    userEditedName.current = false;
-    setIsSaving(false);
+      confidence: parsedItem?.confidence ?? 0,
+      mode: parsedItem?.mode ?? "stub",
+      frontImage: frontImage!,
+      ingredientsImage: ingredientsImage!,
+      createdAtISO: new Date().toISOString(),
+    };
+    onConfirm(item);
+    onClose();
   }
 
-  // Helper
-  const strengthLine =
-    parsedItem?.strengthPerUnit != null && parsedItem?.strengthUnit
-      ? `${parsedItem.strengthPerUnit} ${parsedItem.strengthUnit}`
-      : null;
-
-  const isStubOrFailed =
-    parseStatus === "failed" ||
-    (parseStatus === "parsed" && parsedItem?.mode === "stub");
-
   return (
-    <div style={styles.backdrop}>
-      <div style={styles.modal}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>
-              {props.kind === "med" ? "Add medication" : "Add supplement"}
-            </div>
-            <div style={{ opacity: 0.75, fontSize: 13, marginTop: 4 }}>
-              Take a photo of the front, then the ingredients label.
-            </div>
+    <div className="modal-backdrop">
+      <div className="modal-card">
+        <button className="modal-close" onClick={onClose}>
+          &times;
+        </button>
+
+        <h2>{kind === "med" ? "Add medication" : "Add supplement"}</h2>
+        <p className="modal-sub">
+          Take a photo of the front, then the ingredients label.
+        </p>
+
+        <label>Name</label>
+        <input
+          value={name}
+          onChange={(e) => {
+            userEditedName.current = true;
+            setName(e.target.value);
+          }}
+          placeholder={kind === "med" ? "e.g. Brand + dosage" : "e.g. Magnesium glycinate"}
+        />
+
+        {parsedItem?.strengthPerUnit && parsedItem.mode === "openai" && (
+          <div className="parse-hint">
+            Detected: {parsedItem.strengthPerUnit}{" "}
+            {parsedItem.strengthUnit}
+            {parsedItem.form ? ` · ${parsedItem.form}` : ""}
           </div>
-          <button onClick={props.onCancel} style={styles.ghostBtn}>✕</button>
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <label style={styles.label}>Name</label>
-          <input
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              userEditedName.current = true;
-            }}
-            style={styles.input}
-            placeholder={props.kind === "med" ? "e.g. Brand + dosage" : "e.g. Magnesium glycinate"}
-          />
-          {parseStatus === "parsed" && parsedItem?.mode === "openai" && strengthLine && (
-            <div style={styles.detectedHint}>
-              Detected: {strengthLine}{parsedItem.form ? ` · ${parsedItem.form}` : ""}
-            </div>
-          )}
-        </div>
-
-        {/* hidden inputs */}
-        <input ref={frontRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={onPickFront} />
-        <input ref={ingRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={onPickIng} />
-
-        <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-          <button
-            disabled={busy || isParsing}
-            onClick={() => frontRef.current?.click()}
-            style={{ ...styles.btn, opacity: (busy || isParsing) ? 0.6 : 1 }}
-          >
-            {frontDataUrl ? "Re-scan product front" : "Scan product front"}
-          </button>
-
-          <button
-            disabled={!canIng || busy || isParsing}
-            onClick={() => ingRef.current?.click()}
-            style={{
-              ...styles.btn,
-              background: canIng ? "rgba(108,92,231,0.30)" : "rgba(255,255,255,0.08)",
-              borderColor: canIng ? "rgba(108,92,231,0.45)" : "rgba(255,255,255,0.14)",
-              opacity: (!canIng || busy || isParsing) ? 0.6 : 1,
-            }}
-            title={!canIng ? "Scan the front first" : ""}
-          >
-            {ingredientsDataUrl ? "Re-scan ingredients label" : "Scan ingredients label"}
-          </button>
-        </div>
-
-        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-          {frontDataUrl && <img src={frontDataUrl} alt="Front" style={styles.preview} />}
-          {ingredientsDataUrl && <img src={ingredientsDataUrl} alt="Ingredients" style={styles.preview} />}
-        </div>
-
-        {/* Parsing spinner */}
-        {isParsing && (
-          <div style={styles.parseStatus}>Reading label…</div>
         )}
 
-        {/* Amber warning for stub / failure */}
-        {isStubOrFailed && (
-          <div style={styles.stubWarning}>
+        {parseStatus === "parsing" && (
+          <div className="parse-hint">Reading label…</div>
+        )}
+
+        {parseStatus === "failed" && (
+          <div className="parse-warning">
+            {errorMsg || "Couldn't read the label on this device/deployment."}
+          </div>
+        )}
+
+        {parseStatus === "parsed" && parsedItem?.mode === "stub" && (
+          <div className="parse-warning">
             Couldn't read the label on this device/deployment.
             {parsedItem?.rawTextHints?.length
               ? ` (${parsedItem.rawTextHints.join(", ")})`
@@ -231,113 +174,84 @@ export function AddScannedItemModal(props: {
           </div>
         )}
 
-        {/* Parsed details — only for successful openai parse */}
-        {parseStatus === "parsed" && parsedItem?.mode === "openai" && (
-          <div style={styles.parsedDetails}>
-            {parsedItem.brand && (
-              <div style={styles.detailRow}>
-                <span style={styles.detailLabel}>Brand</span>
-                <span>{parsedItem.brand}</span>
-              </div>
-            )}
-            {strengthLine && (
-              <div style={styles.detailRow}>
-                <span style={styles.detailLabel}>Strength</span>
-                <span>{strengthLine}{parsedItem.form ? ` (${parsedItem.form})` : ""}</span>
-              </div>
-            )}
-            {parsedItem.servingSizeText && (
-              <div style={styles.detailRow}>
-                <span style={styles.detailLabel}>Serving</span>
-                <span>{parsedItem.servingSizeText}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Dev debug */}
-        {import.meta.env.DEV && (
-          <div style={styles.debugLine}>
-            [debug] status={parseStatus} mode={parsedItem?.mode ?? "–"} conf={parsedItem?.confidence ?? "–"}
-          </div>
-        )}
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
-          <button onClick={props.onCancel} style={styles.ghostBtn}>Cancel</button>
+        <div className="scan-buttons">
           <button
-            disabled={!canConfirm || busy || isSaving}
-            onClick={handleConfirm}
-            style={{ ...styles.primaryBtn, opacity: (!canConfirm || busy || isSaving) ? 0.55 : 1 }}
+            disabled={parseStatus === "parsing"}
+            onClick={() => frontInputRef.current?.click()}
           >
-            {isSaving ? "Adding…" : `Add to your ${props.kind === "med" ? "medications" : "supplements"}`}
+            {frontImage ? "Re-scan product front" : "Scan product front"}
+          </button>
+
+          <button
+            disabled={!frontImage || parseStatus === "parsing"}
+            className={frontImage ? "primary" : ""}
+            onClick={() => ingredientsInputRef.current?.click()}
+            title={!frontImage ? "Scan the front first" : undefined}
+          >
+            {ingredientsImage
+              ? "Re-scan ingredients label"
+              : "Scan ingredients label"}
           </button>
         </div>
+
+        <div className="thumbs">
+          {frontImage && <img src={frontImage} alt="Front" />}
+          {ingredientsImage && <img src={ingredientsImage} alt="Ingredients" />}
+        </div>
+
+        <div className="modal-actions">
+          <button onClick={onClose}>Cancel</button>
+          <button
+            className="primary"
+            disabled={!canConfirm}
+            onClick={confirm}
+          >
+            Add to your {kind === "med" ? "medications" : "supplements"}
+          </button>
+        </div>
+
+        {import.meta.env.DEV && (
+          <div className="dev-debug">
+            status={parseStatus} | mode={parsedItem?.mode ?? "–"} | confidence=
+            {parsedItem?.confidence ?? "–"}
+          </div>
+        )}
+
+        <input
+          ref={frontInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFrontCapture(f);
+            e.target.value = "";
+          }}
+        />
+
+        <input
+          ref={ingredientsInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleIngredientsCapture(f);
+            e.target.value = "";
+          }}
+        />
       </div>
     </div>
   );
 }
 
-const styles: Record<string, any> = {
-  backdrop: {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    padding: 16, zIndex: 50,
-  },
-  modal: {
-    width: "min(560px, 100%)",
-    maxHeight: "90vh",
-    overflowY: "auto",
-    borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(12,12,16,0.92)",
-    backdropFilter: "blur(12px)",
-    padding: 16,
-    boxShadow: "0 20px 60px rgba(0,0,0,0.55)",
-    color: "rgba(255,255,255,0.92)",
-  },
-  label: { fontSize: 12, opacity: 0.7, display: "block", marginBottom: 6 },
-  input: {
-    width: "100%", borderRadius: 12, padding: "10px 12px",
-    background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
-    color: "rgba(255,255,255,0.92)", outline: "none", fontFamily: "inherit",
-  },
-  btn: {
-    width: "100%", padding: "12px 12px", borderRadius: 14,
-    background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)",
-    color: "rgba(255,255,255,0.92)", cursor: "pointer", fontFamily: "inherit",
-  },
-  ghostBtn: {
-    padding: "10px 12px", borderRadius: 12,
-    background: "transparent", border: "1px solid rgba(255,255,255,0.14)",
-    color: "rgba(255,255,255,0.9)", cursor: "pointer", fontFamily: "inherit",
-  },
-  primaryBtn: {
-    padding: "10px 12px", borderRadius: 12,
-    background: "rgba(108,92,231,0.34)", border: "1px solid rgba(108,92,231,0.55)",
-    color: "rgba(255,255,255,0.95)", cursor: "pointer", fontFamily: "inherit",
-  },
-  preview: { width: 96, height: 96, objectFit: "cover", borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)" },
-  parseStatus: {
-    marginTop: 12, padding: "10px 14px", borderRadius: 12,
-    background: "rgba(108,92,231,0.10)", fontSize: 13, opacity: 0.8,
-  },
-  stubWarning: {
-    marginTop: 12, padding: "10px 14px", borderRadius: 12,
-    background: "rgba(230,126,34,0.12)", border: "1px solid rgba(230,126,34,0.3)",
-    fontSize: 13, color: "rgba(230,168,80,0.95)",
-  },
-  parsedDetails: {
-    marginTop: 12, padding: "10px 14px", borderRadius: 12,
-    background: "rgba(255,255,255,0.04)", fontSize: 13,
-    display: "flex", flexDirection: "column", gap: 6,
-  },
-  detailRow: { display: "flex", gap: 8 },
-  detailLabel: { opacity: 0.55, minWidth: 64 },
-  detectedHint: {
-    marginTop: 6, fontSize: 12, opacity: 0.65,
-    color: "rgba(108,92,231,0.9)",
-  },
-  debugLine: {
-    marginTop: 8, fontSize: 10, opacity: 0.4, fontFamily: "monospace",
-  },
-};
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(file);
+  });
+}

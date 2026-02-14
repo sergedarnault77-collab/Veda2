@@ -1,0 +1,178 @@
+/* ── Scanned Item Modal ── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 50;
+}
+
+.modal-card {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 12, 16, 0.92);
+  backdrop-filter: blur(12px);
+  padding: 20px 16px 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.modal-card h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-sub {
+  opacity: 0.75;
+  font-size: 0.82rem;
+  margin: 0 0 14px;
+  line-height: 1.4;
+}
+
+.modal-card label {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.modal-card input:not([type="file"]) {
+  width: 100%;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+  outline: none;
+  font-family: inherit;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+/* ── Parse feedback ── */
+
+.parse-hint {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  opacity: 0.65;
+  color: rgba(108, 92, 231, 0.9);
+}
+
+.parse-warning {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(230, 126, 34, 0.12);
+  border: 1px solid rgba(230, 126, 34, 0.3);
+  font-size: 0.82rem;
+  color: rgba(230, 168, 80, 0.95);
+}
+
+/* ── Scan buttons ── */
+
+.scan-buttons {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.scan-buttons button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.scan-buttons button.primary {
+  background: rgba(108, 92, 231, 0.30);
+  border-color: rgba(108, 92, 231, 0.45);
+}
+
+.scan-buttons button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Thumbnail previews ── */
+
+.thumbs {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.thumbs img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ── Actions ── */
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.modal-actions button {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.modal-actions button.primary {
+  background: rgba(108, 92, 231, 0.34);
+  border-color: rgba(108, 92, 231, 0.55);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.modal-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ── Dev debug ── */
+
+.dev-debug {
+  margin-top: 8px;
+  font-size: 0.625rem;
+  opacity: 0.4;
+  font-family: monospace;
+}

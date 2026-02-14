@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
-import { AddScannedItemModal } from "../shared/AddScannedItemModal";
-import type { ScannedItemDraft } from "../shared/AddScannedItemModal";
+import AddScannedItemModal from "../shared/AddScannedItemModal";
+import type { ScannedItem } from "../shared/AddScannedItemModal";
 import "./MedicationsPage.css";
 
-type Med = ScannedItemDraft & {
+type Med = ScannedItem & {
   id: string;
-  createdAtISO: string;
 };
 
 const LS_KEY = "veda.meds.v1";
@@ -27,16 +26,11 @@ export default function MedicationsPage() {
   const [meds, setMeds] = useState<Med[]>(() => loadLS<Med[]>(LS_KEY, []));
   const [showModal, setShowModal] = useState(false);
 
-  function addMed(draft: ScannedItemDraft) {
-    const item: Med = {
-      ...draft,
-      id: crypto.randomUUID(),
-      createdAtISO: new Date().toISOString(),
-    };
-    const next = [item, ...meds];
+  function addMed(item: ScannedItem) {
+    const med: Med = { ...item, id: crypto.randomUUID() };
+    const next = [med, ...meds];
     setMeds(next);
     saveLS(LS_KEY, next);
-    setShowModal(false);
   }
 
   function removeMed(id: string) {
@@ -74,7 +68,7 @@ export default function MedicationsPage() {
               <div className="meds-page__card-body">
                 <div className="meds-page__card-row">
                   <div className="meds-page__card-primary">
-                    <div className="meds-page__card-name">{m.name}</div>
+                    <div className="meds-page__card-name">{m.displayName}</div>
                     {m.brand && <div className="meds-page__card-brand">{m.brand}</div>}
                   </div>
                   <button className="meds-page__remove" onClick={() => removeMed(m.id)} title="Remove">
@@ -103,15 +97,15 @@ export default function MedicationsPage() {
                   )}
                   <div className="meds-page__field">
                     <span className="meds-page__field-label">Confidence</span>
-                    <span className={`meds-page__confidence ${confidenceClass(m.parseConfidence)}`}>
-                      {confidenceLabel(m.parseConfidence)}
+                    <span className={`meds-page__confidence ${confidenceClass(m.confidence)}`}>
+                      {confidenceLabel(m.confidence)}
                     </span>
                   </div>
                 </div>
 
                 <div className="meds-page__thumbs">
-                  <img src={m.frontDataUrl} alt={`${m.name} front`} className="meds-page__thumb" />
-                  <img src={m.ingredientsDataUrl} alt={`${m.name} ingredients`} className="meds-page__thumb" />
+                  <img src={m.frontImage} alt={`${m.displayName} front`} className="meds-page__thumb" />
+                  <img src={m.ingredientsImage} alt={`${m.displayName} ingredients`} className="meds-page__thumb" />
                 </div>
               </div>
             </li>
@@ -122,7 +116,7 @@ export default function MedicationsPage() {
       {showModal && (
         <AddScannedItemModal
           kind="med"
-          onCancel={() => setShowModal(false)}
+          onClose={() => setShowModal(false)}
           onConfirm={addMed}
         />
       )}

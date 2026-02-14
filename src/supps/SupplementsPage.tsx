@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
-import { AddScannedItemModal } from "../shared/AddScannedItemModal";
-import type { ScannedItemDraft } from "../shared/AddScannedItemModal";
+import AddScannedItemModal from "../shared/AddScannedItemModal";
+import type { ScannedItem } from "../shared/AddScannedItemModal";
 import "./SupplementsPage.css";
 
-type Supp = ScannedItemDraft & {
+type Supp = ScannedItem & {
   id: string;
-  createdAtISO: string;
 };
 
 const LS_KEY = "veda.supps.v1";
@@ -27,16 +26,11 @@ export default function SupplementsPage() {
   const [supps, setSupps] = useState<Supp[]>(() => loadLS<Supp[]>(LS_KEY, []));
   const [showModal, setShowModal] = useState(false);
 
-  function addSupp(draft: ScannedItemDraft) {
-    const item: Supp = {
-      ...draft,
-      id: crypto.randomUUID(),
-      createdAtISO: new Date().toISOString(),
-    };
-    const next = [item, ...supps];
+  function addSupp(item: ScannedItem) {
+    const supp: Supp = { ...item, id: crypto.randomUUID() };
+    const next = [supp, ...supps];
     setSupps(next);
     saveLS(LS_KEY, next);
-    setShowModal(false);
   }
 
   function removeSupp(id: string) {
@@ -74,7 +68,7 @@ export default function SupplementsPage() {
               <div className="supps-page__card-body">
                 <div className="supps-page__card-row">
                   <div className="supps-page__card-primary">
-                    <div className="supps-page__card-name">{s.name}</div>
+                    <div className="supps-page__card-name">{s.displayName}</div>
                     {s.brand && <div className="supps-page__card-brand">{s.brand}</div>}
                   </div>
                   <button className="supps-page__remove" onClick={() => removeSupp(s.id)} title="Remove">
@@ -103,15 +97,15 @@ export default function SupplementsPage() {
                   )}
                   <div className="supps-page__field">
                     <span className="supps-page__field-label">Confidence</span>
-                    <span className={`supps-page__confidence ${confidenceClass(s.parseConfidence)}`}>
-                      {confidenceLabel(s.parseConfidence)}
+                    <span className={`supps-page__confidence ${confidenceClass(s.confidence)}`}>
+                      {confidenceLabel(s.confidence)}
                     </span>
                   </div>
                 </div>
 
                 <div className="supps-page__thumbs">
-                  <img src={s.frontDataUrl} alt={`${s.name} front`} className="supps-page__thumb" />
-                  <img src={s.ingredientsDataUrl} alt={`${s.name} ingredients`} className="supps-page__thumb" />
+                  <img src={s.frontImage} alt={`${s.displayName} front`} className="supps-page__thumb" />
+                  <img src={s.ingredientsImage} alt={`${s.displayName} ingredients`} className="supps-page__thumb" />
                 </div>
               </div>
             </li>
@@ -122,7 +116,7 @@ export default function SupplementsPage() {
       {showModal && (
         <AddScannedItemModal
           kind="supp"
-          onCancel={() => setShowModal(false)}
+          onClose={() => setShowModal(false)}
           onConfirm={addSupp}
         />
       )}
