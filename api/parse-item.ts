@@ -99,7 +99,7 @@ async function callOpenAI(
   frontDataUrl: string,
   ingredientsDataUrl: string
 ): Promise<ParsedItem> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = ((globalThis as any)?.process?.env?.OPENAI_API_KEY ?? "") as string;
   console.log("[parse-item] OPENAI_API_KEY present:", !!apiKey);
   if (!apiKey) throw new Error("NO_KEY");
 
