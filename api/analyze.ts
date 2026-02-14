@@ -330,11 +330,12 @@ export default async function handler(req: Request): Promise<Response> {
           ],
         },
       ],
-      // Structured output: must be top-level text.format, NOT an output_text content item
+      // Responses API structured output: name/strict/schema are flat inside format
+      // (NOT nested under a json_schema key — that's the Chat Completions format)
       text: {
         format: {
-          type: "json_schema",
-          json_schema: schema,
+          type: "json_schema" as const,
+          ...schema,
         },
       },
     };
