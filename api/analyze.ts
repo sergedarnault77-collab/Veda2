@@ -26,9 +26,21 @@ type Signal = {
   relatedEntities: string[];
 };
 
+type NutrientUnit = "mg" | "µg" | "IU" | "g" | "mL";
+
+type NutrientRow = {
+  nutrientId: string;
+  name: string;
+  unit: NutrientUnit;
+  amountToday: number;
+  dailyReference: number;
+};
+
 type AnalyzeResponse = {
   ok: true;
   productName: string | null;
+  transcription: string | null;
+  nutrients: NutrientRow[];
   normalized: {
     categories: Record<CategoryKey, string[]>;
     detectedEntities: string[];
@@ -82,6 +94,8 @@ function stub(reason: string): AnalyzeResponse {
   return {
     ok: true,
     productName: null,
+    transcription: null,
+    nutrients: [],
     normalized: { categories: emptyCategories(), detectedEntities: [] },
     signals: [
       {
@@ -130,6 +144,28 @@ function dedupeCaseInsensitive(list: string[]): string[] {
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(s);
+  }
+  return out;
+}
+
+const VALID_NUTRIENT_UNITS: NutrientUnit[] = ["mg", "µg", "IU", "g", "mL"];
+
+function coerceNutrients(v: any): NutrientRow[] {
+  if (!Array.isArray(v)) return [];
+  const out: NutrientRow[] = [];
+  for (const n of v.slice(0, 30)) {
+    if (!n || typeof n !== "object") continue;
+    if (typeof n.nutrientId !== "string" || !n.nutrientId) continue;
+    if (typeof n.amountToday !== "number" || n.amountToday <= 0) continue;
+    if (typeof n.dailyReference !== "number" || n.dailyReference <= 0) continue;
+    if (!VALID_NUTRIENT_UNITS.includes(n.unit)) continue;
+    out.push({
+      nutrientId: n.nutrientId.slice(0, 40),
+      name: typeof n.name === "string" ? n.name.slice(0, 60) : n.nutrientId,
+      unit: n.unit,
+      amountToday: n.amountToday,
+      dailyReference: n.dailyReference,
+    });
   }
   return out;
 }
@@ -196,9 +232,25 @@ function buildJsonSchema() {
     schema: {
       type: "object",
       additionalProperties: false,
-      required: ["productName", "categories", "detectedEntities", "signals"],
+      required: ["productName", "transcription", "nutrients", "categories", "detectedEntities", "signals"],
       properties: {
         productName: { type: ["string", "null"] },
+        transcription: { type: ["string", "null"] },
+        nutrients: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["nutrientId", "name", "unit", "amountToday", "dailyReference"],
+            properties: {
+              nutrientId: { type: "string" },
+              name: { type: "string" },
+              unit: { type: "string", enum: ["mg", "µg", "IU", "g", "mL"] },
+              amountToday: { type: "number" },
+              dailyReference: { type: "number" },
+            },
+          },
+        },
         categories: {
           type: "object",
           additionalProperties: false,
@@ -296,11 +348,10 @@ export default async function handler(req: Request): Promise<Response> {
       "",
       "Step 1 — TRANSCRIPTION (strict):",
       "Read the ingredients label image and transcribe the text exactly as written.",
-      "• Preserve casing",
-      "• Preserve punctuation",
-      "• Do NOT interpret",
-      "• Do NOT infer nutrients",
-      "• If text is readable, always return it",
+      "• Preserve casing and punctuation",
+      "• Do NOT interpret or infer",
+      "• Put the full transcription in the 'transcription' field",
+      "• If text is unreadable, set transcription to null",
       "",
       "Step 2 — EXTRACTION:",
       "Using ONLY the transcribed text from Step 1:",
@@ -317,6 +368,19 @@ export default async function handler(req: Request): Promise<Response> {
       "- Supplements: amino acids / herb extracts / etc — only if present.",
       "- Other: anything notable not covered above.",
       "",
+      "Nutrients guidance (populate 'nutrients' array):",
+      "• Only include a nutrient if the transcription explicitly states BOTH the nutrient name AND a numeric amount.",
+      "• nutrientId: use snake_case canonical id (e.g. vitamin_d, magnesium, caffeine, omega_3_epa)",
+      "• dailyReference: use standard adult daily reference (US DV or EU NRV). Common values:",
+      "  Vitamin A=900µg, Vitamin C=90mg, Vitamin D=20µg(=800IU), Vitamin E=15mg,",
+      "  Vitamin K=120µg, Thiamin(B1)=1.2mg, Riboflavin(B2)=1.3mg, Niacin(B3)=16mg,",
+      "  Vitamin B6=1.7mg, Folate=400µg, Vitamin B12=2.4µg, Biotin=30µg,",
+      "  Calcium=1300mg, Iron=18mg, Magnesium=420mg, Zinc=11mg, Selenium=55µg,",
+      "  Iodine=150µg, Chromium=35µg, Potassium=4700mg, Phosphorus=1250mg,",
+      "  Omega-3 EPA=500mg, Omega-3 DHA=500mg, Caffeine=400mg",
+      "• If you don't know the standard reference for a nutrient, OMIT that row entirely.",
+      "• Do NOT hallucinate amounts. If the label doesn't state a number, omit the nutrient.",
+      "",
       "Signals guidance (1–2 short signals):",
       "- no_notable_interaction: if nothing stands out.",
       "- timing_conflict / interaction_detected / amplification_likely: only if label text suggests something obvious.",
@@ -325,7 +389,7 @@ export default async function handler(req: Request): Promise<Response> {
       "Rules:",
       "- No medical advice. Avoid: should, stop, causes, treats.",
       "- Use interpretive language: tends to, commonly associated with, often flagged.",
-      "- If you cannot read the label, set productName=null, leave categories empty, use signal type 'no_read'.",
+      "- If you cannot read the label, set productName=null, transcription=null, leave categories/nutrients empty, use signal type 'no_read'.",
       "- Return JSON only matching the schema.",
     ].join("\n");
 
@@ -403,6 +467,14 @@ export default async function handler(req: Request): Promise<Response> {
         ? productNameRaw.trim().slice(0, 70)
         : null;
 
+    const transcriptionRaw = parsed?.transcription;
+    const transcription =
+      typeof transcriptionRaw === "string" && transcriptionRaw.trim()
+        ? transcriptionRaw.trim().slice(0, 3000)
+        : null;
+
+    const nutrients = coerceNutrients(parsed?.nutrients);
+
     const categories = normalizeCategories(parsed?.categories);
     const detectedEntitiesFromCategories = dedupeCaseInsensitive(
       CATEGORY_KEYS.flatMap((k) => categories[k]),
@@ -417,6 +489,8 @@ export default async function handler(req: Request): Promise<Response> {
     const okResp: AnalyzeResponse = {
       ok: true,
       productName,
+      transcription,
+      nutrients,
       normalized: { categories, detectedEntities },
       signals:
         signals.length > 0

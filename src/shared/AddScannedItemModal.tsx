@@ -113,14 +113,13 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     }
   };
 
-  // Auto-parse for new items once both images exist.
-  // For edit mode, we *don't* auto-run; user can tap "Re-read label".
+  // Auto-parse once both images exist — for new items AND edit mode.
+  // In edit mode this immediately re-reads the label from saved photos.
   useEffect(() => {
-    if (isEdit) return;
     if (!frontImage || !ingredientsImage) return;
     doParseNow();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frontImage, ingredientsImage, kind, isEdit]);
+  }, [frontImage, ingredientsImage, kind]);
 
   const detectedNutrientsPreview = useMemo(() => {
     const ns = (parsedItem?.nutrients || []) as any[];

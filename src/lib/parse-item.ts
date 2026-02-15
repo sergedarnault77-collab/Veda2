@@ -1,5 +1,6 @@
 // src/lib/parse-item.ts
-// Client helper — calls /api/parse-item and returns a ParsedItem.
+// Client helper — calls /api/analyze (unified vision pipeline) and maps the
+// response into a ParsedItem for use by AddScannedItemModal / meds / supps.
 
 import type { NutrientRow } from "../home/stubs";
 
@@ -38,7 +39,8 @@ function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
 }
 
 /**
- * Send two captured label images to /api/parse-item and get structured fields back.
+ * Send two captured label images to /api/analyze (unified vision pipeline)
+ * and map the response into a ParsedItem.
  * Falls back to a stub ParsedItem on any network / server error.
  */
 export async function parseScannedItem(
@@ -47,35 +49,75 @@ export async function parseScannedItem(
   ingredientsDataUrl: string
 ): Promise<ParsedItem> {
   try {
-    const res = await fetch("/api/parse-item", {
+    const res = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        kind,
         frontImageDataUrl: frontDataUrl,
         ingredientsImageDataUrl: ingredientsDataUrl,
       }),
     });
 
     if (!res.ok) {
-      console.warn(`[parse-item] HTTP ${res.status}`);
-      return stubItem(kind, `HTTP ${res.status} from /api/parse-item`);
+      console.warn(`[parse-item] /api/analyze HTTP ${res.status}`);
+      return stubItem(kind, `HTTP ${res.status} from /api/analyze`);
     }
 
     const json = await res.json();
-    if (json?.ok && json?.item) {
-      const item = json.item;
-      // Ensure new fields have defaults for backward compat
-      return {
-        ...item,
-        labelTranscription: item.labelTranscription ?? null,
-        nutrients: Array.isArray(item.nutrients) ? item.nutrients : [],
-        ingredientsDetected: Array.isArray(item.ingredientsDetected) ? item.ingredientsDetected : [],
-      } as ParsedItem;
+    if (!json?.ok) {
+      console.warn("[parse-item] analyze returned ok=false", json);
+      return stubItem(kind, json?.error || "analyze returned error");
     }
 
-    console.warn("[parse-item] unexpected response shape", json);
-    return stubItem(kind, "unexpected response shape from API");
+    // Map /api/analyze response → ParsedItem
+    const mode = json.meta?.mode === "openai" ? "openai" : "stub";
+    const productName =
+      typeof json.productName === "string" && json.productName.trim()
+        ? json.productName.trim()
+        : null;
+
+    // Confidence: if mode is openai and we got entities, it's decent
+    const entities: string[] = Array.isArray(json.normalized?.detectedEntities)
+      ? json.normalized.detectedEntities
+      : [];
+    const confidence =
+      mode === "openai"
+        ? entities.length > 0 ? 0.8 : 0.4
+        : 0;
+
+    const nutrients: NutrientRow[] = Array.isArray(json.nutrients)
+      ? json.nutrients.filter(
+          (n: any) => n && typeof n.nutrientId === "string" && typeof n.amountToday === "number"
+        )
+      : [];
+
+    const labelTranscription =
+      typeof json.transcription === "string" && json.transcription.trim()
+        ? json.transcription.trim()
+        : null;
+
+    // Build rawTextHints from first few detected entities (for debug visibility)
+    const rawTextHints = entities.slice(0, 8);
+
+    // If it's a stub, show the reason
+    if (mode === "stub" && json.meta?.reason) {
+      rawTextHints.unshift(json.meta.reason);
+    }
+
+    return {
+      displayName: productName || (kind === "med" ? "New medication" : "New supplement"),
+      brand: null, // analyze doesn't extract brand separately
+      form: null,  // analyze doesn't extract form
+      strengthPerUnit: null,
+      strengthUnit: null,
+      servingSizeText: null,
+      rawTextHints,
+      confidence,
+      mode,
+      labelTranscription,
+      nutrients,
+      ingredientsDetected: entities,
+    };
   } catch (err) {
     console.warn("[parse-item] fetch failed, using stub", err);
     return stubItem(kind, "fetch failed – dev mode without API server?");
