@@ -52,14 +52,16 @@
   line-height: 1.4;
 }
 
-.modal-card label {
+/* ── Form inputs ── */
+
+.modal-label {
   display: block;
   font-size: 0.75rem;
   opacity: 0.7;
   margin-bottom: 6px;
 }
 
-.modal-card input:not([type="file"]) {
+.modal-input {
   width: 100%;
   border-radius: 12px;
   padding: 10px 12px;
@@ -72,12 +74,52 @@
   box-sizing: border-box;
 }
 
+/* ── Generic btn classes ── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  text-align: center;
+  user-select: none;
+}
+
+.btn--primary {
+  background: rgba(108, 92, 231, 0.34);
+  border-color: rgba(108, 92, 231, 0.55);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.btn--secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.btn--disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 /* ── Parse feedback ── */
 
 .parse-hint {
-  margin-top: 6px;
-  font-size: 0.75rem;
-  opacity: 0.65;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  opacity: 0.75;
   color: rgba(108, 92, 231, 0.9);
 }
 
@@ -99,26 +141,10 @@
   margin-top: 14px;
 }
 
-.scan-buttons button {
+.scan-buttons .btn {
   width: 100%;
   padding: 12px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.92);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.85rem;
-}
-
-.scan-buttons button.primary {
-  background: rgba(108, 92, 231, 0.30);
-  border-color: rgba(108, 92, 231, 0.45);
-}
-
-.scan-buttons button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 /* ── Thumbnail previews ── */
@@ -144,28 +170,6 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 16px;
-}
-
-.modal-actions button {
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: transparent;
-  color: rgba(255, 255, 255, 0.9);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.85rem;
-}
-
-.modal-actions button.primary {
-  background: rgba(108, 92, 231, 0.34);
-  border-color: rgba(108, 92, 231, 0.55);
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.modal-actions button:disabled {
-  opacity: 0.55;
-  cursor: default;
 }
 
 /* ── Dev debug ── */

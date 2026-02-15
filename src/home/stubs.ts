@@ -9,7 +9,7 @@ export type ScanStage = "idle" | "front" | "ingredients";
 export interface NutrientRow {
   nutrientId: string;
   name: string;
-  unit: "mg" | "µg" | "IU";
+  unit: "mg" | "µg" | "IU" | "g" | "mL";
   amountToday: number;
   dailyReference: number;
 }

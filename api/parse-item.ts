@@ -1,64 +1,67 @@
-// api/parse-item.ts
-// Vercel Serverless Function (Node runtime)
-//
-// Purpose:
-// - Accept two base64 data-URL images (front + ingredients) of a med or supp
-// - Call OpenAI vision to extract structured product info
-// - If OPENAI_API_KEY is missing, return best-effort stub
-// - NEVER return medical advice; interpretive language only
+export const config = { runtime: "edge" };
 
-type ParseItemRequest = {
-  kind: "med" | "supp";
-  frontImageDataUrl: string;
-  ingredientsImageDataUrl: string;
+/* ── Types ── */
+
+type NutrientUnit = "mg" | "µg" | "IU" | "g" | "mL";
+
+type NutrientRow = {
+  nutrientId: string;
+  name: string;
+  unit: NutrientUnit;
+  amountToday: number;
+  dailyReference: number;
 };
 
-export type ParsedItem = {
+type ParsedItem = {
   displayName: string;
   brand: string | null;
   form: "tablet" | "capsule" | "powder" | "liquid" | "other" | null;
   strengthPerUnit: number | null;
-  strengthUnit: "mg" | "µg" | "g" | "IU" | "mL" | null;
+  strengthUnit: NutrientUnit | null;
   servingSizeText: string | null;
+  labelTranscription: string | null;
+  ingredientsDetected: string[];
+  nutrients: NutrientRow[];
   rawTextHints: string[];
-  confidence: number; // 0..1
+  confidence: number;
   mode: "openai" | "stub";
 };
 
-type ParseItemResponse =
-  | { ok: true; item: ParsedItem }
-  | { ok: false; error: string };
+/* ── Helpers ── */
 
-// ── Helpers ──
-
-function safeJson(obj: unknown): string {
-  try {
-    return JSON.stringify(obj);
-  } catch {
-    return JSON.stringify({ ok: false, error: "Failed to serialize response" });
-  }
+function envOpenAIKey(): string | null {
+  const p = (globalThis as any)?.process;
+  return (p?.env?.OPENAI_API_KEY as string | undefined) ?? null;
 }
 
-function send(res: any, status: number, body: ParseItemResponse) {
-  res.status(status).setHeader("Content-Type", "application/json");
-  return res.end(safeJson(body));
+function isDataImage(s: unknown): s is string {
+  return typeof s === "string" && s.startsWith("data:image/");
 }
 
-/** Rough byte-length of a data URL (strips the header, decodes base64 size). */
-function dataUrlByteLength(dataUrl: string): number {
-  const commaIdx = dataUrl.indexOf(",");
-  if (commaIdx === -1) return 0;
-  const b64 = dataUrl.slice(commaIdx + 1);
-  // base64 encodes 3 bytes per 4 chars; padding '=' trims
-  const padding = (b64.match(/=+$/) ?? [""])[0].length;
-  return Math.floor((b64.length * 3) / 4) - padding;
+function approxBytes(dataUrl: string): number {
+  const i = dataUrl.indexOf("base64,");
+  if (i === -1) return dataUrl.length;
+  return Math.floor((dataUrl.length - i - 7) * 3 / 4);
 }
 
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
 
-// ── Stub fallback (no API key) ──
+function clamp01(n: any): number {
+  const x = typeof n === "number" ? n : Number(n);
+  return Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : 0;
+}
 
-function stubParse(kind: string, hints?: string[]): ParsedItem {
+function safeStringArray(v: any): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x) => typeof x === "string").map((s) => s.trim()).filter(Boolean).slice(0, 50);
+}
+
+function stubItem(kind: string, hints?: string[]): ParsedItem {
   return {
     displayName: kind === "med" ? "New medication" : "New supplement",
     brand: null,
@@ -66,169 +69,257 @@ function stubParse(kind: string, hints?: string[]): ParsedItem {
     strengthPerUnit: null,
     strengthUnit: null,
     servingSizeText: null,
+    labelTranscription: null,
+    ingredientsDetected: [],
+    nutrients: [],
     rawTextHints: hints ?? [],
     confidence: 0,
     mode: "stub",
   };
 }
 
-// ── OpenAI vision call ──
+/* ── Output text extraction (same as analyze.ts) ── */
 
-const SYSTEM_PROMPT = `You are a product label reader. The user will send two photos of a medication or supplement: the product front, and the ingredients/supplement-facts label on the back.
-
-Return ONLY valid JSON with these exact fields:
-{
-  "displayName": "string — product name as shown on the front",
-  "brand": "string|null — brand name if visible",
-  "form": "tablet|capsule|powder|liquid|other|null",
-  "strengthPerUnit": "number|null — primary active amount per serving",
-  "strengthUnit": "mg|µg|g|IU|mL|null",
-  "servingSizeText": "string|null — e.g. '1 capsule', '2 tablets'",
-  "rawTextHints": ["short extracted text snippets from the label, max 8"],
-  "confidence": "number 0..1 — how confident you are in the extraction"
+function extractOutputText(resp: any): string | null {
+  if (resp && typeof resp.output_text === "string" && resp.output_text.trim())
+    return resp.output_text;
+  const out = resp?.output;
+  if (!Array.isArray(out)) return null;
+  const chunks: string[] = [];
+  for (const item of out) {
+    const content = item?.content;
+    if (!Array.isArray(content)) continue;
+    for (const c of content) {
+      if (typeof c?.text === "string") chunks.push(c.text);
+    }
+  }
+  return chunks.join("\n").trim() || null;
 }
 
-Rules:
-- Extract only what is visible on the labels.
-- If a field is not visible or unclear, use null.
-- Do NOT provide medical advice, dosage recommendations, or health claims.
-- Do NOT use words like "should", "stop", "causes", "treats".
-- Return valid JSON only. No markdown, no explanation outside JSON.`;
+/* ── JSON Schema for structured output ── */
 
-async function callOpenAI(
-  frontDataUrl: string,
-  ingredientsDataUrl: string
-): Promise<ParsedItem> {
-  const apiKey = ((globalThis as any)?.process?.env?.OPENAI_API_KEY ?? "") as string;
-  console.log("[parse-item] OPENAI_API_KEY present:", !!apiKey);
-  if (!apiKey) throw new Error("NO_KEY");
-
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: { url: frontDataUrl, detail: "low" },
-            },
-            {
-              type: "image_url",
-              image_url: { url: ingredientsDataUrl, detail: "high" },
-            },
-            {
-              type: "text",
-              text: "Extract the product info from these two label photos. Return JSON only.",
-            },
-          ],
-        },
+function buildSchema() {
+  return {
+    name: "veda_parse_item",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "displayName", "brand", "form", "strengthPerUnit", "strengthUnit",
+        "servingSizeText", "labelTranscription", "ingredientsDetected", "nutrients",
+        "rawTextHints", "confidence",
       ],
-      response_format: { type: "json_object" },
-      max_tokens: 800,
-      temperature: 0.1,
-    }),
-  });
+      properties: {
+        displayName: { type: "string" },
+        brand: { type: ["string", "null"] },
+        form: {
+          type: ["string", "null"],
+          enum: ["tablet", "capsule", "powder", "liquid", "other", null],
+        },
+        strengthPerUnit: { type: ["number", "null"] },
+        strengthUnit: {
+          type: ["string", "null"],
+          enum: ["mg", "µg", "g", "IU", "mL", null],
+        },
+        servingSizeText: { type: ["string", "null"] },
+        labelTranscription: { type: ["string", "null"] },
+        ingredientsDetected: { type: "array", items: { type: "string" } },
+        nutrients: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["nutrientId", "name", "unit", "amountToday", "dailyReference"],
+            properties: {
+              nutrientId: { type: "string" },
+              name: { type: "string" },
+              unit: { type: "string", enum: ["mg", "µg", "IU", "g", "mL"] },
+              amountToday: { type: "number" },
+              dailyReference: { type: "number" },
+            },
+          },
+        },
+        rawTextHints: { type: "array", items: { type: "string" } },
+        confidence: { type: "number" },
+      },
+    },
+  };
+}
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`OpenAI HTTP ${response.status}: ${text.slice(0, 200)}`);
+/* ── Coerce parsed output into safe ParsedItem ── */
+
+function coerceItem(raw: any): ParsedItem {
+  const VALID_FORMS = ["tablet", "capsule", "powder", "liquid", "other"];
+  const VALID_UNITS = ["mg", "µg", "g", "IU", "mL"];
+
+  const form = VALID_FORMS.includes(raw?.form) ? raw.form : null;
+  const strengthUnit = VALID_UNITS.includes(raw?.strengthUnit) ? raw.strengthUnit : null;
+
+  const nutrients: NutrientRow[] = [];
+  if (Array.isArray(raw?.nutrients)) {
+    for (const n of raw.nutrients.slice(0, 30)) {
+      if (!n || typeof n !== "object") continue;
+      if (typeof n.nutrientId !== "string" || !n.nutrientId) continue;
+      if (typeof n.amountToday !== "number" || n.amountToday <= 0) continue;
+      if (typeof n.dailyReference !== "number" || n.dailyReference <= 0) continue;
+      if (!VALID_UNITS.includes(n.unit)) continue;
+      nutrients.push({
+        nutrientId: n.nutrientId.slice(0, 40),
+        name: typeof n.name === "string" ? n.name.slice(0, 60) : n.nutrientId,
+        unit: n.unit,
+        amountToday: n.amountToday,
+        dailyReference: n.dailyReference,
+      });
+    }
   }
 
-  const json = await response.json();
-  const raw = json?.choices?.[0]?.message?.content ?? "";
-  const parsed = JSON.parse(raw);
-
   return {
-    displayName: String(parsed.displayName ?? "Unknown product"),
-    brand: parsed.brand ?? null,
-    form: parsed.form ?? null,
-    strengthPerUnit:
-      typeof parsed.strengthPerUnit === "number" ? parsed.strengthPerUnit : null,
-    strengthUnit: parsed.strengthUnit ?? null,
-    servingSizeText: parsed.servingSizeText ?? null,
-    rawTextHints: Array.isArray(parsed.rawTextHints)
-      ? parsed.rawTextHints.map(String).slice(0, 8)
-      : [],
-    confidence:
-      typeof parsed.confidence === "number"
-        ? Math.max(0, Math.min(1, parsed.confidence))
-        : 0.5,
+    displayName: typeof raw?.displayName === "string" && raw.displayName.trim()
+      ? raw.displayName.trim().slice(0, 80)
+      : "Unknown product",
+    brand: typeof raw?.brand === "string" && raw.brand.trim() ? raw.brand.trim().slice(0, 60) : null,
+    form,
+    strengthPerUnit: typeof raw?.strengthPerUnit === "number" ? raw.strengthPerUnit : null,
+    strengthUnit,
+    servingSizeText: typeof raw?.servingSizeText === "string" && raw.servingSizeText.trim()
+      ? raw.servingSizeText.trim().slice(0, 60)
+      : null,
+    labelTranscription: typeof raw?.labelTranscription === "string" && raw.labelTranscription.trim()
+      ? raw.labelTranscription.trim().slice(0, 2000)
+      : null,
+    ingredientsDetected: safeStringArray(raw?.ingredientsDetected).slice(0, 40),
+    nutrients,
+    rawTextHints: safeStringArray(raw?.rawTextHints).slice(0, 8),
+    confidence: clamp01(raw?.confidence),
     mode: "openai",
   };
 }
 
-// ── Handler ──
+/* ── Handler ── */
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: Request): Promise<Response> {
   try {
-    if (req.method !== "POST") {
-      return send(res, 405, { ok: false, error: "Method not allowed" });
-    }
+    if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
 
-    const body = (
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body
-    ) as ParseItemRequest;
+    const apiKey = envOpenAIKey();
+    if (!apiKey) return json({ ok: true, item: stubItem("supp", ["OPENAI_API_KEY missing"]) });
 
+    const body = await req.json().catch(() => null);
     const kind = body?.kind;
-    if (kind !== "med" && kind !== "supp") {
-      return send(res, 400, { ok: false, error: 'kind must be "med" or "supp"' });
+    const front = body?.frontImageDataUrl;
+    const ingr = body?.ingredientsImageDataUrl;
+
+    if (!isDataImage(front) || !isDataImage(ingr)) {
+      return json({ ok: true, item: stubItem(kind || "supp", ["missing or invalid images"]) });
     }
 
-    const front = body?.frontImageDataUrl ?? "";
-    const ing = body?.ingredientsImageDataUrl ?? "";
-
-    if (!front || !ing) {
-      return send(res, 400, {
-        ok: false,
-        error: "Both frontImageDataUrl and ingredientsImageDataUrl are required",
-      });
+    const maxBytes = 1_800_000;
+    if (approxBytes(front) > maxBytes || approxBytes(ingr) > maxBytes) {
+      return json({ ok: true, item: stubItem(kind || "supp", ["images too large"]) });
     }
 
-    if (
-      !front.startsWith("data:image/") ||
-      !ing.startsWith("data:image/")
-    ) {
-      return send(res, 400, {
-        ok: false,
-        error: "Images must be base64 data URLs (data:image/…)",
-      });
+    const system = [
+      "You are Veda's label reader for medications and supplements.",
+      "You follow a strict two-step process.",
+      "",
+      "Step 1 — TRANSCRIPTION (strict):",
+      "Read the ingredients/supplement-facts label image and transcribe the text exactly as written.",
+      "• Preserve casing and punctuation",
+      "• Do NOT interpret or infer",
+      "• Put the full transcription in the labelTranscription field",
+      "",
+      "Step 2 — EXTRACTION:",
+      "Using ONLY the transcribed text from Step 1 and the front image:",
+      "• displayName: product name from front image",
+      "• brand: brand name if visible on front",
+      "• form: tablet/capsule/powder/liquid/other or null",
+      "• strengthPerUnit + strengthUnit: primary active per serving if stated",
+      "• servingSizeText: e.g. '1 capsule', '2 tablets'",
+      "• ingredientsDetected: list of ingredient names found in transcription",
+      "• nutrients: array of nutrient rows with amounts AND standard daily reference values",
+      "",
+      "Nutrients rules:",
+      "• Only include a nutrient if the transcription explicitly states BOTH the nutrient name AND a numeric amount.",
+      "• nutrientId: use snake_case canonical id (e.g. vitamin_d, magnesium, caffeine, omega_3_epa)",
+      "• dailyReference: use standard adult daily reference (US DV or EU NRV). Common values:",
+      "  Vitamin A=900µg, Vitamin C=90mg, Vitamin D=20µg(=800IU), Vitamin E=15mg,",
+      "  Vitamin K=120µg, Thiamin(B1)=1.2mg, Riboflavin(B2)=1.3mg, Niacin(B3)=16mg,",
+      "  Vitamin B6=1.7mg, Folate=400µg, Vitamin B12=2.4µg, Biotin=30µg,",
+      "  Calcium=1300mg, Iron=18mg, Magnesium=420mg, Zinc=11mg, Selenium=55µg,",
+      "  Iodine=150µg, Chromium=35µg, Potassium=4700mg, Phosphorus=1250mg,",
+      "  Omega-3 EPA=500mg, Omega-3 DHA=500mg, Caffeine=400mg",
+      "• If you don't know the standard reference for a nutrient, OMIT that row entirely.",
+      "• Do NOT hallucinate amounts. If the label doesn't state a number, omit the nutrient.",
+      "",
+      "General rules:",
+      "• No medical advice. Avoid: should, stop, causes, treats.",
+      "• confidence: 0–1 reflecting how readable the label was.",
+      "• rawTextHints: up to 8 short text snippets from the label for debugging.",
+      "• Return JSON only matching the schema.",
+    ].join("\n");
+
+    const schema = buildSchema();
+
+    const r = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        input: [
+          { role: "system", content: [{ type: "input_text", text: system }] },
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: "Front of product (read product name / brand):" },
+              { type: "input_image", image_url: front, detail: "low" as const },
+              {
+                type: "input_text",
+                text: "Ingredients / supplement facts label (transcribe text exactly, then extract nutrients from transcription only):",
+              },
+              { type: "input_image", image_url: ingr, detail: "high" as const },
+            ],
+          },
+        ],
+        text: {
+          format: {
+            type: "json_schema" as const,
+            ...schema,
+          },
+        },
+      }),
+    });
+
+    if (!r.ok) {
+      const errText = await r.text().catch(() => "");
+      console.log("[parse-item] OpenAI HTTP", r.status, errText.slice(0, 300));
+      return json({ ok: true, item: stubItem(kind || "supp", [`OpenAI error ${r.status}: ${errText.slice(0, 100)}`]) });
     }
 
-    if (dataUrlByteLength(front) > MAX_IMAGE_BYTES) {
-      return send(res, 400, { ok: false, error: "Front image exceeds 2 MB" });
-    }
-    if (dataUrlByteLength(ing) > MAX_IMAGE_BYTES) {
-      return send(res, 400, {
-        ok: false,
-        error: "Ingredients image exceeds 2 MB",
-      });
+    const resp = await r.json().catch(() => null);
+    const outText = extractOutputText(resp);
+    if (!outText) {
+      return json({ ok: true, item: stubItem(kind || "supp", ["OpenAI: no output_text"]) });
     }
 
-    // Try OpenAI; fall back to stub with diagnostic rawTextHints
-    let item: ParsedItem;
+    let parsed: any = null;
     try {
-      item = await callOpenAI(front, ing);
-    } catch (e: any) {
-      if (e?.message === "NO_KEY") {
-        console.log("[parse-item] OPENAI_API_KEY missing, returning stub");
-        item = stubParse(kind, ["OPENAI_API_KEY missing"]);
-      } else {
-        console.error("[parse-item] OpenAI error:", e?.message ?? e);
-        item = stubParse(kind, [`OpenAI error: ${String(e?.message ?? "unknown").slice(0, 120)}`]);
-      }
+      parsed = JSON.parse(outText);
+    } catch {
+      return json({ ok: true, item: stubItem(kind || "supp", ["OpenAI: invalid JSON"]) });
     }
 
-    console.log("[parse-item] mode=%s confidence=%s", item.mode, item.confidence);
-    return send(res, 200, { ok: true, item });
+    const item = coerceItem(parsed);
+    console.log(
+      "[parse-item] mode=openai name=%s nutrients=%d ingredients=%d confidence=%s",
+      item.displayName, item.nutrients.length, item.ingredientsDetected.length, item.confidence,
+    );
+    return json({ ok: true, item });
   } catch (e: any) {
-    return send(res, 500, { ok: false, error: e?.message ?? "Server error" });
+    console.error("[parse-item] exception:", e?.message || e);
+    return json({ ok: true, item: stubItem("supp", [`exception: ${String(e?.message || e).slice(0, 100)}`]) });
   }
 }

@@ -1,6 +1,10 @@
 // src/lib/parse-item.ts
 // Client helper — calls /api/parse-item and returns a ParsedItem.
 
+import type { NutrientRow } from "../home/stubs";
+
+export type { NutrientRow };
+
 export type ParsedItem = {
   displayName: string;
   brand: string | null;
@@ -11,6 +15,9 @@ export type ParsedItem = {
   rawTextHints: string[];
   confidence: number; // 0..1
   mode: "openai" | "stub";
+  labelTranscription: string | null;
+  nutrients: NutrientRow[];
+  ingredientsDetected: string[];
 };
 
 function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
@@ -24,6 +31,9 @@ function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
     rawTextHints: hint ? [hint] : ["local fallback – API server not reachable"],
     confidence: 0,
     mode: "stub",
+    labelTranscription: null,
+    nutrients: [],
+    ingredientsDetected: [],
   };
 }
 
@@ -54,13 +64,19 @@ export async function parseScannedItem(
 
     const json = await res.json();
     if (json?.ok && json?.item) {
-      return json.item as ParsedItem;
+      const item = json.item;
+      // Ensure new fields have defaults for backward compat
+      return {
+        ...item,
+        labelTranscription: item.labelTranscription ?? null,
+        nutrients: Array.isArray(item.nutrients) ? item.nutrients : [],
+        ingredientsDetected: Array.isArray(item.ingredientsDetected) ? item.ingredientsDetected : [],
+      } as ParsedItem;
     }
 
     console.warn("[parse-item] unexpected response shape", json);
     return stubItem(kind, "unexpected response shape from API");
   } catch (err) {
-    // Network error, dev mode without Vercel, etc.
     console.warn("[parse-item] fetch failed, using stub", err);
     return stubItem(kind, "fetch failed – dev mode without API server?");
   }
