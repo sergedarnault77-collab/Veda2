@@ -19,6 +19,7 @@ function confLabel(c: number) {
 }
 
 function pctDV(n: NutrientRow) {
+  if (n.dailyReference == null) return null;
   const a = Number(n.amountToday);
   const d = Number(n.dailyReference);
   if (!isFinite(a) || !isFinite(d) || d <= 0) return null;
@@ -158,11 +159,11 @@ export default function SupplementsPage() {
                 <div className="supp-card__grid">
                   <div>
                     <div className="supp-card__label">Form</div>
-                    <div className="supp-card__value">{s.form || "\u2014"}</div>
+                    <div className="supp-card__value">{s.form || "—"}</div>
                   </div>
                   <div>
                     <div className="supp-card__label">Serving</div>
-                    <div className="supp-card__value">{s.servingSizeText || "\u2014"}</div>
+                    <div className="supp-card__value">{s.servingSizeText || "—"}</div>
                   </div>
                   <div>
                     <div className="supp-card__label">Confidence</div>
@@ -190,7 +191,7 @@ export default function SupplementsPage() {
                             <div className="supp-nutrients__row" key={`${n.nutrientId}-${n.name}`}>
                               <div className="supp-nutrients__name" title={n.name}>{n.name}</div>
                               <div className="supp-nutrients__amt">{n.amountToday}{n.unit}</div>
-                              <div className="supp-nutrients__pct">{pct === null ? "\u2014" : `${pct}% DV`}</div>
+                              <div className="supp-nutrients__pct">{pct === null ? "" : `${pct}%`}</div>
                             </div>
                           );
                         })}

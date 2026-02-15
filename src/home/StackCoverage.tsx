@@ -141,7 +141,7 @@ export function StackCoverage() {
                 onClick={() => toggle(s.id)}
                 aria-pressed={active}
               >
-                {active ? "\u2713" : "\u25CB"} Taken today \u2014 {s.displayName}
+                {active ? "✓" : "○"} Taken today — {s.displayName}
               </button>
             );
           })}
@@ -159,9 +159,9 @@ export function StackCoverage() {
       {anyTaken && (
         <ul className="coverage__list">
           {rows.map((row) => {
-            const pct = row.dailyReference > 0
+            const pct = (row.dailyReference != null && row.dailyReference > 0)
               ? Math.round((row.amountToday / row.dailyReference) * 100)
-              : 0;
+              : null;
             return (
               <li key={row.nutrientId} className="coverage__row">
                 <div className="coverage__row-header">
@@ -169,19 +169,25 @@ export function StackCoverage() {
                   <span className="coverage__amount">
                     {row.amountToday} {row.unit}
                   </span>
-                  <span className="coverage__pct" style={{ color: coverageColor(pct) }}>
-                    {pct}%
-                  </span>
+                  {pct != null ? (
+                    <span className="coverage__pct" style={{ color: coverageColor(pct) }}>
+                      {pct}%
+                    </span>
+                  ) : (
+                    <span className="coverage__pct" style={{ opacity: 0.5 }}>—</span>
+                  )}
                 </div>
-                <div className="coverage__track">
-                  <div
-                    className="coverage__fill"
-                    style={{
-                      width: `${Math.min(pct, 100)}%`,
-                      background: coverageColor(pct),
-                    }}
-                  />
-                </div>
+                {pct != null && (
+                  <div className="coverage__track">
+                    <div
+                      className="coverage__fill"
+                      style={{
+                        width: `${Math.min(pct, 100)}%`,
+                        background: coverageColor(pct),
+                      }}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}

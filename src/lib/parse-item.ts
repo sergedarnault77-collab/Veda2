@@ -20,7 +20,7 @@ export type ParsedItem = {
   strengthUnit: "mg" | "µg" | "g" | "IU" | "mL" | null;
   servingSizeText: string | null;
   rawTextHints: string[];
-  confidence: number; // 0..1
+  confidence: number;
   mode: "openai" | "stub";
   labelTranscription: string | null;
   nutrients: NutrientRow[];
@@ -55,21 +55,25 @@ function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
 }
 
 /**
- * Send two captured label images to /api/analyze (unified vision pipeline)
- * and map the response into a ParsedItem.
+ * Send front + ingredient images to /api/analyze and map the response.
+ * Accepts a single ingredientsDataUrl (backward compat) or an array.
  */
 export async function parseScannedItem(
   kind: "med" | "supp",
   frontDataUrl: string,
-  ingredientsDataUrl: string
+  ingredientsDataUrl: string | string[],
 ): Promise<ParsedItem> {
+  const ingredientsArray = Array.isArray(ingredientsDataUrl)
+    ? ingredientsDataUrl
+    : [ingredientsDataUrl];
+
   try {
     const res = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         frontImageDataUrl: frontDataUrl,
-        ingredientsImageDataUrl: ingredientsDataUrl,
+        ingredientsImageDataUrls: ingredientsArray,
       }),
     });
 
@@ -105,7 +109,7 @@ export async function parseScannedItem(
 
     const nutrients: NutrientRow[] = Array.isArray(json.nutrients)
       ? json.nutrients.filter(
-          (n: any) => n && typeof n.nutrientId === "string" && typeof n.amountToday === "number"
+          (n: any) => n && typeof n.nutrientId === "string" && typeof n.amountToday === "number",
         )
       : [];
 

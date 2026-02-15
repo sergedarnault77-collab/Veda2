@@ -6,10 +6,12 @@ import "./ScanSection.css";
 
 type ScanStep = "idle" | "front" | "ingredients" | "done";
 
+const MAX_ING_PHOTOS = 4;
+
 export default function ScanSection() {
   const [step, setStep] = useState<ScanStep>("idle");
   const [frontImage, setFrontImage] = useState<string | null>(null);
-  const [ingredientsImage, setIngredientsImage] = useState<string | null>(null);
+  const [ingredientsImages, setIngredientsImages] = useState<string[]>([]);
   const [productName, setProductName] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,8 +20,9 @@ export default function ScanSection() {
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
   const canScanIngredients = !!frontImage && !loading;
+  const hasIngredients = ingredientsImages.length > 0;
 
-  /* ── Build chip groups from normalized.categories ── */
+  /* -- Build chip groups from normalized.categories -- */
 
   const entitiesByCategory = useMemo(() => {
     const cats: Record<string, string[]> = result?.normalized?.categories || {};
@@ -39,7 +42,7 @@ export default function ScanSection() {
     return groups;
   }, [result]);
 
-  /* ── "Detected:" summary line ── */
+  /* -- "Detected:" summary line -- */
 
   const summaryLine = useMemo(() => {
     const cats: Record<string, string[]> = result?.normalized?.categories || {};
@@ -62,16 +65,16 @@ export default function ScanSection() {
     const cal = Array.isArray(cats.Calories) ? cats.Calories : [];
     if (cal.length) parts.push(cal.join(", "));
 
-    return parts.length ? parts.join(" \u00b7 ") : "";
+    return parts.length ? parts.join(" · ") : "";
   }, [result]);
 
-  /* ── Rescan hint ── */
+  /* -- Rescan hint -- */
   const needsRescan = result?.meta?.needsRescan === true;
   const rescanHint =
     result?.meta?.rescanHint ||
     "Take a closer photo of the ingredients label.";
 
-  /* ── Handlers ── */
+  /* -- Handlers -- */
 
   async function handleCapture(file: File, kind: "front" | "ingredients") {
     setError(null);
@@ -92,17 +95,17 @@ export default function ScanSection() {
     if (kind === "front") {
       setFrontImage(compressed);
       setStep("front");
-      setIngredientsImage(null);
+      setIngredientsImages([]);
       setResult(null);
       setProductName("");
     } else {
-      setIngredientsImage(compressed);
+      setIngredientsImages((prev) => [...prev, compressed].slice(-MAX_ING_PHOTOS));
       setStep("ingredients");
     }
   }
 
   async function runAnalysis() {
-    if (!frontImage || !ingredientsImage) return;
+    if (!frontImage || ingredientsImages.length === 0) return;
     setLoading(true);
     setError(null);
     try {
@@ -112,7 +115,7 @@ export default function ScanSection() {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             frontImageDataUrl: frontImage,
-            ingredientsImageDataUrl: ingredientsImage,
+            ingredientsImageDataUrls: ingredientsImages,
           }),
         }).then(async (r) => {
           const j = await r.json();
@@ -134,24 +137,18 @@ export default function ScanSection() {
         ok: true,
         productName: null,
         normalized: { detectedEntities: [], categories: {} },
-        signals: [
-          {
-            type: "no_read",
-            severity: "low",
-            headline: "Couldn't read label reliably",
-            explanation:
-              "I couldn't read enough label text to classify this item reliably. " +
-              "This is interpretive and depends on dose, timing, and individual variability.",
-            confidence: 0.1,
-            relatedEntities: [],
-          },
-        ],
+        signals: [{
+          type: "no_read", severity: "low",
+          headline: "Couldn't read label reliably",
+          explanation: "I couldn't read enough label text to classify this item reliably.",
+          confidence: 0.1, relatedEntities: [],
+        }],
         meta: {
-          mode: "stub",
-          reason: "client-side fallback",
-          transcriptionConfidence: 0,
-          needsRescan: true,
+          mode: "stub", reason: "client-side fallback",
+          refSystem: "UNKNOWN",
+          transcriptionConfidence: 0, needsRescan: true,
           rescanHint: "Couldn't read the label reliably. Take a closer photo of the ingredients/nutrition panel.",
+          ingredientPhotosUsed: 0,
         },
       });
       setProductName("(unnamed item)");
@@ -168,16 +165,20 @@ export default function ScanSection() {
   function reset() {
     setStep("idle");
     setFrontImage(null);
-    setIngredientsImage(null);
+    setIngredientsImages([]);
     setResult(null);
     setError(null);
     setProductName("");
   }
 
-  /* ── Render ── */
+  /* -- Render -- */
 
   const modeLabel =
     result?.meta?.mode === "openai" ? "Read from label" : "Couldn't read label reliably";
+
+  const ingButtonLabel = hasIngredients
+    ? `Add another label photo (${ingredientsImages.length} taken)`
+    : "Scan ingredients label";
 
   return (
     <section className="scan-section">
@@ -220,29 +221,32 @@ export default function ScanSection() {
                 handleCapture(f, "ingredients");
               }}
             />
-            {ingredientsImage ? "Re-scan ingredients label" : "Scan ingredients label"}
+            {ingButtonLabel}
           </label>
         </div>
 
         <div className="scan-section__hint">
           Most interaction patterns are identified from the ingredients label on the back.
+          {hasIngredients && ingredientsImages.length < MAX_ING_PHOTOS && (
+            <span> Multi-column label? Add more photos for better accuracy.</span>
+          )}
         </div>
 
         <div className="scan-section__status">
-          <div>Front captured {frontImage ? "\u2705" : "\u2014"}</div>
-          <div>Ingredients captured {ingredientsImage ? "\u2705" : "\u2014"}</div>
+          <div>Front captured {frontImage ? "✅" : "—"}</div>
+          <div>Ingredients captured {hasIngredients ? `✅ (${ingredientsImages.length} photo${ingredientsImages.length > 1 ? "s" : ""})` : "—"}</div>
         </div>
 
         {/* Loading state */}
         {loading && (
           <LoadingBanner
-            title="Reading label\u2026"
+            title="Reading label…"
             subtitle="Extracting ingredients and nutrients"
             tone="info"
           />
         )}
 
-        {frontImage && ingredientsImage && step !== "done" && !loading && (
+        {frontImage && hasIngredients && step !== "done" && !loading && (
           <button
             className="scan-section__btn scan-section__btn--run"
             onClick={runAnalysis}
@@ -273,9 +277,9 @@ export default function ScanSection() {
               </>
             )}
 
-            {/* ── Scanned header ── */}
+            {/* Scanned header */}
             <div className="scan-section__scannedHeader">
-              <div className="scan-section__scannedCheck">{needsRescan ? "\u26a0\ufe0f" : "\u2705"}</div>
+              <div className="scan-section__scannedCheck">{needsRescan ? "⚠️" : "✅"}</div>
               <div className="scan-section__scannedMeta">
                 <div className="scan-section__scannedTitle">
                   <input
@@ -291,19 +295,21 @@ export default function ScanSection() {
                 <summary>Tap to view photos</summary>
                 <div className="scan-section__photos">
                   {frontImage && <img src={frontImage} alt="front" />}
-                  {ingredientsImage && <img src={ingredientsImage} alt="ingredients" />}
+                  {ingredientsImages.map((img, i) => (
+                    <img key={i} src={img} alt={`ingredients ${i + 1}`} />
+                  ))}
                 </div>
               </details>
             </div>
 
-            {/* ── "Detected:" summary ── */}
+            {/* "Detected:" summary */}
             {summaryLine && (
               <div className="scan-section__detectedLine">
                 <strong>Detected:</strong> {summaryLine}
               </div>
             )}
 
-            {/* ── Chip groups ── */}
+            {/* Chip groups */}
             {entitiesByCategory.length > 0 && (
               <div className="scan-section__entities">
                 {entitiesByCategory.map((c) => (
@@ -321,15 +327,11 @@ export default function ScanSection() {
               </div>
             )}
 
-            {/* ── Signal cards (severity-based) ── */}
+            {/* Signal cards */}
             {Array.isArray(result.signals) &&
               result.signals.map((s: any, idx: number) => (
                 <div className="scan-section__signal" key={idx}>
-                  <div
-                    className={
-                      "scan-section__badge scan-section__badge--" + String(s.severity || "low")
-                    }
-                  >
+                  <div className={"scan-section__badge scan-section__badge--" + String(s.severity || "low")}>
                     {String(s.headline || "").toUpperCase()}
                   </div>
                   <div className="scan-section__explain">{String(s.explanation || "")}</div>
@@ -345,10 +347,9 @@ export default function ScanSection() {
               Scan another item
             </button>
 
-            {/* Debug: show why we fell back to stub */}
             {result?.meta && (
               <div className="scan-section__debug">
-                mode={result.meta.mode} · conf={result.meta.transcriptionConfidence ?? "n/a"} · rescan={String(result.meta.needsRescan)} · reason={result.meta.reason || "n/a"}
+                mode={result.meta.mode} · ref={result.meta.refSystem ?? "n/a"} · conf={result.meta.transcriptionConfidence ?? "n/a"} · rescan={String(result.meta.needsRescan)} · photos={result.meta.ingredientPhotosUsed ?? "n/a"}
               </div>
             )}
           </div>

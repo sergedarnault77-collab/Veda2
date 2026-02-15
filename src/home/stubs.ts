@@ -11,7 +11,7 @@ export interface NutrientRow {
   name: string;
   unit: "mg" | "µg" | "IU" | "g" | "mL";
   amountToday: number;
-  dailyReference: number;
+  dailyReference: number | null;
 }
 
 export interface Supplement {

@@ -19,6 +19,7 @@ function confLabel(c: number) {
 }
 
 function pctDV(n: NutrientRow) {
+  if (n.dailyReference == null) return null;
   const a = Number(n.amountToday);
   const d = Number(n.dailyReference);
   if (!isFinite(a) || !isFinite(d) || d <= 0) return null;
@@ -155,11 +156,11 @@ export default function MedicationsPage() {
                 <div className="med-card__grid">
                   <div>
                     <div className="med-card__label">Form</div>
-                    <div className="med-card__value">{m.form || "\u2014"}</div>
+                    <div className="med-card__value">{m.form || "—"}</div>
                   </div>
                   <div>
                     <div className="med-card__label">Serving</div>
-                    <div className="med-card__value">{m.servingSizeText || "\u2014"}</div>
+                    <div className="med-card__value">{m.servingSizeText || "—"}</div>
                   </div>
                   <div>
                     <div className="med-card__label">Confidence</div>
@@ -187,7 +188,7 @@ export default function MedicationsPage() {
                             <div className="med-nutrients__row" key={`${n.nutrientId}-${n.name}`}>
                               <div className="med-nutrients__name" title={n.name}>{n.name}</div>
                               <div className="med-nutrients__amt">{n.amountToday}{n.unit}</div>
-                              <div className="med-nutrients__pct">{pct === null ? "\u2014" : `${pct}% DV`}</div>
+                              <div className="med-nutrients__pct">{pct === null ? "" : `${pct}%`}</div>
                             </div>
                           );
                         })}

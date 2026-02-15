@@ -19,6 +19,7 @@ export type ScannedItem = {
   mode: "openai" | "stub";
   frontImage: string | null;
   ingredientsImage: string | null;
+  ingredientsImages?: string[];
   labelTranscription?: string | null;
   nutrients?: NutrientRow[];
   ingredientsDetected?: string[];
@@ -49,15 +50,21 @@ type Props = {
   kind: "med" | "supp";
   onClose: () => void;
   onConfirm: (item: ScannedItem) => void;
-  initialItem?: ScannedItem; // if present -> edit/re-read mode
+  initialItem?: ScannedItem;
 };
+
+const MAX_ING_PHOTOS = 4;
 
 export default function AddScannedItemModal({ kind, onClose, onConfirm, initialItem }: Props) {
   const isEdit = !!initialItem;
   const defaultName = "New " + (kind === "med" ? "medication" : "supplement");
 
   const [frontImage, setFrontImage] = useState<string | null>(initialItem?.frontImage ?? null);
-  const [ingredientsImage, setIngredientsImage] = useState<string | null>(initialItem?.ingredientsImage ?? null);
+  const [ingredientsImages, setIngredientsImages] = useState<string[]>(() => {
+    if (initialItem?.ingredientsImages?.length) return initialItem.ingredientsImages;
+    if (initialItem?.ingredientsImage) return [initialItem.ingredientsImage];
+    return [];
+  });
   const [name, setName] = useState<string>(initialItem?.displayName || defaultName);
 
   const [parseStatus, setParseStatus] = useState<"idle" | "parsing" | "parsed" | "failed">("idle");
@@ -66,7 +73,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
   const userEditedName = useRef(false);
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
-  // If we're editing an existing item, pre-fill parsed fields so UI shows what we already have.
+  // Pre-fill from initialItem
   useEffect(() => {
     if (!initialItem) return;
     setParsedItem({
@@ -86,8 +93,9 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     });
   }, [initialItem]);
 
+  const hasIngredients = ingredientsImages.length > 0;
   const canScanIngredients = !!frontImage;
-  const canConfirm = !!name.trim() && !!frontImage && !!ingredientsImage && parseStatus !== "parsing";
+  const canConfirm = !!name.trim() && !!frontImage && hasIngredients && parseStatus !== "parsing";
 
   const title = isEdit
     ? (kind === "med" ? "Edit medication" : "Edit supplement")
@@ -109,19 +117,19 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
   const onPickIngredients = async (file: File) => {
     const dataUrl = await fileToDataUrl(file);
     const compressed = await compressImageDataUrl(dataUrl, { maxW: 1200, maxH: 1200, quality: 0.78, mimeType: "image/jpeg" });
-    setIngredientsImage(compressed);
+    setIngredientsImages((prev) => [...prev, compressed].slice(-MAX_ING_PHOTOS));
     setParseStatus("idle");
     setParsedItem(null);
     setParseWarning(null);
   };
 
   const doParseNow = async () => {
-    if (!frontImage || !ingredientsImage) return;
+    if (!frontImage || !hasIngredients) return;
     setParseStatus("parsing");
     setParseWarning(null);
     try {
       const item = await withMinDelay(
-        parseScannedItem(kind, frontImage, ingredientsImage),
+        parseScannedItem(kind, frontImage, ingredientsImages),
         700,
       );
       console.log("[parse] response", item);
@@ -129,7 +137,6 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
       setParseStatus("parsed");
       if (!userEditedName.current && item?.displayName) setName(item.displayName);
 
-      // Check for rescan hint from server
       if (item?.meta?.needsRescan) {
         setParseWarning(item.meta.rescanHint || "Photo is hard to read. Take a closer photo of the ingredients label.");
       } else if (item?.mode === "stub") {
@@ -143,17 +150,22 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     }
   };
 
-  // Auto-parse once both images exist — for new items AND edit mode.
+  // Auto-parse once front + at least one ingredient exist
   useEffect(() => {
-    if (!frontImage || !ingredientsImage) return;
+    if (!frontImage || !hasIngredients) return;
     doParseNow();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frontImage, ingredientsImage, kind]);
+  }, [frontImage, ingredientsImages, kind]);
 
   const detectedNutrientsPreview = useMemo(() => {
     const ns = (parsedItem?.nutrients || []) as any[];
     if (!Array.isArray(ns) || ns.length === 0) return [];
-    return ns.slice(0, 8).map((n: any) => `${n.name} \u2014 ${n.amountToday}${n.unit}`);
+    return ns.slice(0, 8).map((n: any) => {
+      const pct = n.dailyReference != null && n.dailyReference > 0
+        ? ` (${Math.round((n.amountToday / n.dailyReference) * 100)}%)`
+        : "";
+      return `${n.name} — ${n.amountToday}${n.unit}${pct}`;
+    });
   }, [parsedItem]);
 
   const needsRescan = parsedItem?.meta?.needsRescan === true;
@@ -172,7 +184,8 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
       confidence: parsedItem?.confidence ?? initialItem?.confidence ?? 0,
       mode: parsedItem?.mode ?? initialItem?.mode ?? "stub",
       frontImage: frontImage!,
-      ingredientsImage: ingredientsImage!,
+      ingredientsImage: ingredientsImages[0] ?? null,
+      ingredientsImages,
       labelTranscription: parsedItem?.labelTranscription ?? initialItem?.labelTranscription ?? null,
       nutrients: parsedItem?.nutrients ?? initialItem?.nutrients ?? [],
       ingredientsDetected: parsedItem?.ingredientsDetected ?? initialItem?.ingredientsDetected ?? [],
@@ -186,11 +199,15 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     onClose();
   };
 
+  const ingButtonLabel = hasIngredients
+    ? `Add another label photo (${ingredientsImages.length} taken)`
+    : "Scan ingredients label";
+
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
       <div className="modal-card">
         <button className="modal-close" onClick={onClose} aria-label="Close">
-          \u00d7
+          ×
         </button>
 
         <h2>{title}</h2>
@@ -206,14 +223,14 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
           }}
         />
 
-        {isEdit && frontImage && ingredientsImage && (
+        {isEdit && frontImage && hasIngredients && (
           <button
             className="btn btn--secondary"
             style={{ marginTop: 10 }}
             onClick={doParseNow}
             disabled={parseStatus === "parsing"}
           >
-            {parseStatus === "parsing" ? "Reading label\u2026" : "Re-read label from photos"}
+            {parseStatus === "parsing" ? "Reading label…" : "Re-read label from photos"}
           </button>
         )}
 
@@ -253,21 +270,29 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
             title={canScanIngredients ? "" : "Scan the front first"}
             aria-disabled={!canScanIngredients}
           >
-            {ingredientsImage ? "Re-scan ingredients label" : "Scan ingredients label"}
+            {ingButtonLabel}
           </label>
         </div>
 
-        {(frontImage || ingredientsImage) && (
+        {hasIngredients && ingredientsImages.length < MAX_ING_PHOTOS && (
+          <div className="parse-hint">
+            Multi-column label? Add more photos for better accuracy.
+          </div>
+        )}
+
+        {(frontImage || hasIngredients) && (
           <div className="thumbs">
             {frontImage && <img src={frontImage} alt="Front preview" />}
-            {ingredientsImage && <img src={ingredientsImage} alt="Ingredients preview" />}
+            {ingredientsImages.map((img, i) => (
+              <img key={i} src={img} alt={`Ingredients ${i + 1}`} />
+            ))}
           </div>
         )}
 
         {/* Loading banner */}
         {parseStatus === "parsing" && (
           <LoadingBanner
-            title="Reading label\u2026"
+            title="Reading label…"
             subtitle="This can take a few seconds on mobile"
             tone="info"
           />
@@ -290,7 +315,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
           </>
         )}
 
-        {/* Non-rescan warning (stub / failed) */}
+        {/* Non-rescan warning */}
         {parseStatus !== "parsing" && !needsRescan && !!parseWarning && (
           <LoadingBanner
             tone="warn"
@@ -304,7 +329,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
             <strong>Detected nutrients:</strong>
             <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9 }}>
               {detectedNutrientsPreview.map((t) => (
-                <div key={t}>{"\u2022"} {t}</div>
+                <div key={t}>• {t}</div>
               ))}
             </div>
           </div>
@@ -319,7 +344,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
             onClick={confirm}
             disabled={!canConfirm}
           >
-            {parseStatus === "parsing" ? "Reading\u2026" : confirmLabel}
+            {parseStatus === "parsing" ? "Reading…" : confirmLabel}
           </button>
         </div>
 
