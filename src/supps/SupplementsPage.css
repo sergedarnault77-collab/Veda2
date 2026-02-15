@@ -6,19 +6,28 @@
   margin: 0 auto;
 }
 
-.supps-page__top {
+.supps-page__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 4px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.supps-page__heading {
+.supps-page__header h1 {
   font-size: 1.25rem;
   font-weight: 700;
+  margin: 0 0 4px;
 }
 
-.supps-page__add-btn {
+.supps-page__header p {
+  opacity: 0.75;
+  line-height: 1.4;
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.supps-page__add {
   padding: 8px 14px;
   font-size: 0.82rem;
   font-weight: 600;
@@ -28,15 +37,10 @@
   background: rgba(108, 92, 231, 0.2);
   color: rgba(255, 255, 255, 0.92);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.supps-page__intro {
-  opacity: 0.75;
-  line-height: 1.4;
-  font-size: 0.92rem;
-  margin-bottom: 16px;
-}
-
+/* Empty state */
 .supps-page__empty {
   padding: 16px;
   border-radius: var(--radius-lg);
@@ -44,12 +48,12 @@
   border: 1px solid var(--veda-border);
 }
 
-.supps-page__empty-label {
+.supps-page__emptyTitle {
   opacity: 0.8;
   font-size: 0.92rem;
 }
 
-.supps-page__empty-hint {
+.supps-page__emptySub {
   margin-top: 8px;
   opacity: 0.65;
   font-size: 0.84rem;
@@ -58,77 +62,81 @@
 
 /* Card list */
 .supps-page__list {
-  list-style: none;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.supps-page__card {
+/* ── Supplement Card ── */
+
+.supp-card {
+  position: relative;
   padding: 14px;
   border-radius: var(--radius-md);
   background: var(--veda-surface);
   border: 1px solid var(--veda-border);
-}
-
-.supps-page__card-body {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.supps-page__card-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
+.supp-card__remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 9px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--veda-border);
+  background: transparent;
+  color: var(--veda-text-muted);
+  cursor: pointer;
+  line-height: 1;
 }
 
-.supps-page__card-primary {
-  min-width: 0;
-}
-
-.supps-page__card-name {
+.supp-card__title {
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-right: 36px;
 }
 
-.supps-page__card-brand {
-  font-size: 0.78rem;
+.supp-card__subtitle {
+  font-size: 0.72rem;
   color: var(--veda-text-muted);
-  margin-top: 1px;
+  letter-spacing: 0.04em;
+  margin-top: -6px;
 }
 
-/* Structured fields */
-.supps-page__card-fields {
+/* Fields grid */
+.supp-card__grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 16px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
 }
 
-.supps-page__field {
+.supp-card__field {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
-.supps-page__field-label {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.supp-card__label {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
   opacity: 0.5;
 }
 
-.supps-page__field-value {
-  font-size: 0.84rem;
+.supp-card__value {
+  font-size: 0.82rem;
   font-weight: 500;
 }
 
 /* Confidence badge */
-.supps-page__confidence {
+.supp-card__badge {
   display: inline-block;
   font-size: 0.72rem;
   font-weight: 600;
@@ -137,28 +145,40 @@
   width: fit-content;
 }
 
-.conf--high {
+.supp-card__badge--high {
   background: rgba(46, 204, 113, 0.15);
   color: var(--veda-green);
 }
 
-.conf--med {
+.supp-card__badge--med {
   background: rgba(230, 126, 34, 0.15);
   color: var(--veda-orange);
 }
 
-.conf--low {
+.supp-card__badge--low {
   background: rgba(136, 136, 160, 0.15);
   color: var(--veda-text-muted);
 }
 
-/* Small proof thumbnails */
-.supps-page__thumbs {
-  display: flex;
-  gap: 6px;
+/* Photos behind expander */
+.supp-card__photos {
+  margin-top: 2px;
 }
 
-.supps-page__thumb {
+.supp-card__photos summary {
+  cursor: pointer;
+  font-size: 0.72rem;
+  opacity: 0.6;
+  user-select: none;
+}
+
+.supp-card__thumbs {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.supp-card__thumbs img {
   width: 36px;
   height: 36px;
   object-fit: cover;
@@ -167,13 +187,104 @@
   opacity: 0.75;
 }
 
-.supps-page__remove {
-  padding: 6px 10px;
-  font-size: 0.78rem;
-  border-radius: 8px;
-  border: 1px solid var(--veda-border);
-  background: transparent;
-  color: var(--veda-text-muted);
+/* ── Nutrients block ── */
+
+.supp-nutrients {
+  margin-top: 14px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(108, 92, 231, 0.22);
+  background: rgba(108, 92, 231, 0.08);
+}
+
+.supp-nutrients--empty {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.supp-nutrients__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.supp-nutrients__title {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.supp-nutrients__meta {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.supp-nutrients__action {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: inherit;
   cursor: pointer;
-  flex-shrink: 0;
+}
+
+.supp-nutrients__action:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.supp-nutrients__sub {
+  font-size: 12px;
+  opacity: 0.72;
+  line-height: 1.35;
+}
+
+.supp-nutrients__rows {
+  display: grid;
+  gap: 8px;
+}
+
+.supp-nutrients__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.supp-nutrients__name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.92;
+}
+
+.supp-nutrients__amt,
+.supp-nutrients__pct {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.supp-nutrients__pct {
+  text-align: right;
+  min-width: 44px;
+}
+
+.supp-nutrients__more {
+  font-size: 12px;
+  opacity: 0.7;
+  padding-left: 2px;
 }
