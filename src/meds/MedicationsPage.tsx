@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import type { ScannedItem } from "../shared/AddScannedItemModal";
+import type { NutrientRow } from "../home/stubs";
 import "./MedicationsPage.css";
 
 type Med = ScannedItem & { id: string };
@@ -15,6 +16,15 @@ function confLabel(c: number) {
   if (c >= 0.75) return "High";
   if (c >= 0.45) return "Med";
   return "Low";
+}
+
+function pctDV(n: NutrientRow) {
+  const a = Number(n.amountToday);
+  const d = Number(n.dailyReference);
+  if (!isFinite(a) || !isFinite(d) || d <= 0) return null;
+  const pct = Math.round((a / d) * 100);
+  if (!isFinite(pct)) return null;
+  return pct;
 }
 
 export default function MedicationsPage() {
@@ -97,6 +107,41 @@ export default function MedicationsPage() {
                   </div>
                 </div>
               </div>
+
+              {Array.isArray((m as any).nutrients) && ((m as any).nutrients as NutrientRow[]).length > 0 && (
+                <div className="med-nutrients">
+                  <div className="med-nutrients__hdr">
+                    <div>Detected nutrients</div>
+                    <div className="med-nutrients__sub">{((m as any).nutrients as NutrientRow[]).length} total</div>
+                  </div>
+                  <div className="med-nutrients__grid">
+                    {((m as any).nutrients as NutrientRow[])
+                      .slice()
+                      .sort((a, b) => (pctDV(b) ?? -1) - (pctDV(a) ?? -1))
+                      .slice(0, 6)
+                      .map((n) => {
+                        const pct = pctDV(n);
+                        return (
+                          <div className="med-nutrients__row" key={`${n.nutrientId}-${n.name}`}>
+                            <div className="med-nutrients__name" title={n.name}>
+                              {n.name}
+                            </div>
+                            <div className="med-nutrients__amt">
+                              {n.amountToday}
+                              {n.unit}
+                            </div>
+                            <div className="med-nutrients__pct">{pct === null ? "—" : `${pct}% DV`}</div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                  {((m as any).nutrients as NutrientRow[]).length > 6 && (
+                    <div className="med-nutrients__more">
+                      +{((m as any).nutrients as NutrientRow[]).length - 6} more
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                 <button className="btn btn--secondary" onClick={() => setEditId(m.id)}>
