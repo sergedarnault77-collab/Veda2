@@ -100,3 +100,53 @@
   border-radius: 3px;
   transition: width 0.4s ease;
 }
+
+/* ── Stack insight ── */
+
+.coverage__insight {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(108, 92, 231, 0.28);
+  background: rgba(108, 92, 231, 0.06);
+}
+
+.coverage__insight-title {
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.coverage__insight-summary {
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.88;
+  margin-bottom: 8px;
+}
+
+.coverage__insight-overlap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.coverage__insight-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.coverage__insight-what {
+  font-size: 12px;
+  opacity: 0.9;
+}

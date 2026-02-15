@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
-import type { ScannedItem } from "../shared/AddScannedItemModal";
+import type { ScannedItem, ItemInsights } from "../shared/AddScannedItemModal";
 import type { NutrientRow } from "../home/stubs";
 import "./MedicationsPage.css";
 
 type Med = ScannedItem & { id: string };
 const LS_KEY = "veda.meds.v1";
 
-function id() {
+function uid() {
   return Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
 }
 
@@ -27,29 +27,82 @@ function pctDV(n: NutrientRow) {
   return pct;
 }
 
+function riskColor(risk: string) {
+  if (risk === "high") return "var(--veda-red, #e74c3c)";
+  if (risk === "medium") return "var(--veda-orange, #e67e22)";
+  return "var(--veda-green, #2ecc71)";
+}
+
+async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
+  try {
+    const res = await fetch("/api/advise", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: [
+          {
+            id: "single",
+            displayName: item.displayName,
+            nutrients: item.nutrients ?? [],
+            ingredientsList: item.ingredientsList ?? [],
+            labelTranscription: item.labelTranscription ?? null,
+          },
+        ],
+      }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json?.ok) return null;
+    return {
+      summary: json.summary || "",
+      overlaps: Array.isArray(json.overlaps) ? json.overlaps : [],
+      notes: Array.isArray(json.notes) ? json.notes : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function MedicationsPage() {
   const [items, setItems] = useState<Med[]>(() => loadLS<Med[]>(LS_KEY, []));
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
-  const addMed = (m: ScannedItem) => {
-    const next: Med[] = [{ ...m, id: id() }, ...items];
+  const persist = (next: Med[]) => {
     setItems(next);
     saveLS(LS_KEY, next);
+  };
+
+  const updateItemInsights = (itemId: string, insights: ItemInsights) => {
+    setItems((prev) => {
+      const next = prev.map((it) => (it.id === itemId ? { ...it, insights } : it));
+      saveLS(LS_KEY, next);
+      return next;
+    });
+  };
+
+  const addMed = (m: ScannedItem) => {
+    const newId = uid();
+    const next: Med[] = [{ ...m, id: newId }, ...items];
+    persist(next);
+    fetchInsights(m).then((ins) => {
+      if (ins) updateItemInsights(newId, ins);
+    });
   };
 
   const saveEdit = (updated: ScannedItem) => {
     if (!editId) return;
     const next = items.map((it) => (it.id === editId ? { ...it, ...updated } : it));
-    setItems(next);
-    saveLS(LS_KEY, next);
+    persist(next);
+    const savedId = editId;
     setEditId(null);
+    fetchInsights(updated).then((ins) => {
+      if (ins) updateItemInsights(savedId, ins);
+    });
   };
 
   const removeMed = (rid: string) => {
-    const next = items.filter((x) => x.id !== rid);
-    setItems(next);
-    saveLS(LS_KEY, next);
+    persist(items.filter((x) => x.id !== rid));
   };
 
   const editingItem = useMemo(() => {
@@ -79,85 +132,126 @@ export default function MedicationsPage() {
         </div>
       ) : (
         <div className="meds-page__list">
-          {items.map((m) => (
-            <div className="med-card" key={m.id}>
-              <div className="med-card__top">
-                <div className="med-card__titleWrap">
-                  <div className="med-card__title">{m.displayName}</div>
-                  {m.brand && <div className="med-card__subtitle">{m.brand}</div>}
-                </div>
-                <button className="med-card__remove" onClick={() => removeMed(m.id)} aria-label="Remove">
-                  ×
-                </button>
-              </div>
+          {items.map((m) => {
+            const nutrients: NutrientRow[] = Array.isArray(m.nutrients) ? (m.nutrients as NutrientRow[]) : [];
+            const ingList: string[] = Array.isArray(m.ingredientsList) ? m.ingredientsList : [];
+            const ingDetected: string[] = Array.isArray(m.ingredientsDetected) ? m.ingredientsDetected : [];
+            const ingToShow = ingList.length > 0 ? ingList : ingDetected;
+            const ingCount = ingToShow.length;
+            const insights = m.insights;
 
-              <div className="med-card__grid">
-                <div>
-                  <div className="med-card__label">Form</div>
-                  <div className="med-card__value">{m.form || "—"}</div>
-                </div>
-                <div>
-                  <div className="med-card__label">Serving</div>
-                  <div className="med-card__value">{m.servingSizeText || "—"}</div>
-                </div>
-                <div>
-                  <div className="med-card__label">Confidence</div>
-                  <div className={`med-card__badge med-card__badge--${confLabel(m.confidence).toLowerCase()}`}>
-                    {confLabel(m.confidence)}
+            return (
+              <div className="med-card" key={m.id}>
+                <div className="med-card__top">
+                  <div className="med-card__titleWrap">
+                    <div className="med-card__title">{m.displayName}</div>
+                    {m.brand && <div className="med-card__subtitle">{m.brand}</div>}
                   </div>
+                  <button className="med-card__remove" onClick={() => removeMed(m.id)} aria-label="Remove">
+                    x
+                  </button>
                 </div>
-              </div>
 
-              {Array.isArray((m as any).nutrients) && ((m as any).nutrients as NutrientRow[]).length > 0 && (
-                <div className="med-nutrients">
-                  <div className="med-nutrients__hdr">
-                    <div>Detected nutrients</div>
-                    <div className="med-nutrients__sub">{((m as any).nutrients as NutrientRow[]).length} total</div>
+                <div className="med-card__grid">
+                  <div>
+                    <div className="med-card__label">Form</div>
+                    <div className="med-card__value">{m.form || "\u2014"}</div>
                   </div>
-                  <div className="med-nutrients__grid">
-                    {((m as any).nutrients as NutrientRow[])
-                      .slice()
-                      .sort((a, b) => (pctDV(b) ?? -1) - (pctDV(a) ?? -1))
-                      .slice(0, 6)
-                      .map((n) => {
-                        const pct = pctDV(n);
-                        return (
-                          <div className="med-nutrients__row" key={`${n.nutrientId}-${n.name}`}>
-                            <div className="med-nutrients__name" title={n.name}>
-                              {n.name}
-                            </div>
-                            <div className="med-nutrients__amt">
-                              {n.amountToday}
-                              {n.unit}
-                            </div>
-                            <div className="med-nutrients__pct">{pct === null ? "—" : `${pct}% DV`}</div>
-                          </div>
-                        );
-                      })}
+                  <div>
+                    <div className="med-card__label">Serving</div>
+                    <div className="med-card__value">{m.servingSizeText || "\u2014"}</div>
                   </div>
-                  {((m as any).nutrients as NutrientRow[]).length > 6 && (
-                    <div className="med-nutrients__more">
-                      +{((m as any).nutrients as NutrientRow[]).length - 6} more
+                  <div>
+                    <div className="med-card__label">Confidence</div>
+                    <div className={`med-card__badge med-card__badge--${confLabel(m.confidence).toLowerCase()}`}>
+                      {confLabel(m.confidence)}
                     </div>
-                  )}
+                  </div>
                 </div>
-              )}
 
-              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                <button className="btn btn--secondary" onClick={() => setEditId(m.id)}>
-                  Re-read / replace label
-                </button>
+                {/* Nutrients table */}
+                {nutrients.length > 0 && (
+                  <div className="med-nutrients">
+                    <div className="med-nutrients__hdr">
+                      <div>Detected nutrients</div>
+                      <div className="med-nutrients__sub">{nutrients.length} total</div>
+                    </div>
+                    <div className="med-nutrients__grid">
+                      {nutrients
+                        .slice()
+                        .sort((a, b) => (pctDV(b) ?? -1) - (pctDV(a) ?? -1))
+                        .slice(0, 6)
+                        .map((n) => {
+                          const pct = pctDV(n);
+                          return (
+                            <div className="med-nutrients__row" key={`${n.nutrientId}-${n.name}`}>
+                              <div className="med-nutrients__name" title={n.name}>{n.name}</div>
+                              <div className="med-nutrients__amt">{n.amountToday}{n.unit}</div>
+                              <div className="med-nutrients__pct">{pct === null ? "\u2014" : `${pct}% DV`}</div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                    {nutrients.length > 6 && (
+                      <div className="med-nutrients__more">+{nutrients.length - 6} more</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Ingredients list */}
+                {ingCount > 0 && (
+                  <details className="item-ingredients">
+                    <summary className="item-ingredients__summary">
+                      Detected ingredients: {ingCount}{ingList.length === 0 ? " (from categories)" : ""}
+                    </summary>
+                    <div className="item-ingredients__list">
+                      {ingToShow.map((ing, i) => (
+                        <span className="item-ingredients__chip" key={`${ing}-${i}`}>{ing}</span>
+                      ))}
+                    </div>
+                  </details>
+                )}
+
+                {/* Insights */}
+                {insights && (insights.summary || insights.overlaps.length > 0 || insights.notes.length > 0) && (
+                  <div className="item-insights">
+                    <div className="item-insights__title">Insights</div>
+                    {insights.summary && (
+                      <div className="item-insights__summary">{insights.summary}</div>
+                    )}
+                    {insights.overlaps.slice(0, 2).map((o, i) => (
+                      <div className="item-insights__overlap" key={`${o.key}-${i}`}>
+                        <span
+                          className="item-insights__badge"
+                          style={{ background: riskColor(o.risk), opacity: 0.85 }}
+                        >
+                          {o.risk}
+                        </span>
+                        <span className="item-insights__what">{o.what}</span>
+                      </div>
+                    ))}
+                    {insights.notes.slice(0, 2).map((note, i) => (
+                      <div className="item-insights__note" key={i}>{note}</div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                  <button className="btn btn--secondary" onClick={() => setEditId(m.id)}>
+                    Re-read / replace label
+                  </button>
+                </div>
+
+                <details className="med-card__photos">
+                  <summary>Tap to view photos</summary>
+                  <div className="med-card__thumbs">
+                    {m.frontImage && <img src={m.frontImage} alt="Front" />}
+                    {m.ingredientsImage && <img src={m.ingredientsImage} alt="Label" />}
+                  </div>
+                </details>
               </div>
-
-              <details className="med-card__photos">
-                <summary>Tap to view photos</summary>
-                <div className="med-card__thumbs">
-                  {m.frontImage && <img src={m.frontImage} alt="Front" />}
-                  {m.ingredientsImage && <img src={m.ingredientsImage} alt="Label" />}
-                </div>
-              </details>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

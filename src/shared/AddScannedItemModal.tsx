@@ -20,7 +20,22 @@ export type ScannedItem = {
   labelTranscription?: string | null;
   nutrients?: NutrientRow[];
   ingredientsDetected?: string[];
+  ingredientsList?: string[];
+  ingredientsCount?: number;
+  insights?: ItemInsights | null;
   createdAtISO?: string;
+};
+
+export type ItemInsights = {
+  summary: string;
+  overlaps: Array<{
+    key: string;
+    what: string;
+    whyItMatters: string;
+    risk: "low" | "medium" | "high";
+    related: string[];
+  }>;
+  notes: string[];
 };
 
 type Props = {
@@ -145,6 +160,9 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
       labelTranscription: parsedItem?.labelTranscription ?? initialItem?.labelTranscription ?? null,
       nutrients: parsedItem?.nutrients ?? initialItem?.nutrients ?? [],
       ingredientsDetected: parsedItem?.ingredientsDetected ?? initialItem?.ingredientsDetected ?? [],
+      ingredientsList: parsedItem?.ingredientsList ?? initialItem?.ingredientsList ?? [],
+      ingredientsCount: parsedItem?.ingredientsCount ?? initialItem?.ingredientsCount ?? 0,
+      insights: initialItem?.insights ?? null,
       createdAtISO: initialItem?.createdAtISO ?? nowISO,
     };
     onConfirm(item);

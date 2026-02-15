@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
-import type { ScannedItem } from "../shared/AddScannedItemModal";
+import type { ScannedItem, ItemInsights } from "../shared/AddScannedItemModal";
 import type { NutrientRow } from "../home/stubs";
 import "./SupplementsPage.css";
 
 type Supp = ScannedItem & { id: string };
 const LS_KEY = "veda.supps.v1";
 
-function id() {
+function uid() {
   return Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
 }
 
@@ -27,29 +27,85 @@ function pctDV(n: NutrientRow) {
   return pct;
 }
 
+function riskColor(risk: string) {
+  if (risk === "high") return "var(--veda-red, #e74c3c)";
+  if (risk === "medium") return "var(--veda-orange, #e67e22)";
+  return "var(--veda-green, #2ecc71)";
+}
+
+/** Fire-and-forget: fetch insights for an item and persist */
+async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
+  try {
+    const res = await fetch("/api/advise", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: [
+          {
+            id: "single",
+            displayName: item.displayName,
+            nutrients: item.nutrients ?? [],
+            ingredientsList: item.ingredientsList ?? [],
+            labelTranscription: item.labelTranscription ?? null,
+          },
+        ],
+      }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json?.ok) return null;
+    return {
+      summary: json.summary || "",
+      overlaps: Array.isArray(json.overlaps) ? json.overlaps : [],
+      notes: Array.isArray(json.notes) ? json.notes : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function SupplementsPage() {
   const [items, setItems] = useState<Supp[]>(() => loadLS<Supp[]>(LS_KEY, []));
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
-  const addSupp = (s: ScannedItem) => {
-    const next: Supp[] = [{ ...s, id: id() }, ...items];
+  const persist = (next: Supp[]) => {
     setItems(next);
     saveLS(LS_KEY, next);
+  };
+
+  const updateItemInsights = (itemId: string, insights: ItemInsights) => {
+    setItems((prev) => {
+      const next = prev.map((it) => (it.id === itemId ? { ...it, insights } : it));
+      saveLS(LS_KEY, next);
+      return next;
+    });
+  };
+
+  const addSupp = (s: ScannedItem) => {
+    const newId = uid();
+    const next: Supp[] = [{ ...s, id: newId }, ...items];
+    persist(next);
+    // Fetch insights in background
+    fetchInsights(s).then((ins) => {
+      if (ins) updateItemInsights(newId, ins);
+    });
   };
 
   const saveEdit = (updated: ScannedItem) => {
     if (!editId) return;
     const next = items.map((it) => (it.id === editId ? { ...it, ...updated } : it));
-    setItems(next);
-    saveLS(LS_KEY, next);
+    persist(next);
+    const savedId = editId;
     setEditId(null);
+    // Fetch insights in background
+    fetchInsights(updated).then((ins) => {
+      if (ins) updateItemInsights(savedId, ins);
+    });
   };
 
   const removeSupp = (rid: string) => {
-    const next = items.filter((x) => x.id !== rid);
-    setItems(next);
-    saveLS(LS_KEY, next);
+    persist(items.filter((x) => x.id !== rid));
   };
 
   const editingItem = useMemo(() => {
@@ -80,7 +136,13 @@ export default function SupplementsPage() {
       ) : (
         <div className="supps-page__list">
           {items.map((s) => {
-            const nutrients = Array.isArray((s as any).nutrients) ? ((s as any).nutrients as any[]) : [];
+            const nutrients: NutrientRow[] = Array.isArray(s.nutrients) ? (s.nutrients as NutrientRow[]) : [];
+            const ingList: string[] = Array.isArray(s.ingredientsList) ? s.ingredientsList : [];
+            const ingDetected: string[] = Array.isArray(s.ingredientsDetected) ? s.ingredientsDetected : [];
+            const ingToShow = ingList.length > 0 ? ingList : ingDetected;
+            const ingCount = ingToShow.length;
+            const insights = s.insights;
+
             return (
               <div className="supp-card" key={s.id}>
                 <div className="supp-card__top">
@@ -89,18 +151,18 @@ export default function SupplementsPage() {
                     {s.brand && <div className="supp-card__subtitle">{s.brand}</div>}
                   </div>
                   <button className="supp-card__remove" onClick={() => removeSupp(s.id)} aria-label="Remove">
-                    ×
+                    x
                   </button>
                 </div>
 
                 <div className="supp-card__grid">
                   <div>
                     <div className="supp-card__label">Form</div>
-                    <div className="supp-card__value">{s.form || "—"}</div>
+                    <div className="supp-card__value">{s.form || "\u2014"}</div>
                   </div>
                   <div>
                     <div className="supp-card__label">Serving</div>
-                    <div className="supp-card__value">{s.servingSizeText || "—"}</div>
+                    <div className="supp-card__value">{s.servingSizeText || "\u2014"}</div>
                   </div>
                   <div>
                     <div className="supp-card__label">Confidence</div>
@@ -110,14 +172,15 @@ export default function SupplementsPage() {
                   </div>
                 </div>
 
-                {Array.isArray((s as any).nutrients) && ((s as any).nutrients as NutrientRow[]).length > 0 && (
+                {/* Nutrients table */}
+                {nutrients.length > 0 && (
                   <div className="supp-nutrients">
                     <div className="supp-nutrients__hdr">
                       <div>Detected nutrients</div>
-                      <div className="supp-nutrients__sub">{((s as any).nutrients as NutrientRow[]).length} total</div>
+                      <div className="supp-nutrients__sub">{nutrients.length} total</div>
                     </div>
                     <div className="supp-nutrients__grid">
-                      {((s as any).nutrients as NutrientRow[])
+                      {nutrients
                         .slice()
                         .sort((a, b) => (pctDV(b) ?? -1) - (pctDV(a) ?? -1))
                         .slice(0, 6)
@@ -125,23 +188,54 @@ export default function SupplementsPage() {
                           const pct = pctDV(n);
                           return (
                             <div className="supp-nutrients__row" key={`${n.nutrientId}-${n.name}`}>
-                              <div className="supp-nutrients__name" title={n.name}>
-                                {n.name}
-                              </div>
-                              <div className="supp-nutrients__amt">
-                                {n.amountToday}
-                                {n.unit}
-                              </div>
-                              <div className="supp-nutrients__pct">{pct === null ? "—" : `${pct}% DV`}</div>
+                              <div className="supp-nutrients__name" title={n.name}>{n.name}</div>
+                              <div className="supp-nutrients__amt">{n.amountToday}{n.unit}</div>
+                              <div className="supp-nutrients__pct">{pct === null ? "\u2014" : `${pct}% DV`}</div>
                             </div>
                           );
                         })}
                     </div>
-                    {((s as any).nutrients as NutrientRow[]).length > 6 && (
-                      <div className="supp-nutrients__more">
-                        +{((s as any).nutrients as NutrientRow[]).length - 6} more
-                      </div>
+                    {nutrients.length > 6 && (
+                      <div className="supp-nutrients__more">+{nutrients.length - 6} more</div>
                     )}
+                  </div>
+                )}
+
+                {/* Ingredients list */}
+                {ingCount > 0 && (
+                  <details className="item-ingredients">
+                    <summary className="item-ingredients__summary">
+                      Detected ingredients: {ingCount}{ingList.length === 0 ? " (from categories)" : ""}
+                    </summary>
+                    <div className="item-ingredients__list">
+                      {ingToShow.map((ing, i) => (
+                        <span className="item-ingredients__chip" key={`${ing}-${i}`}>{ing}</span>
+                      ))}
+                    </div>
+                  </details>
+                )}
+
+                {/* Insights */}
+                {insights && (insights.summary || insights.overlaps.length > 0 || insights.notes.length > 0) && (
+                  <div className="item-insights">
+                    <div className="item-insights__title">Insights</div>
+                    {insights.summary && (
+                      <div className="item-insights__summary">{insights.summary}</div>
+                    )}
+                    {insights.overlaps.slice(0, 2).map((o, i) => (
+                      <div className="item-insights__overlap" key={`${o.key}-${i}`}>
+                        <span
+                          className="item-insights__badge"
+                          style={{ background: riskColor(o.risk), opacity: 0.85 }}
+                        >
+                          {o.risk}
+                        </span>
+                        <span className="item-insights__what">{o.what}</span>
+                      </div>
+                    ))}
+                    {insights.notes.slice(0, 2).map((note, i) => (
+                      <div className="item-insights__note" key={i}>{note}</div>
+                    ))}
                   </div>
                 )}
 

@@ -257,3 +257,98 @@
   font-size: 12px;
   opacity: 0.75;
 }
+
+/* ── Ingredients block ── */
+
+.item-ingredients {
+  margin-top: 8px;
+}
+
+.item-ingredients__summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.85;
+  user-select: none;
+}
+
+.item-ingredients__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.item-ingredients__chip {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(108, 92, 231, 0.12);
+  border: 1px solid rgba(108, 92, 231, 0.22);
+  white-space: nowrap;
+}
+
+/* ── Insights card ── */
+
+.item-insights {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(108, 92, 231, 0.28);
+  background: rgba(108, 92, 231, 0.06);
+}
+
+.item-insights__title {
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.item-insights__summary {
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.88;
+  margin-bottom: 8px;
+}
+
+.item-insights__overlap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.item-insights__badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.item-insights__what {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.item-insights__note {
+  font-size: 12px;
+  opacity: 0.78;
+  padding-left: 4px;
+  line-height: 1.4;
+}
+
+.item-insights__note::before {
+  content: "\2022 ";
+  opacity: 0.5;
+}

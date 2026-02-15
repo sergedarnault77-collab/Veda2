@@ -1,6 +1,7 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import type { NutrientRow } from "./stubs";
 import { loadLS, saveLS } from "../lib/persist";
+import type { ItemInsights } from "../shared/AddScannedItemModal";
 import "./StackCoverage.css";
 
 const SUPPS_KEY = "veda.supps.v1";
@@ -11,31 +12,42 @@ type SavedSupp = {
   id: string;
   displayName: string;
   nutrients: NutrientRow[];
+  ingredientsList?: string[];
+  labelTranscription?: string | null;
 };
 
 function coverageColor(pct: number): string {
   if (pct < 25) return "var(--veda-red)";
   if (pct < 75) return "var(--veda-orange)";
   if (pct <= 100) return "var(--veda-green)";
-  return "var(--veda-magenta)"; // >100 % — signals redundancy, not danger
+  return "var(--veda-magenta)";
+}
+
+function riskColor(risk: string) {
+  if (risk === "high") return "var(--veda-red, #e74c3c)";
+  if (risk === "medium") return "var(--veda-orange, #e67e22)";
+  return "var(--veda-green, #2ecc71)";
 }
 
 export function StackCoverage() {
   const [supps] = useState<SavedSupp[]>(() => {
     const raw = loadLS<any[]>(SUPPS_KEY, []);
-    // Ensure each entry has the fields we need
     return raw
       .filter((s) => s && typeof s.id === "string")
       .map((s) => ({
         id: s.id,
         displayName: s.displayName || "Unnamed",
         nutrients: Array.isArray(s.nutrients) ? s.nutrients : [],
+        ingredientsList: Array.isArray(s.ingredientsList) ? s.ingredientsList : [],
+        labelTranscription: s.labelTranscription ?? null,
       }));
   });
 
   const [taken, setTaken] = useState<Record<string, boolean>>(() =>
     loadLS<Record<string, boolean>>(TAKEN_KEY, {})
   );
+
+  const [stackInsight, setStackInsight] = useState<ItemInsights | null>(null);
 
   const toggle = useCallback((id: string) => {
     setTaken((prev) => {
@@ -66,7 +78,46 @@ export function StackCoverage() {
     return Array.from(map.values());
   }, [supps, taken]);
 
-  const anyTaken = supps.some((s) => taken[s.id]);
+  const takenSupps = useMemo(
+    () => supps.filter((s) => taken[s.id]),
+    [supps, taken]
+  );
+
+  const anyTaken = takenSupps.length > 0;
+
+  // Fetch stack-level insight when taken supplements change
+  useEffect(() => {
+    if (!anyTaken) {
+      setStackInsight(null);
+      return;
+    }
+    let cancelled = false;
+    const items = takenSupps.map((s) => ({
+      id: s.id,
+      displayName: s.displayName,
+      nutrients: s.nutrients,
+      ingredientsList: s.ingredientsList ?? [],
+      labelTranscription: s.labelTranscription ?? null,
+    }));
+
+    fetch("/api/advise", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (cancelled || !json?.ok) return;
+        setStackInsight({
+          summary: json.summary || "",
+          overlaps: Array.isArray(json.overlaps) ? json.overlaps : [],
+          notes: Array.isArray(json.notes) ? json.notes : [],
+        });
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [anyTaken, takenSupps]);
 
   return (
     <section className="coverage" aria-label="Stack coverage today">
@@ -90,7 +141,7 @@ export function StackCoverage() {
                 onClick={() => toggle(s.id)}
                 aria-pressed={active}
               >
-                {active ? "✓" : "○"} Taken today — {s.displayName}
+                {active ? "\u2713" : "\u25CB"} Taken today \u2014 {s.displayName}
               </button>
             );
           })}
@@ -135,6 +186,27 @@ export function StackCoverage() {
             );
           })}
         </ul>
+      )}
+
+      {/* Stack insight */}
+      {stackInsight && (stackInsight.summary || stackInsight.overlaps.length > 0) && (
+        <div className="coverage__insight">
+          <div className="coverage__insight-title">Stack insight</div>
+          {stackInsight.summary && (
+            <div className="coverage__insight-summary">{stackInsight.summary}</div>
+          )}
+          {stackInsight.overlaps.slice(0, 2).map((o, i) => (
+            <div className="coverage__insight-overlap" key={`${o.key}-${i}`}>
+              <span
+                className="coverage__insight-badge"
+                style={{ background: riskColor(o.risk), opacity: 0.85 }}
+              >
+                {o.risk}
+              </span>
+              <span className="coverage__insight-what">{o.what}</span>
+            </div>
+          ))}
+        </div>
       )}
     </section>
   );

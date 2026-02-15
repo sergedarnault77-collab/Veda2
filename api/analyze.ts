@@ -41,6 +41,8 @@ type AnalyzeResponse = {
   productName: string | null;
   transcription: string | null;
   nutrients: NutrientRow[];
+  ingredientsList: string[];
+  ingredientsCount: number;
   normalized: {
     categories: Record<CategoryKey, string[]>;
     detectedEntities: string[];
@@ -96,6 +98,8 @@ function stub(reason: string): AnalyzeResponse {
     productName: null,
     transcription: null,
     nutrients: [],
+    ingredientsList: [],
+    ingredientsCount: 0,
     normalized: { categories: emptyCategories(), detectedEntities: [] },
     signals: [
       {
@@ -170,6 +174,25 @@ function coerceNutrients(v: any): NutrientRow[] {
   return out;
 }
 
+function coerceIngredientsList(v: any): string[] {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of v) {
+    if (typeof raw !== "string") continue;
+    let s = raw.trim();
+    // Strip leading "Ingredients:" style prefixes
+    s = s.replace(/^(other\s+)?ingredients\s*[:;]\s*/i, "").trim();
+    if (s.length < 2) continue; // filter junk
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+    if (out.length >= 80) break;
+  }
+  return out;
+}
+
 function coerceSignals(v: any): Signal[] {
   if (!Array.isArray(v)) return [];
   return v.slice(0, 6).map((s) => {
@@ -232,7 +255,7 @@ function buildJsonSchema() {
     schema: {
       type: "object",
       additionalProperties: false,
-      required: ["productName", "transcription", "nutrients", "categories", "detectedEntities", "signals"],
+      required: ["productName", "transcription", "nutrients", "ingredientsList", "categories", "detectedEntities", "signals"],
       properties: {
         productName: { type: ["string", "null"] },
         transcription: { type: ["string", "null"] },
@@ -251,6 +274,7 @@ function buildJsonSchema() {
             },
           },
         },
+        ingredientsList: { type: "array", items: { type: "string" } },
         categories: {
           type: "object",
           additionalProperties: false,
@@ -381,6 +405,14 @@ export default async function handler(req: Request): Promise<Response> {
       "• If you don't know the standard reference for a nutrient, OMIT that row entirely.",
       "• Do NOT hallucinate amounts. If the label doesn't state a number, omit the nutrient.",
       "",
+      "Ingredients list guidance (populate 'ingredientsList' array):",
+      "• Read the 'Ingredients:' or 'Other ingredients:' section from the transcription.",
+      "• Split by commas, semicolons, or periods into individual ingredient names.",
+      "• Strip leading labels like 'Ingredients:', 'Other ingredients:', etc.",
+      "• Include ALL ingredients found — up to 80 items.",
+      "• Only include an ingredient if its name appears in the transcription. Do NOT invent.",
+      "• Preserve original casing. Trim whitespace.",
+      "",
       "Signals guidance (1–2 short signals):",
       "- no_notable_interaction: if nothing stands out.",
       "- timing_conflict / interaction_detected / amplification_likely: only if label text suggests something obvious.",
@@ -474,6 +506,7 @@ export default async function handler(req: Request): Promise<Response> {
         : null;
 
     const nutrients = coerceNutrients(parsed?.nutrients);
+    const ingredientsList = coerceIngredientsList(parsed?.ingredientsList);
 
     const categories = normalizeCategories(parsed?.categories);
     const detectedEntitiesFromCategories = dedupeCaseInsensitive(
@@ -491,6 +524,8 @@ export default async function handler(req: Request): Promise<Response> {
       productName,
       transcription,
       nutrients,
+      ingredientsList,
+      ingredientsCount: ingredientsList.length,
       normalized: { categories, detectedEntities },
       signals:
         signals.length > 0

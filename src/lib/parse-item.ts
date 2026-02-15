@@ -19,6 +19,8 @@ export type ParsedItem = {
   labelTranscription: string | null;
   nutrients: NutrientRow[];
   ingredientsDetected: string[];
+  ingredientsList: string[];
+  ingredientsCount: number;
 };
 
 function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
@@ -35,13 +37,14 @@ function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
     labelTranscription: null,
     nutrients: [],
     ingredientsDetected: [],
+    ingredientsList: [],
+    ingredientsCount: 0,
   };
 }
 
 /**
  * Send two captured label images to /api/analyze (unified vision pipeline)
  * and map the response into a ParsedItem.
- * Falls back to a stub ParsedItem on any network / server error.
  */
 export async function parseScannedItem(
   kind: "med" | "supp",
@@ -69,20 +72,23 @@ export async function parseScannedItem(
       return stubItem(kind, json?.error || "analyze returned error");
     }
 
-    // Map /api/analyze response → ParsedItem
     const mode = json.meta?.mode === "openai" ? "openai" : "stub";
     const productName =
       typeof json.productName === "string" && json.productName.trim()
         ? json.productName.trim()
         : null;
 
-    // Confidence: if mode is openai and we got entities, it's decent
     const entities: string[] = Array.isArray(json.normalized?.detectedEntities)
       ? json.normalized.detectedEntities
       : [];
+
+    const ingredientsList: string[] = Array.isArray(json.ingredientsList)
+      ? json.ingredientsList.filter((x: any) => typeof x === "string" && x.trim())
+      : [];
+
     const confidence =
       mode === "openai"
-        ? entities.length > 0 ? 0.8 : 0.4
+        ? entities.length > 0 || ingredientsList.length > 0 ? 0.8 : 0.4
         : 0;
 
     const nutrients: NutrientRow[] = Array.isArray(json.nutrients)
@@ -96,18 +102,15 @@ export async function parseScannedItem(
         ? json.transcription.trim()
         : null;
 
-    // Build rawTextHints from first few detected entities (for debug visibility)
     const rawTextHints = entities.slice(0, 8);
-
-    // If it's a stub, show the reason
     if (mode === "stub" && json.meta?.reason) {
       rawTextHints.unshift(json.meta.reason);
     }
 
     return {
       displayName: productName || (kind === "med" ? "New medication" : "New supplement"),
-      brand: null, // analyze doesn't extract brand separately
-      form: null,  // analyze doesn't extract form
+      brand: null,
+      form: null,
       strengthPerUnit: null,
       strengthUnit: null,
       servingSizeText: null,
@@ -117,6 +120,8 @@ export async function parseScannedItem(
       labelTranscription,
       nutrients,
       ingredientsDetected: entities,
+      ingredientsList,
+      ingredientsCount: ingredientsList.length,
     };
   } catch (err) {
     console.warn("[parse-item] fetch failed, using stub", err);
