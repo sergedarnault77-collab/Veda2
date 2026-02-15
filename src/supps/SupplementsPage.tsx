@@ -1,97 +1,52 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import type { ScannedItem } from "../shared/AddScannedItemModal";
-import { parseScannedItem } from "../lib/parse-item";
 import "./SupplementsPage.css";
 
-type Supp = ScannedItem & {
-  id: string;
-};
-
+type Supp = ScannedItem & { id: string };
 const LS_KEY = "veda.supps.v1";
 
-function clamp01(n: number) {
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(1, n));
+function id() {
+  return Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
 }
 
-function confidenceLabel(c: number) {
-  const v = clamp01(c);
-  if (v >= 0.75) return { text: "High", tone: "high" as const };
-  if (v >= 0.45) return { text: "Med", tone: "med" as const };
-  return { text: "Low", tone: "low" as const };
-}
-
-function fmtAmount(n: number) {
-  if (!Number.isFinite(n)) return "";
-  // keep a sane number of decimals for tiny values
-  if (Math.abs(n) < 1 && n !== 0) return n.toFixed(2).replace(/\.?0+$/, "");
-  if (Math.abs(n) < 10) return n.toFixed(1).replace(/\.?0+$/, "");
-  return Math.round(n).toString();
-}
-
-function pctDV(amount: number, ref: number) {
-  if (!Number.isFinite(amount) || !Number.isFinite(ref) || ref <= 0) return null;
-  return Math.round((amount / ref) * 100);
+function confLabel(c: number) {
+  if (c >= 0.75) return "High";
+  if (c >= 0.45) return "Med";
+  return "Low";
 }
 
 export default function SupplementsPage() {
-  const [supps, setSupps] = useState<Supp[]>(() => loadLS<Supp[]>(LS_KEY, []));
-  const [showModal, setShowModal] = useState(false);
-  const [upgradingId, setUpgradingId] = useState<string | null>(null);
+  const [items, setItems] = useState<Supp[]>(() => loadLS<Supp[]>(LS_KEY, []));
+  const [showAdd, setShowAdd] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
-  const addSupp = (item: ScannedItem) => {
-    const next: Supp[] = [{ ...item, id: crypto.randomUUID() }, ...supps];
-    setSupps(next);
+  const addSupp = (s: ScannedItem) => {
+    const next: Supp[] = [{ ...s, id: id() }, ...items];
+    setItems(next);
     saveLS(LS_KEY, next);
   };
 
-  const removeSupp = (id: string) => {
-    const next = supps.filter((s) => s.id !== id);
-    setSupps(next);
+  const saveEdit = (updated: ScannedItem) => {
+    if (!editId) return;
+    const next = items.map((it) => (it.id === editId ? { ...it, ...updated } : it));
+    setItems(next);
+    saveLS(LS_KEY, next);
+    setEditId(null);
+  };
+
+  const removeSupp = (rid: string) => {
+    const next = items.filter((x) => x.id !== rid);
+    setItems(next);
     saveLS(LS_KEY, next);
   };
 
-  const upgradeSupp = async (id: string) => {
-    const s = supps.find((x) => x.id === id);
-    if (!s) return;
-    if (!s.frontImage || !s.ingredientsImage) return;
-
-    try {
-      setUpgradingId(id);
-      const parsed = await parseScannedItem("supp", s.frontImage, s.ingredientsImage);
-
-      const next = supps.map((x) => {
-        if (x.id !== id) return x;
-        // Merge parsed fields in, but keep user-edited displayName if present and non-empty
-        const displayName = (x.displayName || "").trim() || parsed.displayName || "Supplement";
-        return {
-          ...x,
-          displayName,
-          brand: parsed.brand ?? x.brand ?? null,
-          form: parsed.form ?? x.form ?? null,
-          strengthPerUnit: parsed.strengthPerUnit ?? x.strengthPerUnit ?? null,
-          strengthUnit: parsed.strengthUnit ?? x.strengthUnit ?? null,
-          servingSizeText: parsed.servingSizeText ?? x.servingSizeText ?? null,
-          confidence: typeof parsed.confidence === "number" ? parsed.confidence : x.confidence,
-          mode: parsed.mode ?? x.mode,
-          // new stuff:
-          labelTranscription: parsed.labelTranscription ?? x.labelTranscription ?? null,
-          nutrients: Array.isArray(parsed.nutrients) ? parsed.nutrients : (x.nutrients ?? []),
-          ingredientsDetected: Array.isArray(parsed.ingredientsDetected)
-            ? parsed.ingredientsDetected
-            : (x.ingredientsDetected ?? []),
-          rawTextHints: Array.isArray(parsed.rawTextHints) ? parsed.rawTextHints : (x.rawTextHints ?? []),
-        };
-      });
-
-      setSupps(next);
-      saveLS(LS_KEY, next);
-    } finally {
-      setUpgradingId(null);
-    }
-  };
+  const editingItem = useMemo(() => {
+    if (!editId) return null;
+    const found = items.find((x) => x.id === editId);
+    return found ? ({ ...found, id: undefined } as any as ScannedItem) : null;
+  }, [editId, items]);
 
   return (
     <div className="supps-page">
@@ -100,96 +55,62 @@ export default function SupplementsPage() {
           <h1>Your supplements</h1>
           <p>Maintain your supplements here. We'll show overlap and interaction flags within this stack.</p>
         </div>
-        <button className="supps-page__add" onClick={() => setShowModal(true)}>
+        <button className="supps-page__add" onClick={() => setShowAdd(true)}>
           + Add
         </button>
       </div>
 
-      {supps.length === 0 ? (
+      {items.length === 0 ? (
         <div className="supps-page__empty">
-          <div className="supps-page__emptyTitle">No supplements added yet.</div>
-          <div className="supps-page__emptySub">Tap "+ Add" to photograph a supplement and its label.</div>
+          <div className="supps-page__emptyCard">
+            <div>No supplements added yet.</div>
+            <div className="supps-page__emptySub">Tap "+ Add" to photograph a supplement and its label.</div>
+          </div>
         </div>
       ) : (
         <div className="supps-page__list">
-          {supps.map((s) => {
-            const conf = confidenceLabel(s.confidence ?? 0);
-            const nutrients = Array.isArray(s.nutrients) ? s.nutrients : [];
-            const hasNutrients = nutrients.length > 0;
-            const showRows = nutrients.slice(0, 6);
-            const more = nutrients.length - showRows.length;
-
+          {items.map((s) => {
+            const nutrients = Array.isArray((s as any).nutrients) ? ((s as any).nutrients as any[]) : [];
             return (
-              <div key={s.id} className="supp-card">
-                <button className="supp-card__remove" onClick={() => removeSupp(s.id)} aria-label="Remove">
-                  ×
-                </button>
-
-                <div className="supp-card__title">{(s.displayName || "Supplement").toUpperCase()}</div>
-                {s.brand ? <div className="supp-card__subtitle">{s.brand.toUpperCase()}</div> : null}
+              <div className="supp-card" key={s.id}>
+                <div className="supp-card__top">
+                  <div className="supp-card__titleWrap">
+                    <div className="supp-card__title">{s.displayName}</div>
+                    {s.brand && <div className="supp-card__subtitle">{s.brand}</div>}
+                  </div>
+                  <button className="supp-card__remove" onClick={() => removeSupp(s.id)} aria-label="Remove">
+                    ×
+                  </button>
+                </div>
 
                 <div className="supp-card__grid">
-                  <div className="supp-card__field">
-                    <div className="supp-card__label">FORM</div>
+                  <div>
+                    <div className="supp-card__label">Form</div>
                     <div className="supp-card__value">{s.form || "—"}</div>
                   </div>
-                  <div className="supp-card__field">
-                    <div className="supp-card__label">SERVING</div>
+                  <div>
+                    <div className="supp-card__label">Serving</div>
                     <div className="supp-card__value">{s.servingSizeText || "—"}</div>
                   </div>
-                  <div className="supp-card__field">
-                    <div className="supp-card__label">CONFIDENCE</div>
-                    <div className={`supp-card__badge supp-card__badge--${conf.tone}`}>{conf.text}</div>
+                  <div>
+                    <div className="supp-card__label">Confidence</div>
+                    <div className={`supp-card__badge supp-card__badge--${confLabel(s.confidence).toLowerCase()}`}>
+                      {confLabel(s.confidence)}
+                    </div>
                   </div>
                 </div>
 
-                {!hasNutrients ? (
-                  <div className="supp-nutrients supp-nutrients--empty">
-                    <div className="supp-nutrients__head">
-                      <div className="supp-nutrients__title">Nutrients</div>
-                      <button
-                        className="supp-nutrients__action"
-                        onClick={() => upgradeSupp(s.id)}
-                        disabled={upgradingId === s.id}
-                      >
-                        {upgradingId === s.id ? "Extracting…" : "Extract nutrients"}
-                      </button>
-                    </div>
-                    <div className="supp-nutrients__sub">
-                      This item was saved before nutrient extraction was enabled. Tap "Extract nutrients" to read the label from the saved photos.
-                    </div>
-                  </div>
-                ) : (
-                  <div className="supp-nutrients">
-                    <div className="supp-nutrients__head">
-                      <div className="supp-nutrients__title">Nutrients</div>
-                      <div className="supp-nutrients__meta">{nutrients.length}</div>
-                    </div>
-                    <div className="supp-nutrients__rows">
-                      {showRows.map((n, idx) => {
-                        const p = pctDV(n.amountToday, n.dailyReference);
-                        return (
-                          <div className="supp-nutrients__row" key={`${n.nutrientId}-${idx}`}>
-                            <div className="supp-nutrients__name" title={n.name}>
-                              {n.name}
-                            </div>
-                            <div className="supp-nutrients__amt">
-                              {fmtAmount(n.amountToday)} {n.unit}
-                            </div>
-                            <div className="supp-nutrients__pct">{p == null ? "—" : `${p}%`}</div>
-                          </div>
-                        );
-                      })}
-                      {more > 0 ? <div className="supp-nutrients__more">+{more} more</div> : null}
-                    </div>
-                  </div>
-                )}
+                <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                  <button className="btn btn--secondary" onClick={() => setEditId(s.id)}>
+                    Re-read / replace label
+                  </button>
+                </div>
 
                 <details className="supp-card__photos">
                   <summary>Tap to view photos</summary>
                   <div className="supp-card__thumbs">
-                    {s.frontImage ? <img src={s.frontImage} alt="Front" /> : null}
-                    {s.ingredientsImage ? <img src={s.ingredientsImage} alt="Label" /> : null}
+                    {s.frontImage && <img src={s.frontImage} alt="Front" />}
+                    {s.ingredientsImage && <img src={s.ingredientsImage} alt="Label" />}
                   </div>
                 </details>
               </div>
@@ -198,16 +119,22 @@ export default function SupplementsPage() {
         </div>
       )}
 
-      {showModal ? (
+      {showAdd && (
         <AddScannedItemModal
           kind="supp"
-          onClose={() => setShowModal(false)}
-          onConfirm={(item) => {
-            addSupp(item);
-            setShowModal(false);
-          }}
+          onClose={() => setShowAdd(false)}
+          onConfirm={(item) => addSupp(item)}
         />
-      ) : null}
+      )}
+
+      {editId && editingItem && (
+        <AddScannedItemModal
+          kind="supp"
+          initialItem={editingItem}
+          onClose={() => setEditId(null)}
+          onConfirm={(item) => saveEdit(item)}
+        />
+      )}
     </div>
   );
 }
