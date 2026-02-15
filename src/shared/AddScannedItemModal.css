@@ -119,8 +119,12 @@
 .parse-hint {
   margin-top: 10px;
   font-size: 0.78rem;
-  opacity: 0.75;
-  color: rgba(108, 92, 231, 0.9);
+  opacity: 0.85;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.parse-hint strong {
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .parse-warning {
@@ -131,6 +135,17 @@
   border: 1px solid rgba(230, 126, 34, 0.3);
   font-size: 0.82rem;
   color: rgba(230, 168, 80, 0.95);
+}
+
+/* ── Rescan button ── */
+
+.btn--rescan {
+  margin-top: 8px;
+  width: 100%;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(230, 160, 34, 0.25);
+  border-color: rgba(230, 160, 34, 0.45);
 }
 
 /* ── Scan buttons ── */

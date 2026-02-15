@@ -6,6 +6,12 @@ import type { NutrientRow } from "../home/stubs";
 
 export type { NutrientRow };
 
+export type ParsedItemMeta = {
+  transcriptionConfidence: number;
+  needsRescan: boolean;
+  rescanHint: string | null;
+};
+
 export type ParsedItem = {
   displayName: string;
   brand: string | null;
@@ -21,6 +27,7 @@ export type ParsedItem = {
   ingredientsDetected: string[];
   ingredientsList: string[];
   ingredientsCount: number;
+  meta?: ParsedItemMeta;
 };
 
 function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
@@ -39,6 +46,11 @@ function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
     ingredientsDetected: [],
     ingredientsList: [],
     ingredientsCount: 0,
+    meta: {
+      transcriptionConfidence: 0,
+      needsRescan: true,
+      rescanHint: hint || "Couldn't read the label reliably. Take a closer photo of the ingredients/nutrition panel.",
+    },
   };
 }
 
@@ -122,6 +134,11 @@ export async function parseScannedItem(
       ingredientsDetected: entities,
       ingredientsList,
       ingredientsCount: ingredientsList.length,
+      meta: {
+        transcriptionConfidence: typeof json.meta?.transcriptionConfidence === "number" ? json.meta.transcriptionConfidence : 0.5,
+        needsRescan: json.meta?.needsRescan === true,
+        rescanHint: typeof json.meta?.rescanHint === "string" ? json.meta.rescanHint : null,
+      },
     };
   } catch (err) {
     console.warn("[parse-item] fetch failed, using stub", err);

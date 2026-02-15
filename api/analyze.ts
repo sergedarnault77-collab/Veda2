@@ -48,7 +48,13 @@ type AnalyzeResponse = {
     detectedEntities: string[];
   };
   signals: Signal[];
-  meta: { mode: "openai" | "stub"; reason?: string };
+  meta: {
+    mode: "openai" | "stub";
+    reason?: string;
+    transcriptionConfidence: number;
+    needsRescan: boolean;
+    rescanHint: string | null;
+  };
 };
 
 const CATEGORY_KEYS: CategoryKey[] = [
@@ -112,7 +118,13 @@ function stub(reason: string): AnalyzeResponse {
         relatedEntities: [],
       },
     ],
-    meta: { mode: "stub", reason },
+    meta: {
+      mode: "stub",
+      reason,
+      transcriptionConfidence: 0,
+      needsRescan: true,
+      rescanHint: "Couldn't read the label reliably. Take a closer photo of the ingredients/nutrition panel.",
+    },
   };
 }
 
@@ -226,6 +238,38 @@ function coerceSignals(v: any): Signal[] {
   });
 }
 
+function computeTranscriptionConfidence(
+  openaiConfidence: number | undefined,
+  transcription: string | null,
+  entityCount: number,
+  nutrientCount: number,
+): { confidence: number; needsRescan: boolean; rescanHint: string | null } {
+  const t = (transcription ?? "").trim();
+  const len = t.length;
+  // Count garbled characters
+  const badMarks = (t.match(/[�?]{2,}/g) || []).length;
+  // Lines with at least one alphanumeric character
+  const lineCount = t.split("\n").filter((l) => /[a-zA-Z0-9]/.test(l)).length;
+  const tokenCount = t.split(/\s+/).filter(Boolean).length;
+
+  let base = clamp01(typeof openaiConfidence === "number" ? openaiConfidence : 0.7);
+
+  if (len < 120) base -= 0.35;
+  if (lineCount < 4) base -= 0.2;
+  if (tokenCount < 25) base -= 0.2;
+  if (badMarks >= 3) base -= 0.25;
+  if (entityCount <= 1 && nutrientCount <= 1) base -= 0.15;
+  if (len >= 350 && lineCount >= 8) base += 0.1;
+
+  const confidence = clamp01(base);
+  const needsRescan = confidence < 0.55;
+  const rescanHint = needsRescan
+    ? "Label photo is hard to read. Take a closer photo of the ingredients/nutrition panel (fill the frame, avoid glare, steady your hand)."
+    : null;
+
+  return { confidence, needsRescan, rescanHint };
+}
+
 function extractOutputText(resp: any): string | null {
   // Prefer convenience field if present
   if (resp && typeof resp.output_text === "string" && resp.output_text.trim())
@@ -255,10 +299,11 @@ function buildJsonSchema() {
     schema: {
       type: "object",
       additionalProperties: false,
-      required: ["productName", "transcription", "nutrients", "ingredientsList", "categories", "detectedEntities", "signals"],
+      required: ["productName", "transcription", "transcriptionConfidence", "nutrients", "ingredientsList", "categories", "detectedEntities", "signals"],
       properties: {
         productName: { type: ["string", "null"] },
         transcription: { type: ["string", "null"] },
+        transcriptionConfidence: { type: "number" },
         nutrients: {
           type: "array",
           items: {
@@ -376,6 +421,12 @@ export default async function handler(req: Request): Promise<Response> {
       "• Do NOT interpret or infer",
       "• Put the full transcription in the 'transcription' field",
       "• If text is unreadable, set transcription to null",
+      "",
+      "Also set 'transcriptionConfidence' (0..1):",
+      "• 0.9–1.0 if the label text is clear, complete, and you transcribed most/all of it.",
+      "• 0.6–0.8 if the text is partially readable but some parts are blurry or cut off.",
+      "• 0.2–0.5 if most text is illegible, very short, or heavily obscured.",
+      "• 0.0–0.1 if you cannot read the label at all.",
       "",
       "Step 2 — EXTRACTION:",
       "Using ONLY the transcribed text from Step 1:",
@@ -519,6 +570,19 @@ export default async function handler(req: Request): Promise<Response> {
     ]).slice(0, 80);
 
     const signals = coerceSignals(parsed?.signals);
+
+    // Compute transcription confidence heuristic
+    const openaiConf =
+      typeof parsed?.transcriptionConfidence === "number"
+        ? parsed.transcriptionConfidence
+        : undefined;
+    const confResult = computeTranscriptionConfidence(
+      openaiConf,
+      transcription,
+      detectedEntities.length,
+      nutrients.length,
+    );
+
     const okResp: AnalyzeResponse = {
       ok: true,
       productName,
@@ -541,7 +605,12 @@ export default async function handler(req: Request): Promise<Response> {
                 relatedEntities: detectedEntities.slice(0, 6),
               },
             ],
-      meta: { mode: "openai" },
+      meta: {
+        mode: "openai",
+        transcriptionConfidence: confResult.confidence,
+        needsRescan: confResult.needsRescan,
+        rescanHint: confResult.rescanHint,
+      },
     };
 
     return new Response(JSON.stringify(okResp), {

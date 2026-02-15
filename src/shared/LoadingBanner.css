@@ -1,0 +1,108 @@
+/* ── LoadingBanner ── */
+
+.lb {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  margin: 10px 0;
+}
+
+.lb--compact {
+  padding: 10px 12px;
+}
+
+/* Tone variants */
+.lb--info {
+  border-color: rgba(108, 92, 231, 0.35);
+  background: rgba(108, 92, 231, 0.10);
+}
+
+.lb--warn {
+  border-color: rgba(230, 160, 34, 0.40);
+  background: rgba(230, 160, 34, 0.10);
+}
+
+.lb--success {
+  border-color: rgba(46, 204, 113, 0.35);
+  background: rgba(46, 204, 113, 0.10);
+}
+
+/* Row: spinner + text */
+.lb__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Spinner */
+.lb__spinner {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-top-color: rgba(255, 255, 255, 0.88);
+  border-radius: 50%;
+  animation: lb-spin 0.7s linear infinite;
+}
+
+@keyframes lb-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Text */
+.lb__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.3;
+}
+
+.lb__subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Warn title in amber */
+.lb--warn .lb__title {
+  color: rgba(255, 200, 60, 0.95);
+}
+
+.lb--warn .lb__subtitle {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* Success title in green */
+.lb--success .lb__title {
+  color: rgba(46, 220, 120, 0.95);
+}
+
+/* Indeterminate progress bar */
+.lb__bar {
+  margin-top: 10px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.lb__bar-fill {
+  height: 100%;
+  width: 40%;
+  border-radius: 2px;
+  background: rgba(108, 92, 231, 0.70);
+  animation: lb-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes lb-slide {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(200%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Warn bar override */
+.lb--warn .lb__bar-fill {
+  background: rgba(230, 160, 34, 0.60);
+}

@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { compressImageDataUrl } from "../lib/image";
+import { withMinDelay } from "../lib/minDelay";
+import LoadingBanner from "../shared/LoadingBanner";
 import "./ScanSection.css";
 
 type ScanStep = "idle" | "front" | "ingredients" | "done";
@@ -13,6 +15,8 @@ export default function ScanSection() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
 
+  const ingredientsInputRef = useRef<HTMLInputElement>(null);
+
   const canScanIngredients = !!frontImage && !loading;
 
   /* ── Build chip groups from normalized.categories ── */
@@ -20,13 +24,11 @@ export default function ScanSection() {
   const entitiesByCategory = useMemo(() => {
     const cats: Record<string, string[]> = result?.normalized?.categories || {};
     const groups: { label: string; items: string[] }[] = [];
-    // Display order — skip Calories (shown in summary line instead)
     const order = ["Sweeteners", "Stimulants", "Sugars", "Vitamins", "Minerals", "Supplements", "Other"];
     for (const k of order) {
       const arr = Array.isArray(cats[k]) ? cats[k] : [];
       if (arr.length) groups.push({ label: k, items: arr.map(String) });
     }
-    // Fallback: if no categories but detectedEntities exist (stub / legacy)
     if (
       !groups.length &&
       Array.isArray(result?.normalized?.detectedEntities) &&
@@ -37,18 +39,16 @@ export default function ScanSection() {
     return groups;
   }, [result]);
 
-  /* ── "Detected:" summary line — prioritises sweeteners > caffeine > sugar > calories ── */
+  /* ── "Detected:" summary line ── */
 
   const summaryLine = useMemo(() => {
     const cats: Record<string, string[]> = result?.normalized?.categories || {};
     const parts: string[] = [];
 
-    // Sweeteners
     const sw = Array.isArray(cats.Sweeteners) ? cats.Sweeteners : [];
     if (sw.length === 1) parts.push(`sweetener (${sw[0]})`);
     else if (sw.length > 1) parts.push(`sweeteners (${sw.length}): ${sw.join(", ")}`);
 
-    // Caffeine / stimulants
     const stim = Array.isArray(cats.Stimulants) ? cats.Stimulants : [];
     if (stim.some((s) => s.toLowerCase().includes("caffeine"))) {
       parts.push("caffeine");
@@ -56,16 +56,20 @@ export default function ScanSection() {
       parts.push(stim.join(", ").toLowerCase());
     }
 
-    // Sugars
     const sugars = Array.isArray(cats.Sugars) ? cats.Sugars : [];
     if (sugars.length) parts.push(sugars.join(", "));
 
-    // Calories
     const cal = Array.isArray(cats.Calories) ? cats.Calories : [];
     if (cal.length) parts.push(cal.join(", "));
 
-    return parts.length ? parts.join(" · ") : "";
+    return parts.length ? parts.join(" \u00b7 ") : "";
   }, [result]);
+
+  /* ── Rescan hint ── */
+  const needsRescan = result?.meta?.needsRescan === true;
+  const rescanHint =
+    result?.meta?.rescanHint ||
+    "Take a closer photo of the ingredients label.";
 
   /* ── Handlers ── */
 
@@ -102,16 +106,21 @@ export default function ScanSection() {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          frontImageDataUrl: frontImage,
-          ingredientsImageDataUrl: ingredientsImage,
+      const json = await withMinDelay(
+        fetch("/api/analyze", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            frontImageDataUrl: frontImage,
+            ingredientsImageDataUrl: ingredientsImage,
+          }),
+        }).then(async (r) => {
+          const j = await r.json();
+          if (!j.ok) throw new Error(j?.error || `HTTP ${r.status}`);
+          return j;
         }),
-      });
-      const json = await r.json();
-      if (!json.ok) throw new Error(json?.error || `HTTP ${r.status}`);
+        700,
+      );
       setResult(json);
       setProductName(
         typeof json?.productName === "string" && json.productName.trim()
@@ -137,13 +146,23 @@ export default function ScanSection() {
             relatedEntities: [],
           },
         ],
-        meta: { mode: "stub", reason: "client-side fallback" },
+        meta: {
+          mode: "stub",
+          reason: "client-side fallback",
+          transcriptionConfidence: 0,
+          needsRescan: true,
+          rescanHint: "Couldn't read the label reliably. Take a closer photo of the ingredients/nutrition panel.",
+        },
       });
       setProductName("(unnamed item)");
       setStep("done");
     } finally {
       setLoading(false);
     }
+  }
+
+  function triggerRescanIngredients() {
+    ingredientsInputRef.current?.click();
   }
 
   function reset() {
@@ -189,6 +208,7 @@ export default function ScanSection() {
             title={canScanIngredients ? "" : "Scan the front first"}
           >
             <input
+              ref={ingredientsInputRef}
               type="file"
               accept="image/*"
               capture="environment"
@@ -209,17 +229,25 @@ export default function ScanSection() {
         </div>
 
         <div className="scan-section__status">
-          <div>Front captured {frontImage ? "✅" : "—"}</div>
-          <div>Ingredients captured {ingredientsImage ? "✅" : "—"}</div>
+          <div>Front captured {frontImage ? "\u2705" : "\u2014"}</div>
+          <div>Ingredients captured {ingredientsImage ? "\u2705" : "\u2014"}</div>
         </div>
 
-        {frontImage && ingredientsImage && step !== "done" && (
+        {/* Loading state */}
+        {loading && (
+          <LoadingBanner
+            title="Reading label\u2026"
+            subtitle="Extracting ingredients and nutrients"
+            tone="info"
+          />
+        )}
+
+        {frontImage && ingredientsImage && step !== "done" && !loading && (
           <button
             className="scan-section__btn scan-section__btn--run"
-            disabled={loading}
             onClick={runAnalysis}
           >
-            {loading ? "Reading ingredients..." : "Analyze"}
+            Analyze
           </button>
         )}
 
@@ -227,9 +255,27 @@ export default function ScanSection() {
 
         {step === "done" && result && (
           <div className="scan-section__result">
+
+            {/* Rescan banner */}
+            {needsRescan && (
+              <>
+                <LoadingBanner
+                  tone="warn"
+                  title="Photo is hard to read"
+                  subtitle={rescanHint}
+                />
+                <button
+                  className="scan-section__btn scan-section__btn--rescan"
+                  onClick={triggerRescanIngredients}
+                >
+                  Re-scan ingredients label
+                </button>
+              </>
+            )}
+
             {/* ── Scanned header ── */}
             <div className="scan-section__scannedHeader">
-              <div className="scan-section__scannedCheck">✅</div>
+              <div className="scan-section__scannedCheck">{needsRescan ? "\u26a0\ufe0f" : "\u2705"}</div>
               <div className="scan-section__scannedMeta">
                 <div className="scan-section__scannedTitle">
                   <input
@@ -302,7 +348,7 @@ export default function ScanSection() {
             {/* Debug: show why we fell back to stub */}
             {result?.meta && (
               <div className="scan-section__debug">
-                mode={result.meta.mode} · reason={result.meta.reason || "n/a"}
+                mode={result.meta.mode} · conf={result.meta.transcriptionConfidence ?? "n/a"} · rescan={String(result.meta.needsRescan)} · reason={result.meta.reason || "n/a"}
               </div>
             )}
           </div>
