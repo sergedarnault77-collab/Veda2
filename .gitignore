@@ -4,3 +4,6 @@ dist
 .env.local
 .DS_Store
 tsconfig.tsbuildinfo
+artifacts/
+playwright-report/
+test-results/

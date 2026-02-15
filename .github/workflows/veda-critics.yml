@@ -1,0 +1,71 @@
+name: Veda PR critics
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  critics:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      BASE_URL: ${{ vars.VERCEL_PREVIEW_URL || 'https://veda2.vercel.app' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E + critics
+        run: |
+          echo "Using BASE_URL=$BASE_URL"
+          npm run test:all
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veda-artifacts
+          path: |
+            artifacts/
+            playwright-report/
+          if-no-files-found: warn
+
+      - name: Comment PR with critics report
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+            const marker = "<!-- veda-critics -->";
+            const p = path.join(process.cwd(), "artifacts", "critics", "summary.md");
+            let body = marker + "\n" + "Critics report missing (artifacts/critics/summary.md not found).";
+            if (fs.existsSync(p)) body = fs.readFileSync(p, "utf8");
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+
+            // Find existing comment to update
+            const comments = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const existing = comments.data.find(c => (c.body || "").includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
