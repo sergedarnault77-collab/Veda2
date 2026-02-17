@@ -119,13 +119,18 @@ export function StackCoverage() {
     return () => { cancelled = true; };
   }, [anyTaken, takenSupps]);
 
+  const hasContent = supps.length > 0 && anyTaken;
+
   return (
     <section className="coverage" aria-label="Stack coverage today">
-      <h3 className="coverage__title">Stack coverage (today)</h3>
+      <details className="coverage__details" open={hasContent}>
+        <summary className="coverage__summary">
+          <h3 className="coverage__title">Stack coverage (today)</h3>
+        </summary>
 
       {supps.length === 0 && (
         <p className="coverage__empty">
-          Add supplements in the Supplements tab to see coverage here.
+          Supplement coverage appears here once added.
         </p>
       )}
 
@@ -151,7 +156,7 @@ export function StackCoverage() {
       {/* Empty state */}
       {supps.length > 0 && !anyTaken && (
         <p className="coverage__empty">
-          Tap supplements you've taken to see today's totals
+          Tap supplements you've taken to see today's coverage
         </p>
       )}
 
@@ -214,6 +219,7 @@ export function StackCoverage() {
           ))}
         </div>
       )}
+      </details>
     </section>
   );
 }

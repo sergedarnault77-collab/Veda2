@@ -7,16 +7,20 @@ export function DailyReferenceBars() {
 
   /* Arbitrary visual max per metric for bar width. Not a goal — just a scale. */
   const visualMax: Record<string, number> = {
-    "Refined sugars": 50,
-    "Artificial sweeteners": 10,
-    "Calories (scanned)": 1000,
-    Caffeine: 400,
+    "Added sugars (today)": 50,
+    "Sweetener types detected": 10,
+    "Calories from scanned items": 1000,
+    "Caffeine exposure": 400,
   };
 
   return (
-    <section className="exposure" aria-label="Daily exposure bars">
+    <section className="exposure" aria-label="Daily exposure summary">
+      {/* Status header */}
+      <div className="exposure__signal">Overall signal: Balanced</div>
+      <div className="exposure__interpretation">No unusual stacking detected today</div>
+
       <div className="exposure__header">
-        <h3 className="exposure__title">Based on what you scanned today</h3>
+        <h3 className="exposure__title">What to notice today</h3>
         <button
           className="exposure__info"
           aria-label="More info"
@@ -54,6 +58,8 @@ export function DailyReferenceBars() {
           );
         })}
       </ul>
+
+      <div className="exposure__scope">Scanned items only — not full daily intake.</div>
     </section>
   );
 }

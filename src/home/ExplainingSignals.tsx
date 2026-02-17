@@ -5,8 +5,8 @@ import "./ExplainingSignals.css";
 
 export function ExplainingSignals() {
   return (
-    <section className="signals" aria-label="Explaining signals">
-      <h3 className="signals__title">Explaining Signals</h3>
+    <section className="signals" aria-label="Observations">
+      <h3 className="signals__title">Observations</h3>
 
       {STUB_SIGNALS.map((s, i) => (
         <article key={i} className="signals__card">
@@ -16,8 +16,8 @@ export function ExplainingSignals() {
       ))}
 
       <p className="signals__disclaimer">
-        These observations are interpretive. Individual responses vary
-        considerably. Nothing here is intended as medical advice.
+        These are descriptive observations based on scanned labels. Individual
+        responses vary. This is not medical or dietary guidance.
       </p>
     </section>
   );

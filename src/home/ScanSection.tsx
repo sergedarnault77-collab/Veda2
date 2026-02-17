@@ -139,15 +139,15 @@ export default function ScanSection() {
         normalized: { detectedEntities: [], categories: {} },
         signals: [{
           type: "no_read", severity: "low",
-          headline: "Couldn't read label reliably",
-          explanation: "I couldn't read enough label text to classify this item reliably.",
+          headline: "Label not fully readable",
+          explanation: "Not enough label text was captured to classify this item reliably.",
           confidence: 0.1, relatedEntities: [],
         }],
         meta: {
           mode: "stub", reason: "client-side fallback",
           refSystem: "UNKNOWN",
           transcriptionConfidence: 0, needsRescan: true,
-          rescanHint: "Couldn't read the label reliably. Take a closer photo of the ingredients/nutrition panel.",
+          rescanHint: "Label was not fully readable. A closer photo of the ingredients/nutrition panel may help.",
           ingredientPhotosUsed: 0,
         },
       });
@@ -183,7 +183,7 @@ export default function ScanSection() {
   return (
     <section className="scan-section">
       <div className="scan-section__card">
-        <div className="scan-section__title">Scan to see how this impacts your system</div>
+        <div className="scan-section__title">Based on what you've scanned today</div>
 
         <div className="scan-section__ctaRow">
           <label className="scan-section__btn scan-section__btn--primary">
@@ -195,42 +195,37 @@ export default function ScanSection() {
                 const f = e.target.files?.[0];
                 if (!f) return;
                 e.target.value = "";
-                handleCapture(f, "front");
+                handleCapture(f, step === "idle" && !frontImage ? "front" : "ingredients");
               }}
             />
-            {frontImage ? "Re-scan product front" : "Scan product front"}
+            {frontImage ? (hasIngredients ? `Add another label photo (${ingredientsImages.length} taken)` : "Scan label") : "Scan label"}
           </label>
 
-          <label
-            className={
-              "scan-section__btn " +
-              (canScanIngredients ? "scan-section__btn--accent" : "scan-section__btn--disabled")
-            }
-            title={canScanIngredients ? "" : "Scan the front first"}
-          >
-            <input
-              ref={ingredientsInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              disabled={!canScanIngredients}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (!f) return;
-                e.target.value = "";
-                handleCapture(f, "ingredients");
-              }}
-            />
-            {ingButtonLabel}
-          </label>
+          <div className="scan-section__secondaryLink">
+            Front of pack also works
+          </div>
         </div>
 
-        <div className="scan-section__hint">
-          Most interaction patterns are identified from the ingredients label on the back.
-          {hasIngredients && ingredientsImages.length < MAX_ING_PHOTOS && (
-            <span> Multi-column label? Add more photos for better accuracy.</span>
-          )}
-        </div>
+        {/* Hidden ingredients input for rescan flow */}
+        <input
+          ref={ingredientsInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            e.target.value = "";
+            handleCapture(f, "ingredients");
+          }}
+        />
+
+        {hasIngredients && ingredientsImages.length < MAX_ING_PHOTOS && (
+          <div className="scan-section__hint">
+            Multi-column label? Add more photos for better accuracy.
+          </div>
+        )}
 
         <div className="scan-section__status">
           <div>Front captured {frontImage ? "✅" : "—"}</div>

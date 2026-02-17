@@ -47,6 +47,14 @@
 
 .scan-section__ctaRow { display: grid; gap: 10px; }
 
+.scan-section__secondaryLink {
+  font-size: 0.78rem;
+  color: var(--veda-text-muted, rgba(255,255,255,0.55));
+  text-align: center;
+  opacity: 0.8;
+  margin-top: -2px;
+}
+
 .scan-section__btn {
   position: relative;
   display: flex;

@@ -30,9 +30,9 @@ export default function App() {
           backdropFilter: "blur(10px)",
         }}
       >
-        <button onClick={() => setTab("home")} style={tabBtn(tab === "home")}>Home</button>
+        <button onClick={() => setTab("home")} style={tabBtn(tab === "home")}>Scan</button>
+        <button onClick={() => setTab("supps")} style={tabBtn(tab === "supps")}>Supplements</button>
         <button onClick={() => setTab("meds")} style={tabBtn(tab === "meds")}>Meds</button>
-        <button onClick={() => setTab("supps")} style={tabBtn(tab === "supps")}>Supps</button>
       </nav>
     </div>
   );

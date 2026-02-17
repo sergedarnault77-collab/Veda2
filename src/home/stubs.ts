@@ -89,10 +89,10 @@ export const STUB_SUPPLEMENTS: Supplement[] = [
 // ── Stub exposure data (from scanned items today) ──
 
 export const STUB_EXPOSURE: ExposureEntry[] = [
-  { label: "Refined sugars", value: 18, unit: "g", color: "var(--bar-sugar)" },
-  { label: "Artificial sweeteners", value: 2, unit: "items", color: "var(--bar-sweetener)" },
-  { label: "Calories (scanned)", value: 340, unit: "kcal", color: "var(--bar-calorie)" },
-  { label: "Caffeine", value: 180, unit: "mg", color: "var(--bar-caffeine)" },
+  { label: "Added sugars (today)", value: 18, unit: "g", color: "var(--bar-sugar)" },
+  { label: "Sweetener types detected", value: 2, unit: "items", color: "var(--bar-sweetener)" },
+  { label: "Calories from scanned items", value: 340, unit: "kcal", color: "var(--bar-calorie)" },
+  { label: "Caffeine exposure", value: 180, unit: "mg", color: "var(--bar-caffeine)" },
 ];
 
 // ── Stub analyze response (local fallback when API is unavailable) ──
@@ -104,9 +104,9 @@ export const STUB_ANALYZE_RESPONSE: AnalyzeResponse = {
     {
       type: "no_notable_interaction",
       severity: "info",
-      headline: "No notable interaction pattern found",
+      headline: "No notable patterns detected",
       explanation:
-        "Based on the text provided and your saved list, no common interaction pattern was flagged. This is not exhaustive and depends on dose and timing.",
+        "Based on the scanned text and your saved list, no common overlap or stacking pattern was observed. This is not exhaustive.",
       confidence: "low",
     },
   ],
@@ -119,10 +119,10 @@ export const STUB_ANALYZE_RESPONSE: AnalyzeResponse = {
 export const STUB_SIGNALS: SignalExplanation[] = [
   {
     title: "Vitamin D + K2 overlap",
-    body: "These two compounds tend to appear together in many stacks. Vitamin K2 is commonly associated with helping direct calcium that Vitamin D tends to mobilise. Individual responses vary.",
+    body: "These two compounds frequently appear together in supplement stacks. K2 is commonly observed alongside Vitamin D in formulations. Individual responses vary.",
   },
   {
-    title: "Magnesium & sleep",
-    body: "Magnesium glycinate is often flagged in connection with evening routines. Some individuals report it tends to promote relaxation, though responses are highly variable.",
+    title: "Magnesium presence noted",
+    body: "Magnesium glycinate is often present in evening-focused stacks. This is an observation, not a recommendation. Responses are highly variable.",
   },
 ];
