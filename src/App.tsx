@@ -81,6 +81,15 @@ export default function App() {
     setSyncEmail(null);
     setUser(null);
     setAuthView("login");
+    // Clear all persisted data so the session truly ends
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("veda.user.v1");
+      localStorage.removeItem("veda.supps.v1");
+      localStorage.removeItem("veda.meds.v1");
+      localStorage.removeItem("veda.exposure.today.v1");
+      localStorage.removeItem("veda.scans.today.v1");
+      localStorage.removeItem("veda.supps.taken.v1");
+    }
   }, []);
 
   // 1. Not registered → show auth screen
