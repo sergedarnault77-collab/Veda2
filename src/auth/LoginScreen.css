@@ -1,0 +1,117 @@
+/* ── Login Screen ── */
+
+.login {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 16px 60px;
+}
+
+.login__logo {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--veda-accent), #a29bfe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 28px;
+}
+
+.login__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--veda-text);
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.login__sub {
+  font-size: 0.85rem;
+  color: var(--veda-text-muted);
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.login__form {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.login__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--veda-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.login__input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--veda-text);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.login__input:focus {
+  border-color: var(--veda-accent);
+}
+
+.login__error {
+  font-size: 0.8rem;
+  color: #ff8a80;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid rgba(231, 76, 60, 0.25);
+}
+
+.login__cta {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--veda-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 4px;
+}
+
+.login__cta:hover {
+  opacity: 0.9;
+}
+
+.login__register {
+  font-size: 0.82rem;
+  color: var(--veda-text-muted);
+  text-align: center;
+}
+
+.login__registerLink {
+  background: none;
+  border: none;
+  color: var(--veda-accent);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

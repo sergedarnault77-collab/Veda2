@@ -3,7 +3,7 @@
 .home {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .home__header {
@@ -20,15 +20,35 @@
   background-clip: text;
 }
 
-/* A + B sit side-by-side on wider viewports, stack on narrow */
-.home__top-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+/* Freemium locked state */
+.home__freemium {
+  padding: 40px 0;
 }
 
-@media (min-width: 600px) {
-  .home__top-row {
-    grid-template-columns: 1.6fr 1fr;
-  }
+.home__freemiumCard {
+  padding: 24px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  text-align: center;
+}
+
+.home__freemiumTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--veda-text);
+  margin-bottom: 10px;
+}
+
+.home__freemiumSub {
+  font-size: 0.82rem;
+  color: var(--veda-text-muted);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.home__freemiumHint {
+  font-size: 0.75rem;
+  color: var(--veda-text-muted);
+  opacity: 0.7;
 }

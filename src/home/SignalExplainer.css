@@ -1,0 +1,57 @@
+/* ── Signal Explainer (SECONDARY — why) ── */
+
+.explainer {
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+
+.explainer__title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--veda-text-muted);
+  margin-bottom: 14px;
+}
+
+.explainer__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.explainer__row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.explainer__tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  min-width: 72px;
+  padding-top: 1px;
+}
+
+.explainer__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.explainer__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--veda-text);
+  margin-bottom: 2px;
+}
+
+.explainer__detail {
+  font-size: 0.78rem;
+  color: var(--veda-text-muted);
+  line-height: 1.4;
+}

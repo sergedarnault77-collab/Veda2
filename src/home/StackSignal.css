@@ -1,0 +1,30 @@
+/* ── Stack Signal (PRIMARY HERO) ── */
+
+.stack-signal {
+  padding: 24px 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid;
+  text-align: center;
+}
+
+.stack-signal__state {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+}
+
+.stack-signal__headline {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--veda-text);
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+
+.stack-signal__explanation {
+  font-size: 0.82rem;
+  color: var(--veda-text-muted);
+  line-height: 1.5;
+}

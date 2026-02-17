@@ -1,0 +1,276 @@
+/* ── Profile / Body Data Screen ── */
+
+.profile {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 16px 60px;
+}
+
+.profile__logo {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--veda-accent), #a29bfe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 24px;
+}
+
+.profile__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--veda-text);
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.profile__sub {
+  font-size: 0.85rem;
+  color: var(--veda-text-muted);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Why card */
+.profile__why {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: rgba(108, 92, 231, 0.06);
+  border: 1px solid rgba(108, 92, 231, 0.2);
+  margin-bottom: 24px;
+}
+
+.profile__whyIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(108, 92, 231, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--veda-accent);
+  flex-shrink: 0;
+}
+
+.profile__whyText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--veda-text-muted);
+}
+
+.profile__whyText strong {
+  color: var(--veda-text);
+  font-size: 0.82rem;
+}
+
+/* Form */
+.profile__form {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.profile__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.profile__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--veda-text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* Segmented control for sex */
+.profile__segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--veda-border);
+}
+
+.profile__seg {
+  padding: 11px 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--veda-text-muted);
+  background: var(--veda-surface);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: center;
+}
+
+.profile__seg + .profile__seg {
+  border-left: 1px solid var(--veda-border);
+}
+
+.profile__seg--active {
+  color: #fff;
+  background: var(--veda-accent);
+}
+
+.profile__hint {
+  font-size: 0.72rem;
+  color: var(--veda-text-muted);
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+/* Age range pills */
+.profile__ageGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.profile__agePill {
+  padding: 10px 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--veda-text-muted);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  text-align: center;
+}
+
+.profile__agePill--active {
+  color: #fff;
+  background: var(--veda-accent);
+  border-color: var(--veda-accent);
+}
+
+/* Input with unit suffix */
+.profile__inputWrap {
+  display: flex;
+  align-items: center;
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.profile__inputWrap:focus-within {
+  border-color: var(--veda-accent);
+}
+
+.profile__input {
+  flex: 1;
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--veda-text);
+  background: transparent;
+  border: none;
+  outline: none;
+  min-width: 0;
+}
+
+/* Remove number spinners */
+.profile__input::-webkit-outer-spin-button,
+.profile__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.profile__input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.profile__unit {
+  padding: 0 14px 0 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--veda-text-muted);
+  user-select: none;
+}
+
+/* Errors */
+.profile__errors {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid rgba(231, 76, 60, 0.25);
+}
+
+.profile__error {
+  font-size: 0.8rem;
+  color: #ff8a80;
+  line-height: 1.5;
+}
+
+/* CTA */
+.profile__cta {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--veda-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 2px;
+}
+
+.profile__cta:hover {
+  opacity: 0.9;
+}
+
+.profile__skip {
+  background: none;
+  border: none;
+  color: var(--veda-text-muted);
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: 0.75;
+}
+
+.profile__skip:hover {
+  opacity: 1;
+}
+
+/* Privacy */
+.profile__privacy {
+  margin-top: 24px;
+  font-size: 0.7rem;
+  color: var(--veda-text-muted);
+  opacity: 0.55;
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.4;
+}
