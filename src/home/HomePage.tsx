@@ -132,17 +132,17 @@ export default function HomePage({ isAI = false }: Props) {
           {/* 1. PRIMARY — Overall Stack Signal (hero, full width) */}
           <StackSignal />
 
-          {/* 2 + 3: Side-by-side on tablet+, stacked on phone */}
+          {/* 2. SECONDARY — Why this signal */}
+          <SignalExplainer />
+
+          {/* 3 + 4: Exposure + Stack coverage side-by-side on tablet+ */}
           <div className="home__columns">
-            <SignalExplainer />
             <DailyReferenceBars entries={entries} />
+            <StackCoverage />
           </div>
 
-          {/* 4. TERTIARY — Scan status + scan button */}
+          {/* 5. Scan status + scan button */}
           <ScanSection onScanComplete={handleScanComplete} />
-
-          {/* 5. Stack coverage (collapsed unless active) */}
-          <StackCoverage />
         </>
       ) : (
         <div className="home__freemium">
