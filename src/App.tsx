@@ -20,12 +20,14 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("home");
   const [syncing, setSyncing] = useState(false);
 
-  // Set sync email whenever user changes, and pull data from server
+  // Set sync email whenever user changes, pull from server then push local data
   useEffect(() => {
     if (user?.email) {
       setSyncEmail(user.email);
       setSyncing(true);
-      pullAll().finally(() => setSyncing(false));
+      pullAll()
+        .then(() => pushAll())
+        .finally(() => setSyncing(false));
     } else {
       setSyncEmail(null);
     }
