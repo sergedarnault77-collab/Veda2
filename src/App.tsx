@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import RegisterScreen from "./auth/RegisterScreen";
 import LoginScreen from "./auth/LoginScreen";
 import ProfileScreen from "./auth/ProfileScreen";
@@ -8,6 +8,7 @@ import MedicationsPage from "./meds/MedicationsPage";
 import SupplementsPage from "./supps/SupplementsPage";
 import { loadUser, saveUser, setPlan as persistPlan, setProfile as persistProfile } from "./lib/auth";
 import type { VedaUser, Plan, BiologicalSex, AgeRange } from "./lib/auth";
+import { setSyncEmail, pullAll, pushAll } from "./lib/sync";
 import "./App.css";
 
 type AuthView = "register" | "login";
@@ -17,6 +18,18 @@ export default function App() {
   const [user, setUser] = useState<VedaUser | null>(() => loadUser());
   const [authView, setAuthView] = useState<AuthView>("register");
   const [tab, setTab] = useState<Tab>("home");
+  const [syncing, setSyncing] = useState(false);
+
+  // Set sync email whenever user changes, and pull data from server
+  useEffect(() => {
+    if (user?.email) {
+      setSyncEmail(user.email);
+      setSyncing(true);
+      pullAll().finally(() => setSyncing(false));
+    } else {
+      setSyncEmail(null);
+    }
+  }, [user?.email]);
 
   const isRegistered = user !== null;
   const hasProfile = isRegistered && user.profileComplete === true;
@@ -26,10 +39,14 @@ export default function App() {
   const handleRegister = useCallback((u: VedaUser) => {
     saveUser(u);
     setUser(u);
+    setSyncEmail(u.email);
+    pushAll();
   }, []);
 
   const handleLogin = useCallback((u: VedaUser) => {
     setUser(u);
+    setSyncEmail(u.email);
+    // Pull will happen via the useEffect above
   }, []);
 
   const handleProfileComplete = useCallback((profile: {
@@ -61,6 +78,7 @@ export default function App() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    setSyncEmail(null);
     setUser(null);
     setAuthView("login");
   }, []);

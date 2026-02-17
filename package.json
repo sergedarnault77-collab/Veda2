@@ -12,6 +12,7 @@
     "test:all": "playwright test && node scripts/ai-vision-critic.mjs && node scripts/ai-data-sanity-critic.mjs && node scripts/critics-summary.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
