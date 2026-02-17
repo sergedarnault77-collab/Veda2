@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { loadLS } from "../lib/persist";
+import { loadLS, saveLS } from "../lib/persist";
 import type { VedaUser } from "../lib/auth";
+import { setSyncEmail, pullAll } from "../lib/sync";
 import "./LoginScreen.css";
 
 const USER_KEY = "veda.user.v1";
@@ -14,8 +15,9 @@ export default function LoginScreen({ onLogin, onGoToRegister }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -24,18 +26,37 @@ export default function LoginScreen({ onLogin, onGoToRegister }: Props) {
       return;
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check local first
     const stored = loadLS<VedaUser | null>(USER_KEY, null);
-    if (!stored) {
-      setError("No account found. Please create one first.");
+    if (stored && stored.email === normalizedEmail) {
+      onLogin(stored);
       return;
     }
 
-    if (stored.email !== email.trim().toLowerCase()) {
+    // Not found locally — try the server
+    setLoading(true);
+    try {
+      setSyncEmail(normalizedEmail);
+      const ok = await pullAll();
+
+      if (ok) {
+        const pulled = loadLS<VedaUser | null>(USER_KEY, null);
+        if (pulled && pulled.email === normalizedEmail) {
+          onLogin(pulled);
+          return;
+        }
+      }
+
+      setSyncEmail(null);
       setError("Email not recognized.");
-      return;
+    } catch {
+      setSyncEmail(null);
+      setError("Could not reach server. Try again.");
+    } finally {
+      setLoading(false);
     }
-
-    onLogin(stored);
   }
 
   return (
@@ -71,8 +92,8 @@ export default function LoginScreen({ onLogin, onGoToRegister }: Props) {
           <div className="login__error">{error}</div>
         )}
 
-        <button type="submit" className="login__cta">
-          Log in
+        <button type="submit" className="login__cta" disabled={loading}>
+          {loading ? "Signing in…" : "Log in"}
         </button>
 
         <div className="login__register">
