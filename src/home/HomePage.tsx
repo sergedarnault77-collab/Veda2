@@ -49,14 +49,16 @@ function extractExposureFromScan(result: ScanResult): Partial<{
   caffeine: number;
 }> {
   const cats = result.categories || {};
+  const ents = result.detectedEntities || [];
+  const nutrients = result.nutrients || [];
   const out: ReturnType<typeof extractExposureFromScan> = {};
 
   // Sweeteners — accumulate unique names
   const sw = Array.isArray(cats.Sweeteners) ? cats.Sweeteners : [];
   if (sw.length > 0) out.sweetenerNames = sw.map((s) => String(s).toLowerCase());
 
-  // Caffeine — from nutrients or detected entities
-  const nutrients = result.nutrients || [];
+  // ── Caffeine ──
+  // 1. Try nutrients (structured amount)
   for (const n of nutrients) {
     if (!n || typeof n !== "object") continue;
     const id = String(n.nutrientId || "").toLowerCase();
@@ -68,15 +70,24 @@ function extractExposureFromScan(result: ScanResult): Partial<{
       }
     }
   }
-  // Fallback: if caffeine in entities but no nutrient amount, add a flag
+  // 2. Fallback: check categories.Stimulants for caffeine (try to parse amount from string)
   if (!out.caffeine) {
-    const ents = result.detectedEntities || [];
-    if (ents.some((e) => /caffeine|koffein|cafeïne/i.test(e))) {
-      out.caffeine = 0; // present but unknown amount — we'll still show it was detected
+    const stims = Array.isArray(cats.Stimulants) ? cats.Stimulants : [];
+    for (const s of stims) {
+      const str = String(s).toLowerCase();
+      if (/caffeine|koffein|cafeïne|cafeine/.test(str)) {
+        const numMatch = str.match(/([\d.]+)\s*mg/);
+        out.caffeine = numMatch ? Number(numMatch[1]) : 1;
+        break;
+      }
     }
   }
+  // 3. Fallback: check detectedEntities
+  if (!out.caffeine && ents.some((e) => /caffeine|koffein|cafeïne|cafeine/i.test(e))) {
+    out.caffeine = 1;
+  }
 
-  // Sugars — from nutrients
+  // ── Sugars ──
   for (const n of nutrients) {
     if (!n || typeof n !== "object") continue;
     const name = String(n.name || "").toLowerCase();
@@ -86,11 +97,30 @@ function extractExposureFromScan(result: ScanResult): Partial<{
     }
   }
 
-  // Calories — from categories or nutrients
-  const calCats = Array.isArray(cats.Calories) ? cats.Calories : [];
-  for (const c of calCats) {
-    const match = String(c).match(/(\d+)\s*kcal/i);
-    if (match) out.calories = (out.calories || 0) + Number(match[1]);
+  // ── Calories ──
+  // 1. From nutrients
+  for (const n of nutrients) {
+    if (!n || typeof n !== "object") continue;
+    const id = String(n.nutrientId || "").toLowerCase();
+    const name = String(n.name || "").toLowerCase();
+    if (id === "calories" || id === "energy" || name.includes("calorie") || name.includes("energy") || name === "kcal") {
+      const amt = Number(n.amountToday);
+      if (Number.isFinite(amt) && amt > 0) out.calories = (out.calories || 0) + amt;
+    }
+  }
+  // 2. From categories
+  if (!out.calories) {
+    const calCats = Array.isArray(cats.Calories) ? cats.Calories : [];
+    for (const c of calCats) {
+      const str = String(c);
+      const match = str.match(/([\d.]+)\s*(?:kcal|cal)/i);
+      if (match) {
+        out.calories = (out.calories || 0) + Number(match[1]);
+      } else {
+        const numOnly = str.match(/^([\d.]+)$/);
+        if (numOnly) out.calories = (out.calories || 0) + Number(numOnly[1]);
+      }
+    }
   }
 
   return out;

@@ -220,10 +220,139 @@
   opacity: 0.65;
 }
 
+/* ── Quick add ── */
+.scan-status__quickToggle {
+  width: 100%;
+  margin-top: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--veda-accent);
+  cursor: pointer;
+  text-align: left;
+  opacity: 0.85;
+}
+
+.scan-status__quickToggle:hover {
+  opacity: 1;
+}
+
+.scan-status__quickPanel {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: rgba(108, 92, 231, 0.06);
+  border: 1px solid rgba(108, 92, 231, 0.18);
+}
+
+.scan-status__quickTitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--veda-text);
+  margin-bottom: 10px;
+}
+
+.scan-status__quickGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scan-status__quickItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.scan-status__quickLabel {
+  font-size: 0.78rem;
+  color: var(--veda-text);
+  opacity: 0.9;
+}
+
+.scan-status__quickBtns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.scan-status__quickBtn {
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--veda-accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.scan-status__quickBtn--decaf {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--veda-text-muted);
+}
+
+/* ── Caffeine follow-up question ── */
+.scan-status__caffeineQ {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: rgba(108, 92, 231, 0.08);
+  border: 1px solid rgba(108, 92, 231, 0.22);
+}
+
+.scan-status__caffeineQText {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--veda-text);
+  margin-bottom: 8px;
+}
+
+.scan-status__caffeineQBtns {
+  display: flex;
+  gap: 8px;
+}
+
+.scan-status__caffeineQBtn {
+  flex: 1;
+  padding: 9px 10px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--veda-accent);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.scan-status__caffeineQBtn--decaf {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--veda-text-muted);
+}
+
+.scan-status__caffeineA {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--veda-green);
+}
+
 /* ── Responsive: tablet ── */
 @media (min-width: 600px) {
   .scan-status { padding: 18px 20px; }
   .scan-status__btn { font-size: 0.88rem; padding: 12px 24px; }
+  .scan-status__quickGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
 }
 
 /* ── Responsive: desktop ── */
