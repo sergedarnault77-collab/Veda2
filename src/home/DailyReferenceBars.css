@@ -3,25 +3,26 @@
 .exposure {
   background: var(--veda-surface);
   border: 1px solid var(--veda-border);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  border-radius: var(--radius-xl);
+  padding: 20px 22px;
+  backdrop-filter: blur(12px);
 }
 
 .exposure__title {
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--veda-text-muted);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .exposure__scope {
   font-size: 0.68rem;
   color: var(--veda-text-muted);
-  opacity: 0.6;
+  opacity: 0.55;
   text-align: center;
-  margin-top: 12px;
+  margin-top: 14px;
   line-height: 1.3;
 }
 
@@ -29,47 +30,47 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .exposure__label-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 
 .exposure__label {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--veda-text);
 }
 
 .exposure__value {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--veda-text-muted);
 }
 
 .exposure__track {
-  height: 5px;
-  background: var(--veda-bg);
-  border-radius: 3px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
   overflow: hidden;
 }
 
 .exposure__fill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.4s ease;
+  border-radius: 4px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Tablet+ */
 @media (min-width: 600px) {
-  .exposure { padding: 20px 22px; }
-  .exposure__track { height: 6px; }
+  .exposure { padding: 22px 24px; }
+  .exposure__track { height: 7px; }
 }
 
 @media (min-width: 1024px) {
-  .exposure { padding: 22px 26px; }
-  .exposure__label { font-size: 0.82rem; }
-  .exposure__value { font-size: 0.82rem; }
+  .exposure { padding: 24px 28px; }
+  .exposure__label { font-size: 0.84rem; }
+  .exposure__value { font-size: 0.84rem; }
 }

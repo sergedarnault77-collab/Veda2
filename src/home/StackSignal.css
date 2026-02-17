@@ -1,42 +1,43 @@
 /* ── Stack Signal (PRIMARY HERO) ── */
 
 .stack-signal {
-  padding: 24px 20px;
-  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  border-radius: var(--radius-xl);
   border: 1px solid;
   text-align: center;
+  backdrop-filter: blur(12px);
+  background: var(--veda-surface);
 }
 
 .stack-signal__state {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  margin-bottom: 8px;
+  letter-spacing: 0.16em;
+  margin-bottom: 10px;
 }
 
 .stack-signal__headline {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--veda-text);
   line-height: 1.35;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .stack-signal__explanation {
   font-size: 0.82rem;
   color: var(--veda-text-muted);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* Tablet+ */
 @media (min-width: 600px) {
-  .stack-signal { padding: 28px 28px; }
-  .stack-signal__headline { font-size: 1.15rem; }
-  .stack-signal__explanation { font-size: 0.88rem; }
+  .stack-signal { padding: 32px 32px; }
+  .stack-signal__headline { font-size: 1.2rem; }
 }
 
 @media (min-width: 1024px) {
-  .stack-signal { padding: 32px 36px; }
-  .stack-signal__headline { font-size: 1.25rem; }
+  .stack-signal { padding: 36px 40px; }
+  .stack-signal__headline { font-size: 1.3rem; }
 }

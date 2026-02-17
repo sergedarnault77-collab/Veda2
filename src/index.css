@@ -9,50 +9,59 @@
 }
 
 :root {
-  /* palette */
-  --veda-bg: #0e0e12;
-  --veda-surface: #1a1a24;
-  --veda-surface-hover: #24243a;
-  --veda-border: #2a2a3c;
-  --veda-text: #e8e8f0;
-  --veda-text-muted: #8888a0;
-  --veda-accent: #6c5ce7;
-  --veda-accent-glow: rgba(108, 92, 231, 0.25);
+  /* palette — deep navy dashboard */
+  --veda-bg: #0c0c1d;
+  --veda-bg-gradient: linear-gradient(145deg, #0c0c1d 0%, #12122a 50%, #0e0e20 100%);
+  --veda-surface: rgba(20, 20, 45, 0.65);
+  --veda-surface-solid: #16163a;
+  --veda-surface-hover: #1e1e48;
+  --veda-border: rgba(255, 255, 255, 0.06);
+  --veda-border-accent: rgba(108, 92, 231, 0.25);
+  --veda-text: #eaeaf4;
+  --veda-text-muted: #8a8ab0;
+  --veda-accent: #7c6cf0;
+  --veda-accent-light: #a29bfe;
+  --veda-accent-glow: rgba(124, 108, 240, 0.2);
 
-  /* coverage colors */
-  --veda-red: #e74c3c;
-  --veda-orange: #e67e22;
-  --veda-green: #2ecc71;
+  /* status colors */
+  --veda-red: #f06292;
+  --veda-orange: #ffb74d;
+  --veda-green: #66bb6a;
   --veda-magenta: #e056a0;
 
-  /* exposure bar fills */
-  --bar-sugar: #f39c12;
-  --bar-sweetener: #9b59b6;
-  --bar-calorie: #3498db;
-  --bar-caffeine: #1abc9c;
+  /* exposure bar fills — softer gradient tones */
+  --bar-sugar: #ffa726;
+  --bar-sweetener: #ab47bc;
+  --bar-calorie: #42a5f5;
+  --bar-caffeine: #26c6da;
 
   /* typography */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
   /* radii */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
 
   /* responsive layout */
   --content-max: 480px;
-  --nav-height: 64px;
+  --sidebar-width: 0px;
+  --nav-height: 72px;
 }
 
 html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   font-family: var(--font-sans);
   background: var(--veda-bg);
+  background-image: var(--veda-bg-gradient);
+  background-attachment: fixed;
   color: var(--veda-text);
   line-height: 1.6;
   min-height: 100dvh;
@@ -62,7 +71,7 @@ body {
 #root {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: 16px 16px 80px;
+  padding: 16px 16px calc(var(--nav-height) + 24px);
 }
 
 button {
@@ -70,22 +79,40 @@ button {
   cursor: pointer;
 }
 
-/* ── Tablet (600–1024px): wider content, bigger cards ── */
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+/* ── Tablet (600–1024px) ── */
 @media (min-width: 600px) {
   :root {
-    --content-max: 680px;
+    --content-max: 700px;
   }
   #root {
-    padding: 24px 24px 88px;
+    padding: 24px 24px calc(var(--nav-height) + 28px);
   }
 }
 
-/* ── Desktop / laptop (1024px+): max width, side breathing room ── */
+/* ── Desktop / laptop (1024px+): sidebar layout ── */
 @media (min-width: 1024px) {
   :root {
-    --content-max: 820px;
+    --content-max: 860px;
+    --sidebar-width: 240px;
   }
   #root {
+    max-width: calc(var(--content-max));
+    margin-left: calc(var(--sidebar-width) + 40px);
+    margin-right: auto;
     padding: 32px 32px 48px;
+  }
+}
+
+@media (min-width: 1400px) {
+  :root {
+    --content-max: 960px;
+  }
+  #root {
+    margin-left: calc(var(--sidebar-width) + 60px);
   }
 }

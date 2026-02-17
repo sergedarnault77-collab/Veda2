@@ -52,28 +52,36 @@
   display: flex;
   flex-direction: column;
   padding: 20px 16px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   background: var(--veda-surface);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--veda-border);
   position: relative;
 }
 
 .plans__card--highlight {
-  border-color: var(--veda-accent);
-  background: rgba(108, 92, 231, 0.06);
+  border-color: var(--veda-border-accent);
+  background: var(--veda-surface);
+  backdrop-filter: blur(12px);
 }
 
 .plans__cardTag {
+  display: inline-block;
   font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--veda-text-muted);
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--veda-border);
+  border-radius: var(--radius-sm);
   margin-bottom: 10px;
 }
 
 .plans__cardTag--accent {
   color: var(--veda-accent);
+  border-color: var(--veda-border-accent);
 }
 
 .plans__cardTitle {
@@ -137,7 +145,7 @@
   font-size: 0.88rem;
   font-weight: 700;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: opacity 0.15s;
 }
@@ -148,11 +156,12 @@
 
 .plans__cta--primary {
   color: #fff;
-  background: var(--veda-accent);
+  background: linear-gradient(135deg, var(--veda-accent), var(--veda-accent-light));
+  box-shadow: 0 4px 16px rgba(124, 108, 240, 0.25);
 }
 
 .plans__cta--secondary {
   color: var(--veda-text);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--veda-border);
 }

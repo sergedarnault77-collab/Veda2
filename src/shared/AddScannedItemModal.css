@@ -3,12 +3,13 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(6, 6, 18, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  z-index: 50;
+  z-index: 60;
+  backdrop-filter: blur(4px);
 }
 
 .modal-card {
@@ -16,37 +17,43 @@
   width: min(560px, 100%);
   max-height: 90vh;
   overflow-y: auto;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(12, 12, 16, 0.92);
-  backdrop-filter: blur(12px);
-  padding: 20px 16px 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
-  color: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(16, 16, 38, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 24px 20px 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  color: var(--veda-text);
 }
 
 .modal-card h2 {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   margin: 0 0 2px;
 }
 
 .modal-close {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 16px;
+  right: 16px;
   padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: transparent;
-  color: rgba(255, 255, 255, 0.8);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 1.1rem;
   cursor: pointer;
   line-height: 1;
+  transition: background 0.15s;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .modal-sub {
-  opacity: 0.75;
+  opacity: 0.65;
   font-size: 0.82rem;
   margin: 0 0 14px;
   line-height: 1.4;
@@ -56,22 +63,29 @@
 
 .modal-label {
   display: block;
-  font-size: 0.75rem;
-  opacity: 0.7;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--veda-text-muted);
+  letter-spacing: 0.03em;
   margin-bottom: 6px;
 }
 
 .modal-input {
   width: 100%;
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-md);
+  padding: 11px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--veda-text);
   outline: none;
   font-family: inherit;
   font-size: 0.9rem;
   box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.modal-input:focus {
+  border-color: var(--veda-accent);
 }
 
 /* ── Generic btn classes ── */
@@ -80,31 +94,41 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.92);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--veda-text);
   cursor: pointer;
   font-family: inherit;
   font-size: 0.85rem;
   text-align: center;
   user-select: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .btn--primary {
-  background: rgba(108, 92, 231, 0.34);
-  border-color: rgba(108, 92, 231, 0.55);
-  color: rgba(255, 255, 255, 0.95);
+  background: linear-gradient(135deg, var(--veda-accent), var(--veda-accent-light));
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(124, 108, 240, 0.2);
+}
+
+.btn--primary:hover {
+  opacity: 0.9;
 }
 
 .btn--secondary {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .btn--disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: default;
   pointer-events: none;
 }
@@ -112,37 +136,37 @@
 .btn--tertiary {
   width: 100%;
   background: transparent;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: var(--veda-text-muted, rgba(255,255,255,0.6));
+  border-color: rgba(255, 255, 255, 0.06);
+  color: var(--veda-text-muted);
   font-size: 0.78rem;
 }
 
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 0.45;
   cursor: default;
 }
 
 /* ── Parse feedback ── */
 
 .parse-hint {
-  margin-top: 10px;
+  margin-top: 12px;
   font-size: 0.78rem;
   opacity: 0.85;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--veda-text);
 }
 
 .parse-hint strong {
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--veda-text);
 }
 
 .parse-warning {
   margin-top: 12px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: rgba(230, 126, 34, 0.12);
-  border: 1px solid rgba(230, 126, 34, 0.3);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 183, 77, 0.08);
+  border: 1px solid rgba(255, 183, 77, 0.2);
   font-size: 0.82rem;
-  color: rgba(230, 168, 80, 0.95);
+  color: var(--veda-orange);
 }
 
 /* ── Rescan button ── */
@@ -152,8 +176,8 @@
   width: 100%;
   font-weight: 600;
   color: #fff;
-  background: rgba(230, 160, 34, 0.25);
-  border-color: rgba(230, 160, 34, 0.45);
+  background: rgba(255, 183, 77, 0.15);
+  border-color: rgba(255, 183, 77, 0.3);
 }
 
 /* ── Scan buttons ── */
@@ -167,7 +191,7 @@
 .scan-buttons .btn {
   width: 100%;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 }
 
 /* ── Thumbnail previews ── */
@@ -182,8 +206,8 @@
   width: 96px;
   height: 96px;
   object-fit: cover;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* ── Actions ── */
@@ -192,7 +216,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 /* ── Dev debug ── */
@@ -200,26 +224,25 @@
 .dev-debug {
   margin-top: 8px;
   font-size: 0.625rem;
-  opacity: 0.4;
+  opacity: 0.35;
   font-family: monospace;
 }
 
-/* ── Responsive: tablet — wider modal, bigger buttons ── */
+/* ── Responsive: tablet ── */
 @media (min-width: 600px) {
   .modal-card {
     width: min(620px, 100%);
-    padding: 24px 24px 20px;
+    padding: 28px 28px 24px;
   }
   .scan-buttons { grid-template-columns: 1fr 1fr; }
   .thumbs img { width: 120px; height: 120px; }
 }
 
-/* ── Responsive: desktop — max the modal, comfortable sizing ── */
+/* ── Responsive: desktop ── */
 @media (min-width: 1024px) {
   .modal-card {
     width: min(680px, 100%);
-    padding: 28px 28px 24px;
-    border-radius: 22px;
+    padding: 32px 32px 28px;
   }
   .modal-card h2 { font-size: 1.1rem; }
   .thumbs img { width: 140px; height: 140px; }

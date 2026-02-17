@@ -11,6 +11,7 @@ import "./HomePage.css";
 
 interface Props {
   isAI?: boolean;
+  userName?: string;
 }
 
 const EXPOSURE_KEY = "veda.exposure.today.v1";
@@ -126,7 +127,7 @@ function extractExposureFromScan(result: ScanResult): Partial<{
   return out;
 }
 
-export default function HomePage({ isAI = false }: Props) {
+export default function HomePage({ isAI = false, userName }: Props) {
   const [exposure, setExposure] = useState<StoredExposure>(() => loadExposure());
 
   const handleScanComplete = useCallback((result: ScanResult) => {
@@ -154,7 +155,10 @@ export default function HomePage({ isAI = false }: Props) {
   return (
     <main className="home">
       <header className="home__header">
-        <h1 className="home__logo">Veda</h1>
+        <h1 className="home__greeting">
+          {userName ? `Hello ${userName},` : "Hello,"}
+        </h1>
+        <p className="home__sub">Based on what you've scanned today</p>
       </header>
 
       {isAI ? (

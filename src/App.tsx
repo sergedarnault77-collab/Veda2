@@ -102,13 +102,14 @@ export default function App() {
   return (
     <div className="app-shell">
       <nav className="app-nav">
+        <div className="app-nav__logo">Veda</div>
         <button onClick={() => setTab("home")} className={`app-nav__btn ${tab === "home" ? "app-nav__btn--active" : ""}`}>Scan</button>
         <button onClick={() => setTab("supps")} className={`app-nav__btn ${tab === "supps" ? "app-nav__btn--active" : ""}`}>Supplements</button>
         <button onClick={() => setTab("meds")} className={`app-nav__btn ${tab === "meds" ? "app-nav__btn--active" : ""}`}>Meds</button>
       </nav>
 
       <div className="app-content">
-        {tab === "home" && <HomePage isAI={isAI} />}
+        {tab === "home" && <HomePage isAI={isAI} userName={user.firstName} />}
         {tab === "meds" && <MedicationsPage />}
         {tab === "supps" && <SupplementsPage />}
       </div>
@@ -145,14 +146,14 @@ function AccountBar({
         onClick={() => setOpen((v) => !v)}
         style={{
           position: "fixed",
-          top: 14,
-          right: 14,
+          top: 16,
+          right: 16,
           zIndex: 100,
-          width: 36,
-          height: 36,
+          width: 38,
+          height: 38,
           borderRadius: "50%",
-          border: "1px solid rgba(255,255,255,0.12)",
-          background: "rgba(108,92,231,0.2)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          background: "linear-gradient(135deg, rgba(124,108,240,0.3), rgba(162,155,254,0.15))",
           color: "#fff",
           fontWeight: 700,
           fontSize: "0.82rem",
@@ -160,6 +161,7 @@ function AccountBar({
           alignItems: "center",
           justifyContent: "center",
           cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
         }}
         aria-label="Account"
       >
@@ -170,24 +172,25 @@ function AccountBar({
         <div
           style={{
             position: "fixed",
-            top: 56,
-            right: 14,
+            top: 60,
+            right: 16,
             zIndex: 100,
-            width: 240,
-            padding: "16px",
-            borderRadius: 14,
-            background: "var(--veda-surface)",
-            border: "1px solid var(--veda-border)",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            width: 260,
+            padding: "20px",
+            borderRadius: 20,
+            background: "rgba(16,16,38,0.92)",
+            border: "1px solid rgba(255,255,255,0.06)",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.6)",
+            backdropFilter: "blur(20px)",
           }}
         >
-          <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: 2 }}>
+          <div style={{ fontWeight: 700, fontSize: "0.92rem", marginBottom: 2 }}>
             {user.firstName} {user.lastName}
           </div>
           <div style={{ fontSize: "0.75rem", color: "var(--veda-text-muted)", marginBottom: 4 }}>
             {user.email}
           </div>
-          <div style={{ fontSize: "0.72rem", color: "var(--veda-text-muted)", marginBottom: 14 }}>
+          <div style={{ fontSize: "0.72rem", color: "var(--veda-text-muted)", marginBottom: 16 }}>
             Plan: <strong>{planLabel}</strong> · {user.country}
           </div>
 
@@ -198,15 +201,16 @@ function AccountBar({
             }}
             style={{
               width: "100%",
-              padding: "10px 12px",
+              padding: "10px 14px",
               fontSize: "0.82rem",
               fontWeight: 600,
-              borderRadius: 10,
-              border: "1px solid var(--veda-border)",
-              background: "rgba(255,255,255,0.06)",
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,0.06)",
+              background: "rgba(255,255,255,0.04)",
               color: "var(--veda-text)",
               cursor: "pointer",
               marginBottom: 8,
+              fontFamily: "inherit",
             }}
           >
             Switch to {otherLabel}
@@ -219,14 +223,15 @@ function AccountBar({
             }}
             style={{
               width: "100%",
-              padding: "10px 12px",
+              padding: "10px 14px",
               fontSize: "0.82rem",
               fontWeight: 600,
-              borderRadius: 10,
-              border: "1px solid rgba(231,76,60,0.3)",
-              background: "rgba(231,76,60,0.08)",
-              color: "#ff8a80",
+              borderRadius: 12,
+              border: "1px solid rgba(240,98,146,0.2)",
+              background: "rgba(240,98,146,0.06)",
+              color: "var(--veda-red)",
               cursor: "pointer",
+              fontFamily: "inherit",
             }}
           >
             Log out

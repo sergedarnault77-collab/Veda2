@@ -41,9 +41,10 @@
   display: flex;
   gap: 12px;
   padding: 14px 16px;
-  border-radius: var(--radius-lg);
-  background: rgba(108, 92, 231, 0.06);
-  border: 1px solid rgba(108, 92, 231, 0.2);
+  border-radius: var(--radius-xl);
+  background: var(--veda-surface);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--veda-border-accent);
   margin-bottom: 24px;
 }
 
@@ -119,7 +120,7 @@
   font-weight: 600;
   font-family: inherit;
   color: var(--veda-text-muted);
-  background: var(--veda-surface);
+  background: rgba(255, 255, 255, 0.03);
   border: none;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -132,7 +133,7 @@
 
 .profile__seg--active {
   color: #fff;
-  background: var(--veda-accent);
+  background: linear-gradient(135deg, var(--veda-accent), var(--veda-accent-light));
 }
 
 .profile__hint {
@@ -155,7 +156,7 @@
   font-weight: 600;
   font-family: inherit;
   color: var(--veda-text-muted);
-  background: var(--veda-surface);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -165,7 +166,7 @@
 
 .profile__agePill--active {
   color: #fff;
-  background: var(--veda-accent);
+  background: linear-gradient(135deg, var(--veda-accent), var(--veda-accent-light));
   border-color: var(--veda-accent);
 }
 
@@ -173,7 +174,7 @@
 .profile__inputWrap {
   display: flex;
   align-items: center;
-  background: var(--veda-surface);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -217,7 +218,7 @@
 /* Errors */
 .profile__errors {
   padding: 10px 14px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: rgba(231, 76, 60, 0.12);
   border: 1px solid rgba(231, 76, 60, 0.25);
 }
@@ -235,9 +236,10 @@
   font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
-  background: var(--veda-accent);
+  background: linear-gradient(135deg, var(--veda-accent), var(--veda-accent-light));
+  box-shadow: 0 4px 16px rgba(124, 108, 240, 0.25);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: opacity 0.15s;
   margin-top: 2px;
