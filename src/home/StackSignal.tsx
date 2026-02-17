@@ -9,6 +9,19 @@ const SUPPS_KEY = "veda.supps.v1";
 const MEDS_KEY = "veda.meds.v1";
 const TAKEN_KEY = "veda.supps.taken.v1";
 
+function loadTakenFlags(): Record<string, boolean> {
+  const raw = (typeof window !== "undefined") ? localStorage.getItem(TAKEN_KEY) : null;
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.date === "string") {
+      if (parsed.date === new Date().toISOString().slice(0, 10)) return parsed.flags || {};
+      return {};
+    }
+    return parsed;
+  } catch { return {}; }
+}
+
 type SignalState = "balanced" | "redundant" | "excessive" | "interaction";
 
 interface StackSignalData {
@@ -18,7 +31,7 @@ interface StackSignalData {
 }
 
 function loadAllNutrients(): { nutrients: Map<string, NutrientRow>; suppNames: string[]; medNames: string[] } {
-  const taken = loadLS<Record<string, boolean>>(TAKEN_KEY, {});
+  const taken = loadTakenFlags();
   const supps = loadLS<any[]>(SUPPS_KEY, []).filter((s) => s?.id && taken[s.id]);
   const meds = loadLS<any[]>(MEDS_KEY, []);
 

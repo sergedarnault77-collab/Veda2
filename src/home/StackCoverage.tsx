@@ -7,6 +7,30 @@ import "./StackCoverage.css";
 const SUPPS_KEY = "veda.supps.v1";
 const TAKEN_KEY = "veda.supps.taken.v1";
 
+type TakenStore = { date: string; flags: Record<string, boolean> };
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function loadTakenToday(): Record<string, boolean> {
+  const raw = loadLS<TakenStore | Record<string, boolean> | null>(TAKEN_KEY, null);
+  if (!raw) return {};
+  // New format with date
+  if (typeof (raw as TakenStore).date === "string") {
+    const store = raw as TakenStore;
+    if (store.date === todayStr()) return store.flags;
+    return {};
+  }
+  // Legacy format (no date) — treat as today for migration
+  return raw as Record<string, boolean>;
+}
+
+function saveTakenToday(flags: Record<string, boolean>) {
+  const store: TakenStore = { date: todayStr(), flags };
+  saveLS(TAKEN_KEY, store);
+}
+
 /** Minimal shape we need from a saved supplement. */
 type SavedSupp = {
   id: string;
@@ -44,7 +68,7 @@ export function StackCoverage() {
   });
 
   const [taken, setTaken] = useState<Record<string, boolean>>(() =>
-    loadLS<Record<string, boolean>>(TAKEN_KEY, {})
+    loadTakenToday()
   );
 
   const [stackInsight, setStackInsight] = useState<ItemInsights | null>(null);
@@ -52,7 +76,7 @@ export function StackCoverage() {
   const toggle = useCallback((id: string) => {
     setTaken((prev) => {
       const next = { ...prev, [id]: !prev[id] };
-      saveLS(TAKEN_KEY, next);
+      saveTakenToday(next);
       return next;
     });
   }, []);

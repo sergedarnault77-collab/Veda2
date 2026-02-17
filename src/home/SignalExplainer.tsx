@@ -9,6 +9,16 @@ const SUPPS_KEY = "veda.supps.v1";
 const MEDS_KEY = "veda.meds.v1";
 const TAKEN_KEY = "veda.supps.taken.v1";
 
+function loadTakenFlags(): Record<string, boolean> {
+  const raw = loadLS<any>(TAKEN_KEY, null);
+  if (!raw) return {};
+  if (typeof raw.date === "string") {
+    if (raw.date === new Date().toISOString().slice(0, 10)) return raw.flags || {};
+    return {};
+  }
+  return raw;
+}
+
 interface ExplainerRow {
   kind: "redundant" | "excessive" | "overlap";
   label: string;
@@ -19,7 +29,7 @@ interface ExplainerRow {
 }
 
 function buildExplainers(): ExplainerRow[] {
-  const taken = loadLS<Record<string, boolean>>(TAKEN_KEY, {});
+  const taken = loadTakenFlags();
   const supps = loadLS<any[]>(SUPPS_KEY, []).filter((s) => s?.id && taken[s.id]);
   const meds = loadLS<any[]>(MEDS_KEY, []);
 
