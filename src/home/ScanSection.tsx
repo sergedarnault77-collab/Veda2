@@ -57,6 +57,7 @@ export default function ScanSection({ onScanComplete }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [added, setAdded] = useState(false);
   const [todayScans, setTodayScans] = useState<StoredScan[]>(() => loadScans().scans);
 
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
@@ -101,6 +102,7 @@ export default function ScanSection({ onScanComplete }: Props) {
       setIngredientsImages([]);
       setResult(null);
       setProductName("");
+      setAdded(false);
     } else {
       setIngredientsImages((prev) => [...prev, compressed].slice(-MAX_ING_PHOTOS));
       setStep("ingredients");
@@ -112,6 +114,7 @@ export default function ScanSection({ onScanComplete }: Props) {
     if (!frontOnly && ingredientsImages.length === 0) return;
     setLoading(true);
     setError(null);
+    setAdded(false);
     try {
       const payload: any = { frontImageDataUrl: frontImage };
       if (!frontOnly && ingredientsImages.length > 0) {
@@ -135,22 +138,6 @@ export default function ScanSection({ onScanComplete }: Props) {
         : "(unnamed item)";
       setProductName(pName);
       setStep("done");
-
-      // Build summary string
-      const ents: string[] = json?.normalized?.detectedEntities || [];
-      const summaryStr = ents.slice(0, 4).join(", ") + (ents.length > 4 ? ` +${ents.length - 4} more` : "");
-
-      // Persist scan to today's history
-      const day = persistScan(pName, summaryStr);
-      setTodayScans(day.scans);
-
-      // Emit scan result upward for exposure tracking
-      onScanComplete?.({
-        productName: pName,
-        categories: json?.normalized?.categories || {},
-        nutrients: Array.isArray(json?.nutrients) ? json.nutrients : [],
-        detectedEntities: ents,
-      });
     } catch (e: any) {
       setError(String(e?.message || e));
       setStep("done");
@@ -159,13 +146,42 @@ export default function ScanSection({ onScanComplete }: Props) {
     }
   }
 
-  function reset() {
+  function addToIntake() {
+    if (!result || added) return;
+    setAdded(true);
+
+    const ents: string[] = result?.normalized?.detectedEntities || [];
+    const summaryStr = ents.slice(0, 4).join(", ") + (ents.length > 4 ? ` +${ents.length - 4} more` : "");
+
+    const day = persistScan(productName, summaryStr);
+    setTodayScans(day.scans);
+
+    onScanComplete?.({
+      productName,
+      categories: result?.normalized?.categories || {},
+      nutrients: Array.isArray(result?.nutrients) ? result.nutrients : [],
+      detectedEntities: ents,
+    });
+  }
+
+  function dismiss() {
     setStep("idle");
     setFrontImage(null);
     setIngredientsImages([]);
     setResult(null);
     setError(null);
     setProductName("");
+    setAdded(false);
+  }
+
+  function scanAnother() {
+    setStep("idle");
+    setFrontImage(null);
+    setIngredientsImages([]);
+    setResult(null);
+    setError(null);
+    setProductName("");
+    setAdded(false);
   }
 
   /* -- Render -- */
@@ -196,7 +212,7 @@ export default function ScanSection({ onScanComplete }: Props) {
           </div>
           {scanCount > 0 && (
             <div className="scan-status__count">
-              {scanCount} item{scanCount !== 1 ? "s" : ""} scanned today
+              {scanCount} item{scanCount !== 1 ? "s" : ""} added today
             </div>
           )}
         </div>
@@ -260,9 +276,24 @@ export default function ScanSection({ onScanComplete }: Props) {
             )}
           </div>
 
-          <button className="scan-status__reset" onClick={reset}>
-            Scan another item
-          </button>
+          {/* Add / Dismiss actions */}
+          {!added ? (
+            <div className="scan-status__actions">
+              <button className="scan-status__addBtn" onClick={addToIntake}>
+                Add to today's intake
+              </button>
+              <button className="scan-status__dismissBtn" onClick={dismiss}>
+                Dismiss
+              </button>
+            </div>
+          ) : (
+            <div className="scan-status__added">
+              <span className="scan-status__addedBadge">✓ Added</span>
+              <button className="scan-status__reset" onClick={scanAnother}>
+                Scan another item
+              </button>
+            </div>
+          )}
         </div>
       )}
 
