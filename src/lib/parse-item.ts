@@ -56,16 +56,19 @@ function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
 
 /**
  * Send front + ingredient images to /api/analyze and map the response.
- * Accepts a single ingredientsDataUrl (backward compat) or an array.
+ * Accepts a single ingredientsDataUrl (backward compat), an array, or
+ * null/undefined/empty for front-only identification (no ingredients label).
  */
 export async function parseScannedItem(
   kind: "med" | "supp",
   frontDataUrl: string,
-  ingredientsDataUrl: string | string[],
+  ingredientsDataUrl?: string | string[] | null,
 ): Promise<ParsedItem> {
-  const ingredientsArray = Array.isArray(ingredientsDataUrl)
-    ? ingredientsDataUrl
-    : [ingredientsDataUrl];
+  const ingredientsArray = !ingredientsDataUrl
+    ? []
+    : Array.isArray(ingredientsDataUrl)
+      ? ingredientsDataUrl.filter(Boolean)
+      : [ingredientsDataUrl];
 
   try {
     const res = await fetch("/api/analyze", {

@@ -20,6 +20,27 @@
   background-clip: text;
 }
 
+/* ── Tablet: two-column grid for secondary + supporting ── */
+@media (min-width: 600px) {
+  .home__logo { font-size: 1.7rem; }
+
+  .home__columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+
+/* ── Desktop: bigger logo, wider gaps ── */
+@media (min-width: 1024px) {
+  .home__logo { font-size: 1.9rem; }
+  .home { gap: 18px; }
+
+  .home__columns {
+    gap: 18px;
+  }
+}
+
 /* Freemium locked state */
 .home__freemium {
   padding: 40px 0;

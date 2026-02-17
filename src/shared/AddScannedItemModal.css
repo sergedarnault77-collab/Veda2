@@ -109,6 +109,14 @@
   pointer-events: none;
 }
 
+.btn--tertiary {
+  width: 100%;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--veda-text-muted, rgba(255,255,255,0.6));
+  font-size: 0.78rem;
+}
+
 .btn:disabled {
   opacity: 0.55;
   cursor: default;
@@ -194,4 +202,25 @@
   font-size: 0.625rem;
   opacity: 0.4;
   font-family: monospace;
+}
+
+/* ── Responsive: tablet — wider modal, bigger buttons ── */
+@media (min-width: 600px) {
+  .modal-card {
+    width: min(620px, 100%);
+    padding: 24px 24px 20px;
+  }
+  .scan-buttons { grid-template-columns: 1fr 1fr; }
+  .thumbs img { width: 120px; height: 120px; }
+}
+
+/* ── Responsive: desktop — max the modal, comfortable sizing ── */
+@media (min-width: 1024px) {
+  .modal-card {
+    width: min(680px, 100%);
+    padding: 28px 28px 24px;
+    border-radius: 22px;
+  }
+  .modal-card h2 { font-size: 1.1rem; }
+  .thumbs img { width: 140px; height: 140px; }
 }

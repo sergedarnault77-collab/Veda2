@@ -61,3 +61,15 @@
   border-radius: 3px;
   transition: width 0.4s ease;
 }
+
+/* Tablet+ */
+@media (min-width: 600px) {
+  .exposure { padding: 20px 22px; }
+  .exposure__track { height: 6px; }
+}
+
+@media (min-width: 1024px) {
+  .exposure { padding: 22px 26px; }
+  .exposure__label { font-size: 0.82rem; }
+  .exposure__value { font-size: 0.82rem; }
+}

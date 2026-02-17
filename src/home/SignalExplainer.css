@@ -55,3 +55,14 @@
   color: var(--veda-text-muted);
   line-height: 1.4;
 }
+
+/* Tablet+ */
+@media (min-width: 600px) {
+  .explainer { padding: 20px 22px; }
+}
+
+@media (min-width: 1024px) {
+  .explainer { padding: 22px 26px; }
+  .explainer__label { font-size: 0.88rem; }
+  .explainer__detail { font-size: 0.82rem; }
+}

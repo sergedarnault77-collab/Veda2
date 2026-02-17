@@ -172,3 +172,18 @@
   font-size: 12px;
   opacity: 0.9;
 }
+
+/* Tablet: nutrient list in two columns */
+@media (min-width: 600px) {
+  .coverage__list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .coverage__list {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}

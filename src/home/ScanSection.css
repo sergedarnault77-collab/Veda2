@@ -74,6 +74,20 @@
   cursor: pointer;
 }
 
+.scan-status__frontOnly {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--veda-text-muted, rgba(255,255,255,0.6));
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
 .scan-status__error {
   margin-top: 8px;
   font-size: 0.78rem;
@@ -121,4 +135,45 @@
 
 .scan-status__reset:hover {
   opacity: 1;
+}
+
+/* Persisted scan history */
+.scan-status__history {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--veda-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scan-status__historyRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scan-status__historyName {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--veda-text);
+  opacity: 0.8;
+}
+
+.scan-status__historyDetail {
+  font-size: 0.68rem;
+  color: var(--veda-text-muted);
+  opacity: 0.65;
+}
+
+/* ── Responsive: tablet ── */
+@media (min-width: 600px) {
+  .scan-status { padding: 18px 20px; }
+  .scan-status__btn { font-size: 0.88rem; padding: 12px 24px; }
+}
+
+/* ── Responsive: desktop ── */
+@media (min-width: 1024px) {
+  .scan-status { padding: 20px 24px; }
 }

@@ -1,7 +1,11 @@
-import { STUB_EXPOSURE } from "./stubs";
+import type { ExposureEntry } from "./stubs";
 import "./DailyReferenceBars.css";
 
-export function DailyReferenceBars() {
+interface Props {
+  entries: ExposureEntry[];
+}
+
+export function DailyReferenceBars({ entries }: Props) {
   const visualMax: Record<string, number> = {
     "Added sugars (today)": 50,
     "Sweetener types detected": 10,
@@ -14,7 +18,7 @@ export function DailyReferenceBars() {
       <h3 className="exposure__title">Today's exposure</h3>
 
       <ul className="exposure__list">
-        {STUB_EXPOSURE.map((e) => {
+        {entries.map((e) => {
           const max = visualMax[e.label] ?? 100;
           const pct = Math.min((e.value / max) * 100, 100);
           return (

@@ -36,7 +36,7 @@
 
 .plans__grid {
   width: 100%;
-  max-width: 440px;
+  max-width: 520px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;

@@ -95,7 +95,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
 
   const hasIngredients = ingredientsImages.length > 0;
   const canScanIngredients = !!frontImage;
-  const canConfirm = !!name.trim() && !!frontImage && hasIngredients && parseStatus !== "parsing";
+  const canConfirm = !!name.trim() && !!frontImage && parseStatus !== "parsing";
 
   const title = isEdit
     ? (kind === "med" ? "Edit medication" : "Edit supplement")
@@ -124,12 +124,12 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
   };
 
   const doParseNow = async () => {
-    if (!frontImage || !hasIngredients) return;
+    if (!frontImage) return;
     setParseStatus("parsing");
     setParseWarning(null);
     try {
       const item = await withMinDelay(
-        parseScannedItem(kind, frontImage, ingredientsImages),
+        parseScannedItem(kind, frontImage, hasIngredients ? ingredientsImages : null),
         700,
       );
       console.log("[parse] response", item);
@@ -150,10 +150,12 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     }
   };
 
-  // Auto-parse once front + at least one ingredient exist
+  // Auto-parse when images change (front-only or front+ingredients)
   useEffect(() => {
-    if (!frontImage || !hasIngredients) return;
-    doParseNow();
+    if (!frontImage) return;
+    if (hasIngredients) {
+      doParseNow();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frontImage, ingredientsImages, kind]);
 
@@ -211,7 +213,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
         </button>
 
         <h2>{title}</h2>
-        <p className="modal-sub">Take a photo of the front, then the ingredients label.</p>
+        <p className="modal-sub">Take a photo of the front, then the ingredients label if available.</p>
 
         <label className="modal-label">Name</label>
         <input
@@ -223,14 +225,14 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
           }}
         />
 
-        {isEdit && frontImage && hasIngredients && (
+        {isEdit && frontImage && (
           <button
             className="btn btn--secondary"
             style={{ marginTop: 10 }}
             onClick={doParseNow}
             disabled={parseStatus === "parsing"}
           >
-            {parseStatus === "parsing" ? "Reading label…" : "Re-read label from photos"}
+            {parseStatus === "parsing" ? "Reading…" : "Re-read from photos"}
           </button>
         )}
 
@@ -273,6 +275,17 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
             {ingButtonLabel}
           </label>
         </div>
+
+        {/* Front-only: identify without ingredients label */}
+        {frontImage && !hasIngredients && parseStatus !== "parsing" && parseStatus !== "parsed" && (
+          <button
+            className="btn btn--tertiary"
+            style={{ marginTop: 6 }}
+            onClick={doParseNow}
+          >
+            No ingredients label — identify from front
+          </button>
+        )}
 
         {hasIngredients && ingredientsImages.length < MAX_ING_PHOTOS && (
           <div className="parse-hint">

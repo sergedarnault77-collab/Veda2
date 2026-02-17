@@ -602,11 +602,13 @@ export default async function handler(req: Request): Promise<Response> {
       ingredientImages = [body.ingredientsImageDataUrl];
     }
 
-    if (!isDataImage(frontImageDataUrl) || ingredientImages.length === 0) {
-      return new Response(JSON.stringify(stub("missing or invalid images")), {
+    if (!isDataImage(frontImageDataUrl)) {
+      return new Response(JSON.stringify(stub("missing or invalid front image")), {
         status: 200, headers: { "content-type": "application/json" },
       });
     }
+
+    const frontOnly = ingredientImages.length === 0;
 
     const maxBytesPerImage = 1_400_000;
     if (approxBytesFromDataUrl(frontImageDataUrl) > maxBytesPerImage) {
@@ -623,6 +625,119 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     const ingredientPhotosUsed = ingredientImages.length;
+
+    /* ── FRONT-ONLY MODE ──
+       No ingredients label available. Identify the product from the front photo
+       and look up known details (active ingredients, nutrients, common uses)
+       from general knowledge. */
+    if (frontOnly) {
+      const frontOnlySystem = [
+        "You are Veda's product identifier. The user scanned ONLY the front of a product — no ingredients label is available.",
+        "",
+        "Your task:",
+        "1. Identify the product from the front image (name, brand, form, strength if visible).",
+        "2. Using your GENERAL KNOWLEDGE of this product, provide:",
+        "   - Known active ingredients / composition",
+        "   - Known nutrients with typical amounts per dose (if applicable)",
+        "   - Category classification (medication, supplement, food/drink)",
+        "",
+        "Rules:",
+        "- Set transcription to null (no label was provided).",
+        "- Set transcriptionConfidence to 0.3 (knowledge-based, not label-read).",
+        "- For nutrients: only include well-known, widely-documented amounts. Use conservative estimates.",
+        "- For ingredientsList: list known active ingredients and key excipients if well-documented.",
+        "- For percentLabel: always set to null (no label to read).",
+        "- If you cannot identify the product, return minimal data with productName = null.",
+        "- No medical advice. No dosing instructions. Descriptive language only.",
+        "- Return JSON matching the schema.",
+      ].join("\n");
+
+      const frontOnlyPayload = {
+        model: "gpt-4o-mini",
+        input: [
+          { role: "system", content: [{ type: "input_text", text: frontOnlySystem }] },
+          { role: "user", content: [
+            { type: "input_text", text: "Identify this product from the front photo and provide known composition details:" },
+            { type: "input_image", image_url: frontImageDataUrl, detail: "high" as const },
+          ]},
+        ],
+        text: {
+          format: { type: "json_schema" as const, ...buildJsonSchema() },
+        },
+      };
+
+      const frontR = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+        body: JSON.stringify(frontOnlyPayload),
+      });
+
+      if (!frontR.ok) {
+        const errText = await frontR.text().catch(() => "");
+        return new Response(
+          JSON.stringify(stub(`OpenAI error ${frontR.status}: ${errText.slice(0, 140)}`)),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+
+      const frontResp = await frontR.json().catch(() => null);
+      const frontOutText = extractOutputText(frontResp);
+      if (!frontOutText) {
+        return new Response(JSON.stringify(stub("OpenAI: no output_text (front-only)")), {
+          status: 200, headers: { "content-type": "application/json" },
+        });
+      }
+
+      let frontParsed: any = null;
+      try { frontParsed = JSON.parse(frontOutText); } catch {
+        return new Response(JSON.stringify(stub("OpenAI: invalid JSON (front-only)")), {
+          status: 200, headers: { "content-type": "application/json" },
+        });
+      }
+
+      const fpName = typeof frontParsed?.productName === "string" && frontParsed.productName.trim()
+        ? frontParsed.productName.trim().slice(0, 70) : null;
+
+      const fpCategories = normalizeCategories(frontParsed?.categories);
+      const fpEntities = dedupeCaseInsensitive(
+        CATEGORY_KEYS.flatMap((k) => fpCategories[k]),
+      ).slice(0, 50).map(canonicalizeEntity);
+
+      const fpNutrients = coerceNutrients(frontParsed?.nutrients, 0.3, "UNKNOWN");
+      const fpIngredients = coerceIngredientsList(frontParsed?.ingredientsList);
+      const fpSignals = coerceSignals(frontParsed?.signals);
+
+      const frontOnlyResp: AnalyzeResponse = {
+        ok: true,
+        productName: fpName,
+        transcription: null,
+        nutrients: fpNutrients,
+        ingredientsList: fpIngredients,
+        ingredientsCount: fpIngredients.length,
+        normalized: { categories: fpCategories, detectedEntities: dedupeCaseInsensitive(fpEntities) },
+        signals: fpSignals.length > 0 ? fpSignals : [{
+          type: "no_notable_interaction", severity: "low", confidence: 0.3,
+          headline: "Identified from front photo",
+          explanation: "Details are based on general product knowledge — no ingredients label was scanned. Scan the ingredients label for more accurate results.",
+          relatedEntities: fpEntities.slice(0, 6),
+        }],
+        meta: {
+          mode: "openai",
+          reason: "front-only identification",
+          refSystem: "UNKNOWN",
+          transcriptionConfidence: 0.3,
+          needsRescan: false,
+          rescanHint: null,
+          ingredientPhotosUsed: 0,
+        },
+      };
+
+      return new Response(JSON.stringify(frontOnlyResp), {
+        status: 200, headers: { "content-type": "application/json" },
+      });
+    }
+
+    /* ── FULL MODE (front + ingredients) ── */
 
     const system = [
       "You are Veda's label reader. You follow a strict two-step process.",

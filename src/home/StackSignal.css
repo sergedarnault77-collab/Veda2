@@ -28,3 +28,15 @@
   color: var(--veda-text-muted);
   line-height: 1.5;
 }
+
+/* Tablet+ */
+@media (min-width: 600px) {
+  .stack-signal { padding: 28px 28px; }
+  .stack-signal__headline { font-size: 1.15rem; }
+  .stack-signal__explanation { font-size: 0.88rem; }
+}
+
+@media (min-width: 1024px) {
+  .stack-signal { padding: 32px 36px; }
+  .stack-signal__headline { font-size: 1.25rem; }
+}
