@@ -89,10 +89,10 @@ export const STUB_SUPPLEMENTS: Supplement[] = [
 // ── Stub exposure data (from scanned items today) ──
 
 export const STUB_EXPOSURE: ExposureEntry[] = [
-  { label: "Added sugars (today)", value: 18, unit: "g", color: "var(--bar-sugar)" },
-  { label: "Sweetener types detected", value: 2, unit: "items", color: "var(--bar-sweetener)" },
-  { label: "Calories from scanned items", value: 340, unit: "kcal", color: "var(--bar-calorie)" },
-  { label: "Caffeine exposure", value: 180, unit: "mg", color: "var(--bar-caffeine)" },
+  { label: "Added sugars (today)", value: 0, unit: "g", color: "var(--bar-sugar)" },
+  { label: "Sweetener types detected", value: 0, unit: "items", color: "var(--bar-sweetener)" },
+  { label: "Calories from scanned items", value: 0, unit: "kcal", color: "var(--bar-calorie)" },
+  { label: "Caffeine exposure", value: 0, unit: "mg", color: "var(--bar-caffeine)" },
 ];
 
 // ── Stub analyze response (local fallback when API is unavailable) ──
