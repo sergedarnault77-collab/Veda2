@@ -31,6 +31,25 @@
   line-height: 1.55;
 }
 
+.stack-signal__explain-btn {
+  margin-top: 14px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.stack-signal__explain-btn:hover {
+  background: rgba(108, 92, 231, 0.18);
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(108, 92, 231, 0.35);
+}
+
 /* Tablet+ */
 @media (min-width: 600px) {
   .stack-signal { padding: 32px 32px; }

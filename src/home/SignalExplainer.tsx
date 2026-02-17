@@ -1,6 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { NutrientRow } from "./stubs";
 import { loadLS } from "../lib/persist";
+import ContextPanel from "../shared/ContextPanel";
+import type { ExplainSignal } from "../shared/ContextPanel";
 import "./SignalExplainer.css";
 
 const SUPPS_KEY = "veda.supps.v1";
@@ -12,6 +14,8 @@ interface ExplainerRow {
   label: string;
   detail: string;
   color: string;
+  sources?: string[];
+  nutrients?: Array<{ name: string; amountToday: number; unit: string }>;
 }
 
 function buildExplainers(): ExplainerRow[] {
@@ -60,6 +64,8 @@ function buildExplainers(): ExplainerRow[] {
         label: r.name,
         detail: `Present in both supplements and medications (${r.sources.length} sources)`,
         color: "var(--veda-red, #e74c3c)",
+        sources: r.sources,
+        nutrients: [{ name: r.name, amountToday: r.amountToday, unit: r.unit }],
       });
     }
   }
@@ -72,6 +78,8 @@ function buildExplainers(): ExplainerRow[] {
         label: r.name,
         detail: `Appears in ${r.sources.length} items: ${r.sources.slice(0, 3).join(", ")}`,
         color: "var(--veda-orange, #e67e22)",
+        sources: r.sources,
+        nutrients: [{ name: r.name, amountToday: r.amountToday, unit: r.unit }],
       });
     }
   }
@@ -86,6 +94,8 @@ function buildExplainers(): ExplainerRow[] {
           label: r.name,
           detail: `${pct}% of typical daily reference (${r.amountToday} ${r.unit})`,
           color: "var(--veda-red, #e74c3c)",
+          sources: r.sources,
+          nutrients: [{ name: r.name, amountToday: r.amountToday, unit: r.unit }],
         });
       }
     }
@@ -109,25 +119,50 @@ const KIND_LABELS: Record<string, string> = {
 
 export default function SignalExplainer() {
   const rows = useMemo(() => buildExplainers(), []);
+  const [explainSignal, setExplainSignal] = useState<ExplainSignal | null>(null);
 
   if (rows.length === 0) return null;
 
   return (
-    <section className="explainer">
-      <h3 className="explainer__title">Why this signal</h3>
-      <div className="explainer__list">
-        {rows.map((r, i) => (
-          <div className="explainer__row" key={`${r.kind}-${r.label}-${i}`}>
-            <span className="explainer__tag" style={{ color: r.color }}>
-              {KIND_LABELS[r.kind] || r.kind}
-            </span>
-            <div className="explainer__body">
-              <div className="explainer__label">{r.label}</div>
-              <div className="explainer__detail">{r.detail}</div>
+    <>
+      <section className="explainer">
+        <h3 className="explainer__title">Why this signal</h3>
+        <div className="explainer__list">
+          {rows.map((r, i) => (
+            <div className="explainer__row" key={`${r.kind}-${r.label}-${i}`}>
+              <span className="explainer__tag" style={{ color: r.color }}>
+                {KIND_LABELS[r.kind] || r.kind}
+              </span>
+              <div className="explainer__body">
+                <div className="explainer__label">{r.label}</div>
+                <div className="explainer__detail">{r.detail}</div>
+              </div>
+              <button
+                className="explainer__why"
+                onClick={() =>
+                  setExplainSignal({
+                    kind: r.kind,
+                    label: r.label,
+                    detail: r.detail,
+                    sources: r.sources,
+                    nutrients: r.nutrients,
+                  })
+                }
+                aria-label={`Explain ${r.label}`}
+              >
+                ?
+              </button>
             </div>
-          </div>
-        ))}
-      </div>
-    </section>
+          ))}
+        </div>
+      </section>
+
+      {explainSignal && (
+        <ContextPanel
+          signal={explainSignal}
+          onClose={() => setExplainSignal(null)}
+        />
+      )}
+    </>
   );
 }

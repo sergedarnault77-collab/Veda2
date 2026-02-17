@@ -1,6 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { NutrientRow } from "./stubs";
 import { loadLS } from "../lib/persist";
+import ContextPanel from "../shared/ContextPanel";
+import type { ExplainSignal } from "../shared/ContextPanel";
 import "./StackSignal.css";
 
 const SUPPS_KEY = "veda.supps.v1";
@@ -138,14 +140,40 @@ const STATE_CONFIG: Record<SignalState, { label: string; color: string; bg: stri
 export default function StackSignal() {
   const signal = useMemo(() => computeSignal(), []);
   const cfg = STATE_CONFIG[signal.state];
+  const [explainSignal, setExplainSignal] = useState<ExplainSignal | null>(null);
+
+  const showExplain = signal.state !== "balanced";
 
   return (
-    <section className="stack-signal" style={{ background: cfg.bg, borderColor: cfg.color }}>
-      <div className="stack-signal__state" style={{ color: cfg.color }}>
-        {cfg.label}
-      </div>
-      <div className="stack-signal__headline">{signal.headline}</div>
-      <div className="stack-signal__explanation">{signal.explanation}</div>
-    </section>
+    <>
+      <section className="stack-signal" style={{ background: cfg.bg, borderColor: cfg.color }}>
+        <div className="stack-signal__state" style={{ color: cfg.color }}>
+          {cfg.label}
+        </div>
+        <div className="stack-signal__headline">{signal.headline}</div>
+        <div className="stack-signal__explanation">{signal.explanation}</div>
+        {showExplain && (
+          <button
+            className="stack-signal__explain-btn"
+            onClick={() =>
+              setExplainSignal({
+                kind: signal.state,
+                label: signal.headline,
+                detail: signal.explanation,
+              })
+            }
+          >
+            What this means
+          </button>
+        )}
+      </section>
+
+      {explainSignal && (
+        <ContextPanel
+          signal={explainSignal}
+          onClose={() => setExplainSignal(null)}
+        />
+      )}
+    </>
   );
 }
