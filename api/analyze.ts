@@ -548,15 +548,16 @@ function computeTranscriptionConfidence(
 
   let base = clamp01(typeof openaiConfidence === "number" ? openaiConfidence : 0.7);
 
-  if (len < 120) base -= 0.35;
-  if (lineCount < 4) base -= 0.2;
-  if (tokenCount < 25) base -= 0.2;
+  if (len < 60) base -= 0.3;
+  else if (len < 120) base -= 0.15;
+  if (lineCount < 3 && tokenCount < 15) base -= 0.15;
   if (badMarks >= 3) base -= 0.25;
   if (entityCount <= 1 && nutrientCount <= 1) base -= 0.15;
   if (len >= 350 && lineCount >= 8) base += 0.1;
+  if (nutrientCount >= 3) base += 0.15;
 
   const confidence = clamp01(base);
-  const needsRescan = confidence < 0.55;
+  const needsRescan = confidence < 0.4;
 
   let rescanHint: string | null = null;
   if (needsRescan) {
