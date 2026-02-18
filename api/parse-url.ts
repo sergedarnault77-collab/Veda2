@@ -12,58 +12,6 @@ function jsonResp(data: any, status = 200) {
   });
 }
 
-function extractOutputText(resp: any): string | null {
-  if (resp && typeof resp.output_text === "string" && resp.output_text.trim())
-    return resp.output_text;
-  const out = resp?.output;
-  if (!Array.isArray(out)) return null;
-  const chunks: string[] = [];
-  for (const item of out) {
-    const content = item?.content;
-    if (!Array.isArray(content)) continue;
-    for (const c of content) {
-      if ((c?.type === "output_text" || c?.type === "text") && typeof c?.text === "string")
-        chunks.push(c.text);
-    }
-  }
-  return chunks.join("\n").trim() || null;
-}
-
-function buildSchema() {
-  return {
-    name: "veda_parse_url",
-    strict: true,
-    schema: {
-      type: "object",
-      additionalProperties: false,
-      required: ["productName", "brand", "form", "servingSizeText", "nutrients", "ingredientsList"],
-      properties: {
-        productName: { type: ["string", "null"] },
-        brand: { type: ["string", "null"] },
-        form: { type: ["string", "null"], enum: ["tablet", "capsule", "powder", "liquid", "other", null] },
-        servingSizeText: { type: ["string", "null"] },
-        nutrients: {
-          type: "array",
-          items: {
-            type: "object",
-            additionalProperties: false,
-            required: ["nutrientId", "name", "unit", "amountToday", "dailyReference", "percentLabel"],
-            properties: {
-              nutrientId: { type: "string" },
-              name: { type: "string" },
-              unit: { type: "string", enum: ["mg", "µg", "IU", "g", "mL"] },
-              amountToday: { type: "number" },
-              dailyReference: { type: "number" },
-              percentLabel: { type: ["number", "null"] },
-            },
-          },
-        },
-        ingredientsList: { type: "array", items: { type: "string" } },
-      },
-    },
-  };
-}
-
 function stripHtml(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -82,7 +30,6 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-/** Extract just the product-relevant section from full page text. */
 function extractProductSection(fullText: string): string {
   const markers = [
     /samenstelling/i, /supplement\s*facts/i, /nutrition\s*facts/i,
@@ -99,17 +46,15 @@ function extractProductSection(fullText: string): string {
     }
   }
 
-  // Take product name from the beginning (first ~400 chars) + the nutrition section
-  const header = fullText.slice(0, 400);
+  const header = fullText.slice(0, 300);
 
   if (bestIdx !== -1) {
-    const start = Math.max(0, bestIdx - 100);
-    const section = fullText.slice(start, start + 3000);
-    return (header + "\n\n" + section).slice(0, 3500);
+    const start = Math.max(0, bestIdx - 50);
+    const section = fullText.slice(start, start + 2500);
+    return (header + "\n\n" + section).slice(0, 3000);
   }
 
-  // No markers found — send the first 3500 chars
-  return fullText.slice(0, 3500);
+  return fullText.slice(0, 3000);
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -154,8 +99,7 @@ export default async function handler(req: Request): Promise<Response> {
       }
 
       const html = await pageRes.text();
-      const fullText = stripHtml(html);
-      pageText = extractProductSection(fullText);
+      pageText = extractProductSection(stripHtml(html));
     } catch (e: any) {
       return jsonResp({
         ok: false,
@@ -169,26 +113,37 @@ export default async function handler(req: Request): Promise<Response> {
       return jsonResp({ ok: false, error: "Page returned very little text." });
     }
 
-    /* ── Step 2: Extract with OpenAI (max 16s) ── */
-    const system = [
-      "Extract supplement data from webpage text. Return JSON matching the schema.",
-      "Map Dutch/German: IJzer=Iron, Zink=Zinc, Foliumzuur=Folate, Jodium=Iodine, Koper=Copper, Chroom=Chromium, Seleen/Selenium=Selenium, Mangaan=Manganese, Kalium=Potassium, Biotine=Biotin, Vitamine=Vitamin. mcg→µg.",
-      "Only extract data explicitly on the page. Do NOT invent amounts.",
+    /* ── Step 2: Extract with OpenAI Chat Completions (max 17s) ── */
+    const systemMsg = [
+      "Extract supplement data from this webpage text. Return a JSON object with these fields:",
+      '- productName (string or null)',
+      '- brand (string or null)',
+      '- form ("tablet"|"capsule"|"powder"|"liquid"|"other"|null)',
+      '- servingSizeText (string or null)',
+      '- nutrients: array of {nutrientId, name, unit, amountToday, dailyReference, percentLabel}',
+      '  nutrientId=snake_case English (vitamin_d, iron, etc). unit=mg/µg/IU/g/mL. mcg→µg.',
+      '  dailyReference=adult daily ref in same unit (0 if unknown). percentLabel=% from page or null.',
+      '- ingredientsList: array of ingredient name strings',
+      "",
+      "Dutch→English: IJzer=Iron, Zink=Zinc, Foliumzuur=Folate, Jodium=Iodine, Koper=Copper,",
+      "Chroom=Chromium, Seleen=Selenium, Mangaan=Manganese, Kalium=Potassium, Biotine=Biotin,",
+      "Vitamine=Vitamin, Molybdeen=Molybdenum. Only extract data on the page. Do NOT invent.",
     ].join("\n");
 
     const ac2 = new AbortController();
-    const timer2 = setTimeout(() => ac2.abort(), 16_000);
+    const timer2 = setTimeout(() => ac2.abort(), 17_000);
     try {
-      const r = await fetch("https://api.openai.com/v1/responses", {
+      const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          input: [
-            { role: "system", content: [{ type: "input_text", text: system }] },
-            { role: "user", content: [{ type: "input_text", text: `URL: ${url}\n\n${pageText}` }] },
+          messages: [
+            { role: "system", content: systemMsg },
+            { role: "user", content: pageText },
           ],
-          text: { format: { type: "json_schema" as const, ...buildSchema() } },
+          response_format: { type: "json_object" },
+          temperature: 0.1,
         }),
         signal: ac2.signal,
       });
@@ -200,22 +155,39 @@ export default async function handler(req: Request): Promise<Response> {
       }
 
       const resp = await r.json().catch(() => null);
-      const outText = extractOutputText(resp);
-      if (!outText) return jsonResp({ ok: false, error: "AI returned no output" });
+      const content = resp?.choices?.[0]?.message?.content;
+      if (!content) return jsonResp({ ok: false, error: "AI returned no output" });
 
       let parsed: any;
-      try { parsed = JSON.parse(outText); } catch {
+      try { parsed = JSON.parse(content); } catch {
         return jsonResp({ ok: false, error: "AI returned invalid JSON" });
       }
 
+      const nutrients = Array.isArray(parsed.nutrients)
+        ? parsed.nutrients.filter((n: any) =>
+            n && typeof n.name === "string" && typeof n.amountToday === "number" && n.amountToday > 0
+          ).map((n: any) => ({
+            nutrientId: String(n.nutrientId || n.name || "").toLowerCase().replace(/\s+/g, "_").slice(0, 40),
+            name: String(n.name).slice(0, 60),
+            unit: (["mg", "µg", "IU", "g", "mL"].includes(n.unit) ? n.unit : "mg"),
+            amountToday: Number(n.amountToday),
+            dailyReference: typeof n.dailyReference === "number" ? n.dailyReference : 0,
+            percentLabel: typeof n.percentLabel === "number" ? n.percentLabel : null,
+          }))
+        : [];
+
+      const ingredientsList = Array.isArray(parsed.ingredientsList)
+        ? parsed.ingredientsList.filter((s: any) => typeof s === "string" && s.trim()).map((s: any) => String(s).trim())
+        : [];
+
       return jsonResp({
         ok: true,
-        productName: parsed.productName || null,
-        brand: parsed.brand || null,
-        form: parsed.form || null,
-        servingSizeText: parsed.servingSizeText || null,
-        nutrients: Array.isArray(parsed.nutrients) ? parsed.nutrients : [],
-        ingredientsList: Array.isArray(parsed.ingredientsList) ? parsed.ingredientsList : [],
+        productName: typeof parsed.productName === "string" ? parsed.productName : null,
+        brand: typeof parsed.brand === "string" ? parsed.brand : null,
+        form: typeof parsed.form === "string" ? parsed.form : null,
+        servingSizeText: typeof parsed.servingSizeText === "string" ? parsed.servingSizeText : null,
+        nutrients,
+        ingredientsList,
         sourceUrl: url,
       });
     } catch (e: any) {
