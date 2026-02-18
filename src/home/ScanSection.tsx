@@ -117,6 +117,12 @@ export default function ScanSection({ onScanComplete }: Props) {
 
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const onSync = () => setTodayScans(loadScans().scans);
+    window.addEventListener("veda:synced", onSync);
+    return () => window.removeEventListener("veda:synced", onSync);
+  }, []);
+
   const hasIngredients = ingredientsImages.length > 0;
   const scanCount = todayScans.length;
 

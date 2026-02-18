@@ -145,6 +145,10 @@ export async function pullAll(): Promise<boolean> {
       }
     }
 
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("veda:synced"));
+    }
+
     return true;
   } catch {
     return false;

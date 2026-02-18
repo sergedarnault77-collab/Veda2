@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { loadLS } from "../lib/persist";
 import type { NutrientRow } from "../home/stubs";
 import "./DashboardPage.css";
@@ -312,6 +312,14 @@ function buildTimingPatterns(
 /* ── Component ── */
 
 export default function DashboardPage() {
+  const [syncVer, setSyncVer] = useState(0);
+
+  useEffect(() => {
+    const onSync = () => setSyncVer((v) => v + 1);
+    window.addEventListener("veda:synced", onSync);
+    return () => window.removeEventListener("veda:synced", onSync);
+  }, []);
+
   const data = useMemo(() => {
     const supps = loadItems(SUPPS_KEY);
     const meds = loadItems(MEDS_KEY);
@@ -324,7 +332,8 @@ export default function DashboardPage() {
       timing: buildTimingPatterns(supps, taken, scans),
       hasData: supps.length > 0 || meds.length > 0 || scans.length > 0,
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncVer]);
 
   const morningChips = data.chips.filter((c) => c.slot === "morning");
   const middayChips = data.chips.filter((c) => c.slot === "midday");

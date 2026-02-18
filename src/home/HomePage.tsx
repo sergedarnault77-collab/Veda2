@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import StackSignal from "./StackSignal";
 import { DailyReferenceBars } from "./DailyReferenceBars";
 import ScanSection from "./ScanSection";
@@ -128,6 +128,12 @@ function extractExposureFromScan(result: ScanResult): Partial<{
 
 export default function HomePage({ isAI = false, userName }: Props) {
   const [exposure, setExposure] = useState<StoredExposure>(() => loadExposure());
+
+  useEffect(() => {
+    const onSync = () => setExposure(loadExposure());
+    window.addEventListener("veda:synced", onSync);
+    return () => window.removeEventListener("veda:synced", onSync);
+  }, []);
 
   const handleScanComplete = useCallback((result: ScanResult) => {
     setExposure((prev) => {

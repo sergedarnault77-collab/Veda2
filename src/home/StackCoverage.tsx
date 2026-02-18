@@ -53,25 +53,36 @@ function riskColor(risk: string) {
   return "var(--veda-green, #2ecc71)";
 }
 
+function loadSupps(): SavedSupp[] {
+  const raw = loadLS<any[]>(SUPPS_KEY, []);
+  return raw
+    .filter((s) => s && typeof s.id === "string")
+    .map((s) => ({
+      id: s.id,
+      displayName: s.displayName || "Unnamed",
+      nutrients: Array.isArray(s.nutrients) ? s.nutrients : [],
+      ingredientsList: Array.isArray(s.ingredientsList) ? s.ingredientsList : [],
+      labelTranscription: s.labelTranscription ?? null,
+    }));
+}
+
 export function StackCoverage() {
-  const [supps] = useState<SavedSupp[]>(() => {
-    const raw = loadLS<any[]>(SUPPS_KEY, []);
-    return raw
-      .filter((s) => s && typeof s.id === "string")
-      .map((s) => ({
-        id: s.id,
-        displayName: s.displayName || "Unnamed",
-        nutrients: Array.isArray(s.nutrients) ? s.nutrients : [],
-        ingredientsList: Array.isArray(s.ingredientsList) ? s.ingredientsList : [],
-        labelTranscription: s.labelTranscription ?? null,
-      }));
-  });
+  const [supps, setSupps] = useState<SavedSupp[]>(() => loadSupps());
 
   const [taken, setTaken] = useState<Record<string, boolean>>(() =>
     loadTakenToday()
   );
 
   const [stackInsight, setStackInsight] = useState<ItemInsights | null>(null);
+
+  useEffect(() => {
+    const onSync = () => {
+      setSupps(loadSupps());
+      setTaken(loadTakenToday());
+    };
+    window.addEventListener("veda:synced", onSync);
+    return () => window.removeEventListener("veda:synced", onSync);
+  }, []);
 
   const toggle = useCallback((id: string) => {
     setTaken((prev) => {
