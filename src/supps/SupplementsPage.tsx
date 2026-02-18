@@ -125,19 +125,30 @@ export default function SupplementsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: trimmed }),
       });
-      const json = await res.json();
-      if (!json?.ok) {
-        setUrlError(json?.error || "Could not extract supplement data from that URL.");
+
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text().catch(() => "");
+        setUrlError(
+          `Server returned an unexpected response (HTTP ${res.status}). ${text.slice(0, 80)}`,
+        );
+        return;
+      }
+
+      if (!data?.ok) {
+        setUrlError(data?.error || "Could not extract supplement data from that URL.");
         return;
       }
 
       const item: ScannedItem = {
-        displayName: json.productName || "Supplement (from URL)",
-        brand: json.brand || null,
-        form: json.form || null,
+        displayName: data.productName || "Supplement (from URL)",
+        brand: data.brand || null,
+        form: data.form || null,
         strengthPerUnit: null,
         strengthUnit: null,
-        servingSizeText: json.servingSizeText || null,
+        servingSizeText: data.servingSizeText || null,
         rawTextHints: [trimmed],
         confidence: 0.7,
         mode: "openai",
@@ -145,12 +156,12 @@ export default function SupplementsPage() {
         ingredientsImage: null,
         ingredientsImages: [],
         labelTranscription: null,
-        nutrients: (json.nutrients || []).filter(
+        nutrients: (data.nutrients || []).filter(
           (n: any) => n && typeof n.nutrientId === "string" && typeof n.amountToday === "number",
         ),
         ingredientsDetected: [],
-        ingredientsList: json.ingredientsList || [],
-        ingredientsCount: (json.ingredientsList || []).length,
+        ingredientsList: data.ingredientsList || [],
+        ingredientsCount: (data.ingredientsList || []).length,
         insights: null,
         meta: { transcriptionConfidence: 0.7, needsRescan: false, rescanHint: null },
         createdAtISO: new Date().toISOString(),
@@ -160,8 +171,8 @@ export default function SupplementsPage() {
       setShowUrlInput(false);
       setUrlValue("");
       setUrlError(null);
-    } catch {
-      setUrlError("Network error. Check your connection and try again.");
+    } catch (err: any) {
+      setUrlError(`Request failed: ${err?.message || "check your connection and try again."}`);
     } finally {
       setUrlLoading(false);
     }
