@@ -1,3 +1,5 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+
 export const config = { maxDuration: 60 };
 
 type CategoryKey =
@@ -659,9 +661,15 @@ function buildJsonSchema() {
    HANDLER
    ══════════════════════════════════════════════════════════ */
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const result = await innerHandler(req.method ?? "GET", req.body);
+  const json = await result.json();
+  res.status(result.status).json(json);
+}
+
+async function innerHandler(method: string, body: any): Promise<Response> {
   try {
-    if (req.method !== "POST") {
+    if (method !== "POST") {
       return new Response(JSON.stringify({ ok: false, error: "POST only" }), {
         status: 405, headers: { "content-type": "application/json" },
       });
@@ -674,7 +682,6 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    const body = await req.json().catch(() => null);
     const frontImageDataUrl = body?.frontImageDataUrl;
 
     let ingredientImages: string[] = [];
@@ -745,9 +752,9 @@ export default async function handler(req: Request): Promise<Response> {
         "- Return JSON matching the schema.",
       ].join("\n");
 
-      /* Use Chat Completions (faster than Responses API for front-only) */
+      /* Use Chat Completions with low-detail image (faster for product identification) */
       const frontAC = new AbortController();
-      const frontTimer = setTimeout(() => frontAC.abort(), 45_000);
+      const frontTimer = setTimeout(() => frontAC.abort(), 30_000);
       let frontR: Response;
       try {
         frontR = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -758,13 +765,13 @@ export default async function handler(req: Request): Promise<Response> {
             messages: [
               { role: "system", content: frontOnlySystem },
               { role: "user", content: [
-                { type: "text", text: "Identify this product from the front photo and provide known composition details. Return JSON with: productName, transcription (null), transcriptionConfidence (0.3), nutrients (array of {nutrientId, name, unit, amountToday, dailyReference}), ingredientsList (string array), categories ({Sweeteners,Stimulants,Sugars,Calories,Vitamins,Minerals,Supplements,Other} each string array), detectedEntities (string array), signals (array of {type,severity,confidence,headline,explanation,relatedEntities})." },
-                { type: "image_url", image_url: { url: frontImageDataUrl, detail: "high" } },
+                { type: "text", text: "Identify this product from the front photo. Return JSON with: productName, transcription (null), transcriptionConfidence (0.3), nutrients [{nutrientId, name, unit, amountToday, dailyReference}], ingredientsList [strings], categories {Sweeteners,Stimulants,Sugars,Calories,Vitamins,Minerals,Supplements,Other}, detectedEntities [strings], signals [{type,severity,confidence,headline,explanation,relatedEntities}]." },
+                { type: "image_url", image_url: { url: frontImageDataUrl, detail: "low" } },
               ]},
             ],
             response_format: { type: "json_object" },
             temperature: 0.15,
-            max_tokens: 2000,
+            max_tokens: 1200,
           }),
           signal: frontAC.signal,
         });
