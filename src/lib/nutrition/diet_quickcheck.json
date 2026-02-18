@@ -1,0 +1,211 @@
+{
+  "schema_version": "veda_diet_quickcheck_v1",
+  "goal": "Provide low-friction food context so Veda does not imply deficiency when only supplements are logged.",
+  "output_states": ["likely_covered_by_food", "maybe_covered", "unknown", "hard_to_cover_from_food"],
+  "scoring": {
+    "per_nutrient_food_score": "sum of triggered weights",
+    "thresholds": {
+      "likely_covered_by_food": "score >= 2.0",
+      "maybe_covered": "score >= 1.0 and score < 2.0",
+      "unknown": "score < 1.0"
+    },
+    "global_overrides": [
+      {
+        "nutrient_id": "vitamin_d",
+        "rule": "If no fish/fortified dairy/fortified milk alternatives selected, set to hard_to_cover_from_food"
+      }
+    ]
+  },
+  "questions": [
+    {
+      "id": "dairy_or_fortified_alt_milk",
+      "label": "Do you regularly consume dairy or fortified milk alternatives?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "daily",
+          "label": "Daily",
+          "effects": [
+            { "nutrient_id": "calcium", "weight": 1.5 },
+            { "nutrient_id": "vitamin_d", "weight": 1.0 },
+            { "nutrient_id": "b12", "weight": 0.5 }
+          ]
+        },
+        {
+          "id": "few_times_week",
+          "label": "A few times per week",
+          "effects": [
+            { "nutrient_id": "calcium", "weight": 1.0 },
+            { "nutrient_id": "vitamin_d", "weight": 0.5 },
+            { "nutrient_id": "b12", "weight": 0.3 }
+          ]
+        },
+        { "id": "rarely", "label": "Rarely / never", "effects": [] }
+      ]
+    },
+    {
+      "id": "fish_per_week",
+      "label": "Do you eat fatty fish (salmon, sardines, mackerel) or fish regularly?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "twice_plus",
+          "label": "2× per week or more",
+          "effects": [
+            { "nutrient_id": "vitamin_d", "weight": 1.5 },
+            { "nutrient_id": "iodine", "weight": 0.5 },
+            { "nutrient_id": "selenium", "weight": 0.5 }
+          ]
+        },
+        {
+          "id": "once",
+          "label": "About 1× per week",
+          "effects": [
+            { "nutrient_id": "vitamin_d", "weight": 1.0 },
+            { "nutrient_id": "iodine", "weight": 0.3 },
+            { "nutrient_id": "selenium", "weight": 0.3 }
+          ]
+        },
+        { "id": "rarely", "label": "Rarely / never", "effects": [] }
+      ]
+    },
+    {
+      "id": "red_meat_or_shellfish",
+      "label": "Do you eat red meat or shellfish regularly?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "weekly",
+          "label": "Weekly",
+          "effects": [
+            { "nutrient_id": "iron", "weight": 1.5 },
+            { "nutrient_id": "zinc", "weight": 1.0 },
+            { "nutrient_id": "b12", "weight": 1.0 }
+          ]
+        },
+        {
+          "id": "monthly",
+          "label": "Monthly / occasionally",
+          "effects": [
+            { "nutrient_id": "iron", "weight": 0.5 },
+            { "nutrient_id": "zinc", "weight": 0.5 },
+            { "nutrient_id": "b12", "weight": 0.5 }
+          ]
+        },
+        { "id": "never", "label": "Never", "effects": [] }
+      ]
+    },
+    {
+      "id": "eggs_or_dairy_protein",
+      "label": "Do you eat eggs and/or dairy protein regularly?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "most_days",
+          "label": "Most days",
+          "effects": [
+            { "nutrient_id": "b12", "weight": 1.0 },
+            { "nutrient_id": "riboflavin", "weight": 0.5 }
+          ]
+        },
+        {
+          "id": "sometimes",
+          "label": "Sometimes",
+          "effects": [
+            { "nutrient_id": "b12", "weight": 0.5 },
+            { "nutrient_id": "riboflavin", "weight": 0.2 }
+          ]
+        },
+        { "id": "rarely", "label": "Rarely / never", "effects": [] }
+      ]
+    },
+    {
+      "id": "fruit_veg_daily",
+      "label": "Do you eat fruits and vegetables daily?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Yes, daily",
+          "effects": [
+            { "nutrient_id": "vitamin_c", "weight": 1.5 },
+            { "nutrient_id": "b9_folate", "weight": 1.0 },
+            { "nutrient_id": "potassium", "weight": 1.0 },
+            { "nutrient_id": "vitamin_k", "weight": 1.0 }
+          ]
+        },
+        {
+          "id": "some_days",
+          "label": "Some days",
+          "effects": [
+            { "nutrient_id": "vitamin_c", "weight": 0.8 },
+            { "nutrient_id": "b9_folate", "weight": 0.5 },
+            { "nutrient_id": "potassium", "weight": 0.5 },
+            { "nutrient_id": "vitamin_k", "weight": 0.5 }
+          ]
+        },
+        { "id": "rarely", "label": "Rarely", "effects": [] }
+      ]
+    },
+    {
+      "id": "whole_grains_legumes_nuts",
+      "label": "Do you eat whole grains and/or legumes/nuts regularly?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "most_days",
+          "label": "Most days",
+          "effects": [
+            { "nutrient_id": "magnesium", "weight": 1.0 },
+            { "nutrient_id": "b1_thiamine", "weight": 0.5 },
+            { "nutrient_id": "b3_niacin", "weight": 0.3 },
+            { "nutrient_id": "manganese", "weight": 0.5 }
+          ]
+        },
+        {
+          "id": "sometimes",
+          "label": "Sometimes",
+          "effects": [
+            { "nutrient_id": "magnesium", "weight": 0.5 },
+            { "nutrient_id": "b1_thiamine", "weight": 0.2 },
+            { "nutrient_id": "manganese", "weight": 0.2 }
+          ]
+        },
+        { "id": "rarely", "label": "Rarely", "effects": [] }
+      ]
+    },
+    {
+      "id": "iodized_salt",
+      "label": "Do you usually use iodized salt at home?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Yes",
+          "effects": [{ "nutrient_id": "iodine", "weight": 2.0 }]
+        },
+        {
+          "id": "not_sure",
+          "label": "Not sure",
+          "effects": [{ "nutrient_id": "iodine", "weight": 0.5 }]
+        },
+        { "id": "no", "label": "No", "effects": [] }
+      ]
+    }
+  ],
+  "nutrient_id_aliases": {
+    "riboflavin": "b2_riboflavin"
+  },
+  "display_rules": {
+    "default_dashboard_mode": "supplement_contribution",
+    "when_to_show_total_estimate": [
+      "User completes diet quick-check (at least 3 questions answered)",
+      "OR user opts into 'Estimate total intake' toggle"
+    ],
+    "language_guardrails": [
+      "Use 'likely covered by food' / 'unknown' rather than 'deficient'.",
+      "Avoid prescriptive language (no 'you should take').",
+      "Emphasize overlap/excess signals over deficiency when food context is unknown."
+    ]
+  }
+}

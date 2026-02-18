@@ -1,0 +1,225 @@
+{
+  "schema_version": "veda_ref_uls_v1",
+  "scope": {
+    "population": "healthy_adults_19_plus",
+    "notes": [
+      "UL = Tolerable Upper Intake Level (typical safety ceiling for chronic daily intake).",
+      "UL generally applies to TOTAL intake (food + supplements) unless explicitly noted.",
+      "Some nutrients have no established UL; Veda should treat them as 'no_ul' and focus on overlap/waste instead."
+    ]
+  },
+  "units": {
+    "ug": "microgram",
+    "mg": "milligram"
+  },
+  "upper_limits": [
+    {
+      "id": "vitamin_a",
+      "label": "Vitamin A",
+      "unit": "ug",
+      "ul": 3000,
+      "applies_to": "total",
+      "notes": ["UL mainly concerns preformed vitamin A (retinol) rather than beta-carotene."]
+    },
+    {
+      "id": "vitamin_c",
+      "label": "Vitamin C",
+      "unit": "mg",
+      "ul": 2000,
+      "applies_to": "total",
+      "notes": ["High intakes may cause GI upset in some users."]
+    },
+    {
+      "id": "vitamin_d",
+      "label": "Vitamin D",
+      "unit": "ug",
+      "ul": 100,
+      "applies_to": "total",
+      "notes": ["100 µg = 4,000 IU."]
+    },
+    {
+      "id": "vitamin_e",
+      "label": "Vitamin E",
+      "unit": "mg",
+      "ul": 1000,
+      "applies_to": "total",
+      "notes": ["Fat-soluble; higher risk if stacked across multiple supplements."]
+    },
+    {
+      "id": "vitamin_k",
+      "label": "Vitamin K",
+      "unit": "ug",
+      "ul": null,
+      "applies_to": "no_ul",
+      "notes": ["No established UL; focus on medication interactions (e.g., anticoagulants)."]
+    },
+    {
+      "id": "b1_thiamine",
+      "label": "B1 (Thiamine)",
+      "unit": "mg",
+      "ul": null,
+      "applies_to": "no_ul",
+      "notes": ["No established UL."]
+    },
+    {
+      "id": "b2_riboflavin",
+      "label": "B2 (Riboflavin)",
+      "unit": "mg",
+      "ul": null,
+      "applies_to": "no_ul",
+      "notes": ["No established UL."]
+    },
+    {
+      "id": "b3_niacin",
+      "label": "B3 (Niacin)",
+      "unit": "mg",
+      "ul": 35,
+      "applies_to": "total",
+      "notes": ["UL mainly relates to supplemental niacin; flushing risk."]
+    },
+    {
+      "id": "b5_pantothenic",
+      "label": "B5 (Pantothenic acid)",
+      "unit": "mg",
+      "ul": null,
+      "applies_to": "no_ul",
+      "notes": ["No established UL."]
+    },
+    {
+      "id": "b6",
+      "label": "B6",
+      "unit": "mg",
+      "ul": 100,
+      "applies_to": "total",
+      "notes": ["Chronic high intakes may be associated with neuropathy risk."]
+    },
+    {
+      "id": "b7_biotin",
+      "label": "B7 (Biotin)",
+      "unit": "ug",
+      "ul": null,
+      "applies_to": "no_ul",
+      "notes": ["No established UL; can interfere with some lab tests."]
+    },
+    {
+      "id": "b9_folate",
+      "label": "B9 (Folate)",
+      "unit": "ug",
+      "ul": 1000,
+      "applies_to": "synthetic_only",
+      "notes": ["UL applies to folic acid (supplements/fortified foods), not naturally occurring folate."]
+    },
+    {
+      "id": "b12",
+      "label": "B12",
+      "unit": "ug",
+      "ul": null,
+      "applies_to": "no_ul",
+      "notes": ["No established UL."]
+    },
+    {
+      "id": "calcium",
+      "label": "Calcium",
+      "unit": "mg",
+      "ul": 2500,
+      "applies_to": "total",
+      "notes": ["Watch stacking from multis + dedicated calcium + fortified foods."]
+    },
+    {
+      "id": "magnesium",
+      "label": "Magnesium",
+      "unit": "mg",
+      "ul": 350,
+      "applies_to": "supplements_only",
+      "notes": ["UL is for supplemental magnesium (not food magnesium). GI side effects often appear earlier."]
+    },
+    {
+      "id": "potassium",
+      "label": "Potassium",
+      "unit": "mg",
+      "ul": null,
+      "applies_to": "no_ul",
+      "notes": ["No established UL for healthy adults; supplements are often dose-limited in many markets."]
+    },
+    {
+      "id": "sodium",
+      "label": "Sodium",
+      "unit": "mg",
+      "ul": 2300,
+      "applies_to": "limit",
+      "notes": ["Treat as a daily limit/ceiling rather than a target."]
+    },
+    {
+      "id": "iron",
+      "label": "Iron",
+      "unit": "mg",
+      "ul": 45,
+      "applies_to": "total",
+      "notes": ["High-risk stacking nutrient; only escalate messaging if clearly above UL or multiple iron sources."]
+    },
+    {
+      "id": "zinc",
+      "label": "Zinc",
+      "unit": "mg",
+      "ul": 40,
+      "applies_to": "total",
+      "notes": ["Chronic high zinc can impair copper status; flag zinc+copper imbalance patterns."]
+    },
+    {
+      "id": "copper",
+      "label": "Copper",
+      "unit": "ug",
+      "ul": 10000,
+      "applies_to": "total",
+      "notes": ["Usually only an issue with high-dose supplements."]
+    },
+    {
+      "id": "iodine",
+      "label": "Iodine",
+      "unit": "ug",
+      "ul": 1100,
+      "applies_to": "total",
+      "notes": ["Thyroid-sensitive; watch kelp/seaweed supplements."]
+    },
+    {
+      "id": "selenium",
+      "label": "Selenium",
+      "unit": "ug",
+      "ul": 400,
+      "applies_to": "total",
+      "notes": ["Narrow safety margin; common stacking via multis + selenium-only products."]
+    },
+    {
+      "id": "phosphorus",
+      "label": "Phosphorus",
+      "unit": "mg",
+      "ul": 4000,
+      "applies_to": "total",
+      "notes": ["Usually abundant from food; rarely needed as a supplement."]
+    },
+    {
+      "id": "manganese",
+      "label": "Manganese",
+      "unit": "mg",
+      "ul": 11,
+      "applies_to": "total",
+      "notes": ["Watch high-dose 'trace mineral' blends."]
+    },
+    {
+      "id": "chromium",
+      "label": "Chromium",
+      "unit": "ug",
+      "ul": null,
+      "applies_to": "no_ul",
+      "notes": ["No established UL."]
+    },
+    {
+      "id": "molybdenum",
+      "label": "Molybdenum",
+      "unit": "ug",
+      "ul": 2000,
+      "applies_to": "total",
+      "notes": ["Usually only an issue with high-dose supplements."]
+    }
+  ]
+}

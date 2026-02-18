@@ -1,11 +1,20 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import type { NutrientRow } from "./stubs";
 import { loadLS, saveLS } from "../lib/persist";
+import { loadUser } from "../lib/auth";
+import {
+  computeDailyNutrients,
+  ageRangeToAgeBucket,
+  bioSexToSex,
+  nutrientRowsToIntakeLines,
+  hasEnoughDietAnswers,
+} from "../lib/nutrition";
+import type { NutrientComputed, IntakeLine, DietAnswers, FoodCoverage } from "../lib/nutrition";
 import type { ItemInsights } from "../shared/AddScannedItemModal";
 import "./StackCoverage.css";
 
 const SUPPS_KEY = "veda.supps.v1";
 const TAKEN_KEY = "veda.supps.taken.v1";
+const DIET_KEY = "veda.diet.answers.v1";
 
 type TakenStore = { date: string; flags: Record<string, boolean> };
 
@@ -17,13 +26,11 @@ function todayStr() {
 function loadTakenToday(): Record<string, boolean> {
   const raw = loadLS<TakenStore | Record<string, boolean> | null>(TAKEN_KEY, null);
   if (!raw) return {};
-  // New format with date
   if (typeof (raw as TakenStore).date === "string") {
     const store = raw as TakenStore;
     if (store.date === todayStr()) return store.flags;
     return {};
   }
-  // Legacy format (no date) — treat as today for migration
   return raw as Record<string, boolean>;
 }
 
@@ -32,27 +39,13 @@ function saveTakenToday(flags: Record<string, boolean>) {
   saveLS(TAKEN_KEY, store);
 }
 
-/** Minimal shape we need from a saved supplement. */
 type SavedSupp = {
   id: string;
   displayName: string;
-  nutrients: NutrientRow[];
+  nutrients: Array<{ nutrientId: string; name: string; unit: string; amountToday: number; dailyReference: number | null }>;
   ingredientsList?: string[];
   labelTranscription?: string | null;
 };
-
-function coverageColor(pct: number): string {
-  if (pct < 25) return "var(--veda-red)";
-  if (pct < 75) return "var(--veda-orange-soft, #FFB35C)";
-  if (pct <= 100) return "var(--veda-accent, #2E5BFF)";
-  return "var(--veda-magenta)";
-}
-
-function riskColor(risk: string) {
-  if (risk === "high") return "var(--veda-red, #f06292)";
-  if (risk === "medium") return "var(--veda-orange, #FF8C1A)";
-  return "var(--veda-accent, #2E5BFF)";
-}
 
 function loadSupps(): SavedSupp[] {
   const raw = loadLS<any[]>(SUPPS_KEY, []);
@@ -66,6 +59,27 @@ function loadSupps(): SavedSupp[] {
       labelTranscription: s.labelTranscription ?? null,
     }));
 }
+
+/* ── Color helpers ── */
+
+function barColor(n: NutrientComputed): string {
+  if (n.flags.exceedsUl) return "var(--veda-red, #e74c3c)";
+  if (n.flags.approachingUl) return "var(--veda-orange, #FF8C1A)";
+  return "var(--veda-accent, #2E5BFF)";
+}
+
+function riskColor(risk: string) {
+  if (risk === "high") return "var(--veda-red, #f06292)";
+  if (risk === "medium") return "var(--veda-orange, #FF8C1A)";
+  return "var(--veda-accent, #2E5BFF)";
+}
+
+const FOOD_COVERAGE_LABELS: Record<FoodCoverage, { text: string; cls: string }> = {
+  likely_covered_by_food: { text: "Food likely covers this", cls: "coverage__food--ok" },
+  maybe_covered: { text: "Partially from food", cls: "coverage__food--maybe" },
+  unknown: { text: "", cls: "" },
+  hard_to_cover_from_food: { text: "Harder from food", cls: "coverage__food--hard" },
+};
 
 export function StackCoverage() {
   const [supps, setSupps] = useState<SavedSupp[]>(() => loadSupps());
@@ -97,33 +111,42 @@ export function StackCoverage() {
     });
   }, []);
 
-  /* Aggregate NutrientRows across taken supplements */
-  const rows = useMemo(() => {
-    const map = new Map<string, NutrientRow>();
-    for (const supp of supps) {
-      if (!taken[supp.id]) continue;
-      for (const n of supp.nutrients) {
-        if (!n || !n.nutrientId) continue;
-        const existing = map.get(n.nutrientId);
-        if (existing) {
-          map.set(n.nutrientId, {
-            ...existing,
-            amountToday: existing.amountToday + n.amountToday,
-          });
-        } else {
-          map.set(n.nutrientId, { ...n });
-        }
-      }
-    }
-    return Array.from(map.values());
-  }, [supps, taken]);
+  const takenSupps = useMemo(() => supps.filter((s) => taken[s.id]), [supps, taken]);
+  const anyTaken = takenSupps.length > 0;
 
-  const takenSupps = useMemo(
-    () => supps.filter((s) => taken[s.id]),
-    [supps, taken]
+  /* Build IntakeLine[] and run the nutrition engine */
+  const computedNutrients = useMemo(() => {
+    if (!anyTaken) return [];
+
+    const user = loadUser();
+    const sex = bioSexToSex(user?.sex ?? null);
+    const ageBucket = ageRangeToAgeBucket(user?.ageRange ?? null);
+    const dietAnswers = loadLS<DietAnswers | null>(DIET_KEY, null) ?? undefined;
+
+    const lines: IntakeLine[] = [];
+    for (const s of takenSupps) {
+      lines.push(...nutrientRowsToIntakeLines(s.nutrients, "supplement"));
+    }
+
+    return computeDailyNutrients({ sex, ageBucket }, lines, dietAnswers);
+  }, [anyTaken, takenSupps]);
+
+  const hasDiet = useMemo(() => {
+    const answers = loadLS<DietAnswers | null>(DIET_KEY, null);
+    return hasEnoughDietAnswers(answers ?? undefined);
+  }, []);
+
+  /* Only show nutrients that the user actually takes (supplementTotal > 0) */
+  const visibleNutrients = useMemo(
+    () => computedNutrients.filter((n) => n.supplementTotal > 0),
+    [computedNutrients],
   );
 
-  const anyTaken = takenSupps.length > 0;
+  /* Check for UL alerts across all nutrients (including zero-supplement ones won't trigger) */
+  const ulAlerts = useMemo(
+    () => computedNutrients.filter((n) => n.flags.exceedsUl || n.flags.approachingUl),
+    [computedNutrients],
+  );
 
   // Fetch stack-level insight when taken supplements change
   useEffect(() => {
@@ -195,22 +218,53 @@ export function StackCoverage() {
         </p>
       )}
 
-      {/* Nutrient bars */}
-      {anyTaken && (
+      {/* UL alert banner */}
+      {ulAlerts.length > 0 && (
+        <div className="coverage__ul-alerts">
+          {ulAlerts.map((n) => (
+            <div
+              key={n.nutrientId}
+              className={`coverage__ul-alert ${n.flags.exceedsUl ? "coverage__ul-alert--exceed" : "coverage__ul-alert--approaching"}`}
+            >
+              <span className="coverage__ul-alert-icon">
+                {n.flags.exceedsUl ? "⚠" : "↑"}
+              </span>
+              <span className="coverage__ul-alert-text">
+                {n.label}: {Math.round(n.supplementTotal)} {n.unit} from supplements
+                {n.ul ? ` (UL: ${n.ul} ${n.unit})` : ""}
+                {n.flags.exceedsUl ? " — exceeds upper limit" : " — approaching upper limit"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Nutrient contribution bars */}
+      {anyTaken && visibleNutrients.length > 0 && (
         <ul className="coverage__list">
-          {rows.map((row) => {
-            const pct = (row.dailyReference != null && row.dailyReference > 0)
-              ? Math.round((row.amountToday / row.dailyReference) * 100)
+          {visibleNutrients.map((n) => {
+            const pct = n.percentOfTargetFromSupps != null
+              ? Math.round(n.percentOfTargetFromSupps * 100)
               : null;
+            const foodLabel = FOOD_COVERAGE_LABELS[n.foodCoverage];
+            const showFoodTag = hasDiet && n.foodCoverage !== "unknown" && pct != null && pct < 100;
+
             return (
-              <li key={row.nutrientId} className="coverage__row">
+              <li key={n.nutrientId} className="coverage__row">
                 <div className="coverage__row-header">
-                  <span className="coverage__nutrient">{row.name}</span>
+                  <span className="coverage__nutrient">
+                    {n.label}
+                    {n.flags.redundantStacking && (
+                      <span className="coverage__stacking-badge" title="Found in multiple products">
+                        2+
+                      </span>
+                    )}
+                  </span>
                   <span className="coverage__amount">
-                    {row.amountToday} {row.unit}
+                    {Math.round(n.supplementTotal * 10) / 10} {n.unit}
                   </span>
                   {pct != null ? (
-                    <span className="coverage__pct" style={{ color: coverageColor(pct) }}>
+                    <span className="coverage__pct" style={{ color: barColor(n) }}>
                       {pct}%
                     </span>
                   ) : (
@@ -223,11 +277,19 @@ export function StackCoverage() {
                       className="coverage__fill"
                       style={{
                         width: `${Math.min(pct, 100)}%`,
-                        background: coverageColor(pct),
+                        background: barColor(n),
                       }}
                     />
                   </div>
                 )}
+                <div className="coverage__row-meta">
+                  <span className="coverage__source-label">From supplements</span>
+                  {showFoodTag && foodLabel.text && (
+                    <span className={`coverage__food-tag ${foodLabel.cls}`}>
+                      {foodLabel.text}
+                    </span>
+                  )}
+                </div>
               </li>
             );
           })}

@@ -104,6 +104,96 @@
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── Row meta (source label + food coverage tag) ── */
+.coverage__row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.coverage__source-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--veda-text-muted);
+  opacity: 0.7;
+}
+
+.coverage__food-tag {
+  font-size: 0.6rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.coverage__food--ok {
+  background: rgba(46, 91, 255, 0.08);
+  color: var(--veda-accent, #2E5BFF);
+}
+
+.coverage__food--maybe {
+  background: rgba(255, 179, 92, 0.1);
+  color: var(--veda-orange-soft, #FFB35C);
+}
+
+.coverage__food--hard {
+  background: rgba(255, 140, 26, 0.1);
+  color: var(--veda-orange, #FF8C1A);
+}
+
+/* ── Stacking badge ── */
+.coverage__stacking-badge {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 4px;
+  font-size: 0.56rem;
+  font-weight: 700;
+  border-radius: 3px;
+  background: rgba(255, 140, 26, 0.12);
+  color: var(--veda-orange, #FF8C1A);
+  vertical-align: middle;
+}
+
+/* ── UL alert banner ── */
+.coverage__ul-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.coverage__ul-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-lg, 12px);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.coverage__ul-alert--exceed {
+  background: rgba(231, 76, 60, 0.08);
+  border: 1px solid rgba(231, 76, 60, 0.25);
+  color: var(--veda-red, #e74c3c);
+}
+
+.coverage__ul-alert--approaching {
+  background: rgba(255, 140, 26, 0.08);
+  border: 1px solid rgba(255, 140, 26, 0.2);
+  color: var(--veda-orange, #FF8C1A);
+}
+
+.coverage__ul-alert-icon {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.coverage__ul-alert-text {
+  flex: 1;
+}
+
 /* ── Stack insight ── */
 .coverage__insight {
   margin-top: 16px;
