@@ -178,6 +178,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onChangePlan={handleChangePlan}
+        onUpdateUser={(updated) => { saveUser(updated); setUser(updated); }}
         onLogout={handleLogout}
       />
     </div>
@@ -191,23 +192,43 @@ function AccountBar({
   theme,
   onToggleTheme,
   onChangePlan,
+  onUpdateUser,
   onLogout,
 }: {
   user: VedaUser;
   theme: Theme;
   onToggleTheme: () => void;
   onChangePlan: (plan: Plan) => void;
+  onUpdateUser: (u: VedaUser) => void;
   onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const planLabel = user.plan === "ai" ? "Veda AI" : "Freemium";
   const otherPlan: Plan = user.plan === "ai" ? "freemium" : "ai";
   const otherLabel = user.plan === "ai" ? "Freemium" : "Veda AI";
 
+  const btnBorder = theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)";
+  const btnBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)";
+
+  const btnStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 14px",
+    fontSize: "0.82rem",
+    fontWeight: 600,
+    borderRadius: 12,
+    border: `1px solid ${btnBorder}`,
+    background: btnBg,
+    color: "var(--veda-text)",
+    cursor: "pointer",
+    marginBottom: 8,
+    fontFamily: "inherit",
+  };
+
   return (
     <>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => { setOpen((v) => !v); setShowProfile(false); }}
         style={{
           position: "fixed",
           top: 16,
@@ -241,94 +262,241 @@ function AccountBar({
             top: 60,
             right: 16,
             zIndex: 100,
-            width: 260,
+            width: showProfile ? 310 : 260,
+            maxHeight: "80vh",
+            overflowY: "auto",
             padding: "20px",
             borderRadius: 20,
             background: theme === "dark" ? "rgba(10,14,28,0.94)" : "rgba(255,255,255,0.95)",
-            border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}`,
+            border: `1px solid ${btnBorder}`,
             boxShadow: theme === "dark" ? "0 16px 48px rgba(0,0,0,0.6)" : "0 16px 48px rgba(0,0,0,0.12)",
             backdropFilter: "blur(20px)",
           }}
         >
-          <div style={{ fontWeight: 700, fontSize: "0.92rem", marginBottom: 2, color: "var(--veda-text)" }}>
-            {user.firstName} {user.lastName}
-          </div>
-          <div style={{ fontSize: "0.75rem", color: "var(--veda-text-muted)", marginBottom: 4 }}>
-            {user.email}
-          </div>
-          <div style={{ fontSize: "0.72rem", color: "var(--veda-text-muted)", marginBottom: 16 }}>
-            Plan: <strong>{planLabel}</strong> · {user.country}
-          </div>
+          {showProfile ? (
+            <ProfilePanel user={user} theme={theme} onSave={(u) => { onUpdateUser(u); setShowProfile(false); }} onBack={() => setShowProfile(false)} />
+          ) : (
+            <>
+              <div style={{ fontWeight: 700, fontSize: "0.92rem", marginBottom: 2, color: "var(--veda-text)" }}>
+                {user.firstName} {user.lastName}
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "var(--veda-text-muted)", marginBottom: 4 }}>
+                {user.email}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "var(--veda-text-muted)", marginBottom: 16 }}>
+                Plan: <strong>{planLabel}</strong> · {user.country}
+              </div>
 
-          {/* Theme toggle */}
-          <button
-            onClick={onToggleTheme}
-            style={{
-              width: "100%",
-              padding: "10px 14px",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-              borderRadius: 12,
-              border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}`,
-              background: theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-              color: "var(--veda-text)",
-              cursor: "pointer",
-              marginBottom: 8,
-              fontFamily: "inherit",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-            }}
-          >
-            {theme === "dark" ? "☀️" : "🌙"} Switch to {theme === "dark" ? "Day" : "Night"} mode
-          </button>
+              <button onClick={() => setShowProfile(true)} style={btnStyle}>
+                My Profile
+              </button>
 
-          <button
-            onClick={() => {
-              onChangePlan(otherPlan);
-              setOpen(false);
-            }}
-            style={{
-              width: "100%",
-              padding: "10px 14px",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-              borderRadius: 12,
-              border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}`,
-              background: theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-              color: "var(--veda-text)",
-              cursor: "pointer",
-              marginBottom: 8,
-              fontFamily: "inherit",
-            }}
-          >
-            Switch to {otherLabel}
-          </button>
+              <button
+                onClick={onToggleTheme}
+                style={{ ...btnStyle, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              >
+                {theme === "dark" ? "☀️" : "🌙"} Switch to {theme === "dark" ? "Day" : "Night"} mode
+              </button>
 
-          <button
-            onClick={() => {
-              onLogout();
-              setOpen(false);
-            }}
-            style={{
-              width: "100%",
-              padding: "10px 14px",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-              borderRadius: 12,
-              border: "1px solid rgba(240,98,146,0.2)",
-              background: "rgba(240,98,146,0.06)",
-              color: "var(--veda-red)",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            Log out
-          </button>
+              <button onClick={() => { onChangePlan(otherPlan); setOpen(false); }} style={btnStyle}>
+                Switch to {otherLabel}
+              </button>
+
+              <button
+                onClick={() => { onLogout(); setOpen(false); }}
+                style={{
+                  ...btnStyle,
+                  border: "1px solid rgba(240,98,146,0.2)",
+                  background: "rgba(240,98,146,0.06)",
+                  color: "var(--veda-red)",
+                  marginBottom: 0,
+                }}
+              >
+                Log out
+              </button>
+            </>
+          )}
         </div>
       )}
     </>
+  );
+}
+
+/* ── Profile panel (inline in account dropdown) ── */
+
+const AGE_RANGES: AgeRange[] = ["18-25", "26-35", "36-45", "46-55", "56-65", "65+"];
+const SEX_OPTIONS: { value: BiologicalSex; label: string }[] = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "prefer_not_to_say", label: "Prefer not to say" },
+];
+
+function ProfilePanel({
+  user,
+  theme,
+  onSave,
+  onBack,
+}: {
+  user: VedaUser;
+  theme: string;
+  onSave: (u: VedaUser) => void;
+  onBack: () => void;
+}) {
+  const [firstName, setFirstName] = useState(user.firstName);
+  const [lastName, setLastName] = useState(user.lastName);
+  const [country, setCountry] = useState(user.country);
+  const [city, setCity] = useState(user.city);
+  const [sex, setSex] = useState<BiologicalSex | null>(user.sex);
+  const [ageRange, setAgeRange] = useState<AgeRange | null>(user.ageRange);
+  const [heightCm, setHeightCm] = useState(user.heightCm?.toString() ?? "");
+  const [weightKg, setWeightKg] = useState(user.weightKg?.toString() ?? "");
+  const [saved, setSaved] = useState(false);
+
+  const isDark = theme === "dark";
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "8px 12px",
+    fontSize: "0.82rem",
+    fontFamily: "inherit",
+    borderRadius: 10,
+    border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)"}`,
+    background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+    color: "var(--veda-text)",
+    outline: "none",
+    boxSizing: "border-box" as const,
+  };
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontSize: "0.68rem",
+    fontWeight: 600,
+    color: "var(--veda-text-muted)",
+    marginBottom: 3,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.04em",
+  };
+  const rowStyle: React.CSSProperties = { marginBottom: 10 };
+
+  function handleSave() {
+    const updated: VedaUser = {
+      ...user,
+      firstName: firstName.trim() || user.firstName,
+      lastName: lastName.trim() || user.lastName,
+      country: country.trim() || user.country,
+      city: city.trim() || user.city,
+      sex,
+      ageRange,
+      heightCm: heightCm ? Number(heightCm) : user.heightCm,
+      weightKg: weightKg ? Number(weightKg) : user.weightKg,
+    };
+    onSave(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  }
+
+  return (
+    <div>
+      <button
+        onClick={onBack}
+        style={{
+          background: "none",
+          border: "none",
+          color: "var(--veda-accent)",
+          fontSize: "0.78rem",
+          fontWeight: 600,
+          cursor: "pointer",
+          padding: 0,
+          marginBottom: 12,
+          fontFamily: "inherit",
+        }}
+      >
+        ← Back
+      </button>
+
+      <div style={{ fontWeight: 700, fontSize: "0.88rem", marginBottom: 14, color: "var(--veda-text)" }}>
+        My Profile
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 2 }}>
+        <div style={rowStyle}>
+          <label style={labelStyle}>First name</label>
+          <input style={inputStyle} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+        </div>
+        <div style={rowStyle}>
+          <label style={labelStyle}>Last name</label>
+          <input style={inputStyle} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+        </div>
+      </div>
+
+      <div style={rowStyle}>
+        <label style={labelStyle}>Email</label>
+        <input style={{ ...inputStyle, opacity: 0.6, cursor: "not-allowed" }} value={user.email} readOnly />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 2 }}>
+        <div style={rowStyle}>
+          <label style={labelStyle}>Country</label>
+          <input style={inputStyle} value={country} onChange={(e) => setCountry(e.target.value)} />
+        </div>
+        <div style={rowStyle}>
+          <label style={labelStyle}>City</label>
+          <input style={inputStyle} value={city} onChange={(e) => setCity(e.target.value)} />
+        </div>
+      </div>
+
+      <div style={rowStyle}>
+        <label style={labelStyle}>Sex</label>
+        <select
+          style={inputStyle}
+          value={sex ?? ""}
+          onChange={(e) => setSex((e.target.value || null) as BiologicalSex | null)}
+        >
+          <option value="">—</option>
+          {SEX_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+
+      <div style={rowStyle}>
+        <label style={labelStyle}>Age range</label>
+        <select
+          style={inputStyle}
+          value={ageRange ?? ""}
+          onChange={(e) => setAgeRange((e.target.value || null) as AgeRange | null)}
+        >
+          <option value="">—</option>
+          {AGE_RANGES.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 2 }}>
+        <div style={rowStyle}>
+          <label style={labelStyle}>Height (cm)</label>
+          <input style={inputStyle} type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} />
+        </div>
+        <div style={rowStyle}>
+          <label style={labelStyle}>Weight (kg)</label>
+          <input style={inputStyle} type="number" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} />
+        </div>
+      </div>
+
+      <button
+        onClick={handleSave}
+        style={{
+          width: "100%",
+          padding: "10px 14px",
+          fontSize: "0.82rem",
+          fontWeight: 700,
+          borderRadius: 12,
+          border: "none",
+          background: "linear-gradient(135deg, var(--veda-accent), var(--veda-accent-light))",
+          color: "#fff",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          marginTop: 4,
+        }}
+      >
+        {saved ? "✓ Saved" : "Save changes"}
+      </button>
+    </div>
   );
 }
 
