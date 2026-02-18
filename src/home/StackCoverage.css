@@ -8,16 +8,6 @@
   backdrop-filter: blur(12px);
 }
 
-.coverage__details {}
-
-.coverage__summary {
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-}
-.coverage__summary::-webkit-details-marker { display: none; }
-.coverage__summary::marker { content: ""; }
-
 .coverage__title {
   font-size: 0.7rem;
   font-weight: 700;
@@ -25,16 +15,6 @@
   letter-spacing: 0.1em;
   color: var(--veda-text-muted);
   margin-bottom: 14px;
-  display: inline;
-}
-
-.coverage__summary .coverage__title::after {
-  content: " ▸";
-  font-size: 0.6rem;
-  opacity: 0.5;
-}
-.coverage__details[open] .coverage__summary .coverage__title::after {
-  content: " ▾";
 }
 
 /* Chips */

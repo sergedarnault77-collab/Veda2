@@ -159,14 +159,9 @@ export function StackCoverage() {
     return () => { cancelled = true; };
   }, [anyTaken, takenSupps]);
 
-  const hasContent = supps.length > 0 && anyTaken;
-
   return (
     <section className="coverage" aria-label="Today's Supplement Balance">
-      <details className="coverage__details" open={hasContent}>
-        <summary className="coverage__summary">
-          <h3 className="coverage__title">Today's Supplement Balance</h3>
-        </summary>
+      <h3 className="coverage__title">Today's Supplement Balance</h3>
 
       {supps.length === 0 && (
         <p className="coverage__empty">
@@ -259,7 +254,6 @@ export function StackCoverage() {
           ))}
         </div>
       )}
-      </details>
     </section>
   );
 }
