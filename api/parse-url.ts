@@ -1,15 +1,9 @@
-export const config = { runtime: "edge" };
+export const config = { maxDuration: 60 };
+
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 function envOpenAIKey(): string | null {
-  const p = (globalThis as any)?.process;
-  return (p?.env?.OPENAI_API_KEY as string | undefined) ?? null;
-}
-
-function jsonResp(data: any, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
+  return process.env.OPENAI_API_KEY ?? null;
 }
 
 function stripHtml(html: string): string {
@@ -57,32 +51,28 @@ function extractProductSection(fullText: string): string {
   return fullText.slice(0, 3000);
 }
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method !== "POST") {
-      return jsonResp({ ok: false, error: "POST only" }, 405);
+      return res.status(405).json({ ok: false, error: "POST only" });
     }
 
     const apiKey = envOpenAIKey();
     if (!apiKey) {
-      return jsonResp({ ok: false, error: "OPENAI_API_KEY not configured" });
+      return res.json({ ok: false, error: "OPENAI_API_KEY not configured" });
     }
 
-    let body: any;
-    try { body = await req.json(); } catch {
-      return jsonResp({ ok: false, error: "Invalid request body" });
-    }
-
+    const body = req.body;
     const url = typeof body?.url === "string" ? body.url.trim() : "";
     if (!url || (!url.startsWith("http://") && !url.startsWith("https://"))) {
-      return jsonResp({ ok: false, error: "A valid URL starting with http(s):// is required" });
+      return res.json({ ok: false, error: "A valid URL starting with http(s):// is required" });
     }
 
-    /* ── Step 1: Fetch the page (max 6s) ── */
+    /* ── Step 1: Fetch the page (max 10s) ── */
     let pageText: string;
     try {
       const ac = new AbortController();
-      const timer = setTimeout(() => ac.abort(), 6_000);
+      const timer = setTimeout(() => ac.abort(), 10_000);
       const pageRes = await fetch(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -95,13 +85,13 @@ export default async function handler(req: Request): Promise<Response> {
       clearTimeout(timer);
 
       if (!pageRes.ok) {
-        return jsonResp({ ok: false, error: `Website returned HTTP ${pageRes.status}.` });
+        return res.json({ ok: false, error: `Website returned HTTP ${pageRes.status}.` });
       }
 
       const html = await pageRes.text();
       pageText = extractProductSection(stripHtml(html));
     } catch (e: any) {
-      return jsonResp({
+      return res.json({
         ok: false,
         error: e?.name === "AbortError"
           ? "Website took too long to respond."
@@ -110,10 +100,10 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     if (pageText.length < 40) {
-      return jsonResp({ ok: false, error: "Page returned very little text." });
+      return res.json({ ok: false, error: "Page returned very little text." });
     }
 
-    /* ── Step 2: Extract with OpenAI Chat Completions (max 17s) ── */
+    /* ── Step 2: Extract with OpenAI Chat Completions (max 45s) ── */
     const systemMsg = [
       "Extract supplement data from this webpage text. Return a JSON object with these fields:",
       '- productName (string or null)',
@@ -131,7 +121,7 @@ export default async function handler(req: Request): Promise<Response> {
     ].join("\n");
 
     const ac2 = new AbortController();
-    const timer2 = setTimeout(() => ac2.abort(), 17_000);
+    const timer2 = setTimeout(() => ac2.abort(), 45_000);
     try {
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -144,6 +134,7 @@ export default async function handler(req: Request): Promise<Response> {
           ],
           response_format: { type: "json_object" },
           temperature: 0.1,
+          max_tokens: 2000,
         }),
         signal: ac2.signal,
       });
@@ -151,16 +142,16 @@ export default async function handler(req: Request): Promise<Response> {
 
       if (!r.ok) {
         const errText = await r.text().catch(() => "");
-        return jsonResp({ ok: false, error: `AI error (${r.status}): ${errText.slice(0, 80)}` });
+        return res.json({ ok: false, error: `AI error (${r.status}): ${errText.slice(0, 80)}` });
       }
 
       const resp = await r.json().catch(() => null);
       const content = resp?.choices?.[0]?.message?.content;
-      if (!content) return jsonResp({ ok: false, error: "AI returned no output" });
+      if (!content) return res.json({ ok: false, error: "AI returned no output" });
 
       let parsed: any;
       try { parsed = JSON.parse(content); } catch {
-        return jsonResp({ ok: false, error: "AI returned invalid JSON" });
+        return res.json({ ok: false, error: "AI returned invalid JSON" });
       }
 
       const nutrients = Array.isArray(parsed.nutrients)
@@ -180,7 +171,7 @@ export default async function handler(req: Request): Promise<Response> {
         ? parsed.ingredientsList.filter((s: any) => typeof s === "string" && s.trim()).map((s: any) => String(s).trim())
         : [];
 
-      return jsonResp({
+      return res.json({
         ok: true,
         productName: typeof parsed.productName === "string" ? parsed.productName : null,
         brand: typeof parsed.brand === "string" ? parsed.brand : null,
@@ -192,12 +183,12 @@ export default async function handler(req: Request): Promise<Response> {
       });
     } catch (e: any) {
       clearTimeout(timer2);
-      return jsonResp({
+      return res.json({
         ok: false,
         error: e?.name === "AbortError" ? "AI processing timed out." : `Error: ${String(e?.message || e).slice(0, 80)}`,
       });
     }
   } catch (topErr: any) {
-    return jsonResp({ ok: false, error: `Unexpected: ${String(topErr?.message || topErr).slice(0, 100)}` });
+    return res.status(500).json({ ok: false, error: `Unexpected: ${String(topErr?.message || topErr).slice(0, 100)}` });
   }
 }
