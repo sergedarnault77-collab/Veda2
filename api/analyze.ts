@@ -71,6 +71,89 @@ function envOpenAIKey(): string | null {
   return (p?.env?.OPENAI_API_KEY as string | undefined) ?? null;
 }
 
+/* ── Product database lookup (fast path) ── */
+async function tryProductDbLookup(productName: string): Promise<AnalyzeResponse | null> {
+  const p = (globalThis as any)?.process;
+  const connStr = (p?.env?.DATABASE_URL || p?.env?.STORAGE_URL || "").trim();
+  if (!connStr || !productName || productName.length < 3) return null;
+
+  try {
+    const { neon } = await import("@neondatabase/serverless");
+    const sql = neon(connStr);
+
+    const rows = await sql`
+      SELECT p.id, p.product_name, p.brand_name, p.form, p.serving_size,
+             similarity(
+               lower(coalesce(p.product_name,'') || ' ' || coalesce(p.brand_name,'')),
+               ${productName.toLowerCase()}
+             ) AS sim
+      FROM products p
+      WHERE
+        lower(coalesce(p.product_name,'') || ' ' || coalesce(p.brand_name,''))
+        % ${productName.toLowerCase()}
+      ORDER BY sim DESC
+      LIMIT 1
+    `;
+
+    if (rows.length === 0 || Number(rows[0].sim) < 0.35) return null;
+
+    const product = rows[0];
+    const nutrients = await sql`
+      SELECT ingredient_name, amount, unit, per, pct_dv
+      FROM product_nutrients
+      WHERE product_id = ${product.id}
+      ORDER BY ingredient_name
+    `;
+
+    if (nutrients.length < 2) return null;
+
+    const cats = emptyCategories();
+    const entities: string[] = [];
+    const nutrientRows: NutrientRow[] = [];
+
+    for (const n of nutrients) {
+      const name = String(n.ingredient_name || "");
+      const id = name.toLowerCase().replace(/\s+/g, "_").slice(0, 40);
+      const amount = n.amount != null ? Number(n.amount) : 0;
+      if (amount <= 0) continue;
+
+      const unit = (["mg", "µg", "IU", "g", "mL"].includes(n.unit) ? n.unit : "mg") as NutrientUnit;
+      nutrientRows.push({ nutrientId: id, name, unit, amountToday: amount, dailyReference: null });
+      entities.push(name);
+
+      if (/vitamin/i.test(name)) cats.Vitamins.push(name);
+      else if (/iron|zinc|magnesium|calcium|selenium|iodine|chromium|copper|manganese|potassium|phosphorus/i.test(name)) cats.Minerals.push(name);
+      else cats.Supplements.push(name);
+    }
+
+    return {
+      ok: true,
+      productName: product.product_name,
+      transcription: null,
+      nutrients: nutrientRows,
+      ingredientsList: entities,
+      ingredientsCount: entities.length,
+      normalized: { categories: cats, detectedEntities: entities },
+      signals: [{
+        type: "no_notable_interaction", severity: "low", confidence: 0.6,
+        headline: "Matched from product database",
+        explanation: `Found "${product.product_name}" in the Veda product database.`,
+        relatedEntities: [],
+      }],
+      meta: {
+        mode: "openai",
+        refSystem: "UNKNOWN",
+        transcriptionConfidence: 0.9,
+        needsRescan: false,
+        rescanHint: null,
+        ingredientPhotosUsed: 0,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
 /* ── Image helpers ── */
 function isDataImage(s: unknown): s is string {
   return typeof s === "string" && s.startsWith("data:image/");
@@ -710,6 +793,16 @@ export default async function handler(req: Request): Promise<Response> {
 
       const fpName = typeof frontParsed?.productName === "string" && frontParsed.productName.trim()
         ? frontParsed.productName.trim().slice(0, 70) : null;
+
+      /* Try DB lookup before returning LLM-only result */
+      if (fpName) {
+        const dbResult = await tryProductDbLookup(fpName);
+        if (dbResult && dbResult.nutrients.length > 0) {
+          return new Response(JSON.stringify(dbResult), {
+            status: 200, headers: { "content-type": "application/json" },
+          });
+        }
+      }
 
       const fpCategories = normalizeCategories(frontParsed?.categories);
       const fpEntities = dedupeCaseInsensitive(

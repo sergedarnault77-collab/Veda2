@@ -1,9 +1,69 @@
 export const config = { maxDuration: 60 };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { neon } from "@neondatabase/serverless";
 
 function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
+}
+
+function getDb() {
+  const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
+  if (!connStr) return null;
+  return neon(connStr);
+}
+
+async function tryDbLookup(productHint: string) {
+  const sql = getDb();
+  if (!sql || !productHint || productHint.length < 3) return null;
+
+  try {
+    const rows = await sql`
+      SELECT p.id, p.source, p.source_id, p.barcode, p.product_name, p.brand_name,
+             p.form, p.serving_size,
+             similarity(
+               lower(coalesce(p.product_name,'') || ' ' || coalesce(p.brand_name,'')),
+               ${productHint.toLowerCase()}
+             ) AS sim
+      FROM products p
+      WHERE
+        lower(coalesce(p.product_name,'') || ' ' || coalesce(p.brand_name,''))
+        % ${productHint.toLowerCase()}
+      ORDER BY sim DESC
+      LIMIT 1
+    `;
+
+    if (rows.length === 0 || Number(rows[0].sim) < 0.3) return null;
+
+    const product = rows[0];
+    const nutrients = await sql`
+      SELECT ingredient_name, amount, unit, per, pct_dv
+      FROM product_nutrients
+      WHERE product_id = ${product.id}
+      ORDER BY ingredient_name
+    `;
+
+    if (nutrients.length === 0) return null;
+
+    return {
+      productName: product.product_name,
+      brand: product.brand_name,
+      form: product.form,
+      servingSizeText: product.serving_size,
+      nutrients: nutrients.map((n: any) => ({
+        nutrientId: String(n.ingredient_name || "").toLowerCase().replace(/\s+/g, "_").slice(0, 40),
+        name: n.ingredient_name,
+        unit: n.unit || "mg",
+        amountToday: n.amount != null ? Number(n.amount) : 0,
+        dailyReference: 0,
+        percentLabel: n.pct_dv != null ? Number(n.pct_dv) : null,
+      })),
+      ingredientsList: nutrients.map((n: any) => String(n.ingredient_name)),
+      source: "db",
+    };
+  } catch {
+    return null;
+  }
 }
 
 function stripHtml(html: string): string {
@@ -103,7 +163,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({ ok: false, error: "Page returned very little text." });
     }
 
-    /* ── Step 2: Extract with OpenAI Chat Completions (max 45s) ── */
+    /* ── Step 2: Try database lookup first (fast path) ── */
+    const titleMatch = pageText.slice(0, 300).match(/^[\s]*([^\n.]{5,80})/);
+    const productHint = titleMatch?.[1]?.trim() || "";
+    if (productHint) {
+      const cached = await tryDbLookup(productHint);
+      if (cached && cached.nutrients.length > 0) {
+        return res.json({ ok: true, ...cached, sourceUrl: url });
+      }
+    }
+
+    /* ── Step 3: Extract with OpenAI Chat Completions (max 45s) ── */
     const systemMsg = [
       "Extract supplement data from this webpage text. Return a JSON object with these fields:",
       '- productName (string or null)',

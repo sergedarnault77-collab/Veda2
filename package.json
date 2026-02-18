@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:critics": "node scripts/ai-vision-critic.mjs && node scripts/ai-data-sanity-critic.mjs && node scripts/critics-summary.mjs",
-    "test:all": "playwright test && node scripts/ai-vision-critic.mjs && node scripts/ai-data-sanity-critic.mjs && node scripts/critics-summary.mjs"
+    "test:all": "playwright test && node scripts/ai-vision-critic.mjs && node scripts/ai-data-sanity-critic.mjs && node scripts/critics-summary.mjs",
+    "ingest:dsld": "node scripts/ingest-dsld.mjs",
+    "ingest:off": "node scripts/ingest-off.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
