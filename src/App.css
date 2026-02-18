@@ -57,6 +57,27 @@
   color: var(--veda-text);
 }
 
+/* ── Light mode nav overrides ── */
+[data-theme="light"] .app-nav {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .app-nav__btn {
+  color: var(--veda-text-muted);
+}
+
+[data-theme="light"] .app-nav__btn--active {
+  background: rgba(108, 92, 231, 0.12);
+  color: var(--veda-text);
+  box-shadow: inset 0 0 0 1px rgba(108, 92, 231, 0.2);
+}
+
+[data-theme="light"] .app-nav__btn:hover:not(.app-nav__btn--active) {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--veda-text);
+}
+
 /* ── Tablet (600px+) ── */
 @media (min-width: 600px) {
   .app-nav {
@@ -120,5 +141,10 @@
   .app-nav__btn--active {
     background: rgba(124, 108, 240, 0.15);
     box-shadow: inset 0 0 0 1px rgba(124, 108, 240, 0.2);
+  }
+
+  [data-theme="light"] .app-nav {
+    background: rgba(255, 255, 255, 0.6);
+    border-right-color: rgba(0, 0, 0, 0.06);
   }
 }

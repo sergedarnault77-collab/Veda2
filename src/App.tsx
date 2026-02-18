@@ -14,12 +14,38 @@ import "./App.css";
 
 type AuthView = "register" | "login";
 type Tab = "home" | "dashboard" | "meds" | "supps";
+type Theme = "dark" | "light";
+
+const THEME_KEY = "veda.theme";
+
+function loadTheme(): Theme {
+  if (typeof window === "undefined") return "dark";
+  return (localStorage.getItem(THEME_KEY) as Theme) || "dark";
+}
+
+function applyTheme(theme: Theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+}
 
 export default function App() {
   const [user, setUser] = useState<VedaUser | null>(() => loadUser());
   const [authView, setAuthView] = useState<AuthView>("register");
   const [tab, setTab] = useState<Tab>("home");
   const [syncing, setSyncing] = useState(false);
+  const [theme, setTheme] = useState<Theme>(() => {
+    const t = loadTheme();
+    applyTheme(t);
+    return t;
+  });
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => {
+      const next: Theme = prev === "dark" ? "light" : "dark";
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+      return next;
+    });
+  }, []);
 
   // Set sync email whenever user changes, pull from server
   // Individual pushes happen via saveLS → pushCollection on each change
@@ -149,6 +175,8 @@ export default function App() {
       {/* Account bar */}
       <AccountBar
         user={user}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onChangePlan={handleChangePlan}
         onLogout={handleLogout}
       />
@@ -160,10 +188,14 @@ export default function App() {
 
 function AccountBar({
   user,
+  theme,
+  onToggleTheme,
   onChangePlan,
   onLogout,
 }: {
   user: VedaUser;
+  theme: Theme;
+  onToggleTheme: () => void;
   onChangePlan: (plan: Plan) => void;
   onLogout: () => void;
 }) {
@@ -184,16 +216,18 @@ function AccountBar({
           width: 38,
           height: 38,
           borderRadius: "50%",
-          border: "1px solid rgba(255,255,255,0.08)",
-          background: "linear-gradient(135deg, rgba(124,108,240,0.3), rgba(162,155,254,0.15))",
-          color: "#fff",
+          border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)"}`,
+          background: theme === "dark"
+            ? "linear-gradient(135deg, rgba(124,108,240,0.3), rgba(162,155,254,0.15))"
+            : "linear-gradient(135deg, rgba(108,92,231,0.2), rgba(108,92,231,0.08))",
+          color: theme === "dark" ? "#fff" : "#1a1a2e",
           fontWeight: 700,
           fontSize: "0.82rem",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           cursor: "pointer",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+          boxShadow: theme === "dark" ? "0 4px 16px rgba(0,0,0,0.3)" : "0 4px 16px rgba(0,0,0,0.08)",
         }}
         aria-label="Account"
       >
@@ -210,13 +244,13 @@ function AccountBar({
             width: 260,
             padding: "20px",
             borderRadius: 20,
-            background: "rgba(16,16,38,0.92)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            boxShadow: "0 16px 48px rgba(0,0,0,0.6)",
+            background: theme === "dark" ? "rgba(16,16,38,0.92)" : "rgba(255,255,255,0.95)",
+            border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}`,
+            boxShadow: theme === "dark" ? "0 16px 48px rgba(0,0,0,0.6)" : "0 16px 48px rgba(0,0,0,0.12)",
             backdropFilter: "blur(20px)",
           }}
         >
-          <div style={{ fontWeight: 700, fontSize: "0.92rem", marginBottom: 2 }}>
+          <div style={{ fontWeight: 700, fontSize: "0.92rem", marginBottom: 2, color: "var(--veda-text)" }}>
             {user.firstName} {user.lastName}
           </div>
           <div style={{ fontSize: "0.75rem", color: "var(--veda-text-muted)", marginBottom: 4 }}>
@@ -225,6 +259,30 @@ function AccountBar({
           <div style={{ fontSize: "0.72rem", color: "var(--veda-text-muted)", marginBottom: 16 }}>
             Plan: <strong>{planLabel}</strong> · {user.country}
           </div>
+
+          {/* Theme toggle */}
+          <button
+            onClick={onToggleTheme}
+            style={{
+              width: "100%",
+              padding: "10px 14px",
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              borderRadius: 12,
+              border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}`,
+              background: theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+              color: "var(--veda-text)",
+              cursor: "pointer",
+              marginBottom: 8,
+              fontFamily: "inherit",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            {theme === "dark" ? "☀️" : "🌙"} Switch to {theme === "dark" ? "Day" : "Night"} mode
+          </button>
 
           <button
             onClick={() => {
@@ -237,8 +295,8 @@ function AccountBar({
               fontSize: "0.82rem",
               fontWeight: 600,
               borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.06)",
-              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}`,
+              background: theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
               color: "var(--veda-text)",
               cursor: "pointer",
               marginBottom: 8,

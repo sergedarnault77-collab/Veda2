@@ -51,6 +51,32 @@
   --nav-height: 72px;
 }
 
+/* ── Light mode overrides ── */
+[data-theme="light"] {
+  --veda-bg: #f4f4f8;
+  --veda-bg-gradient: linear-gradient(145deg, #f4f4f8 0%, #ecedf3 50%, #f0f0f6 100%);
+  --veda-surface: rgba(255, 255, 255, 0.75);
+  --veda-surface-solid: #ffffff;
+  --veda-surface-hover: #f0effa;
+  --veda-border: rgba(0, 0, 0, 0.08);
+  --veda-border-accent: rgba(108, 92, 231, 0.2);
+  --veda-text: #1a1a2e;
+  --veda-text-muted: #6b6b8a;
+  --veda-accent: #6c5ce7;
+  --veda-accent-light: #8b7cf6;
+  --veda-accent-glow: rgba(108, 92, 231, 0.15);
+
+  --veda-red: #d84374;
+  --veda-orange: #e8920a;
+  --veda-green: #2e9e33;
+  --veda-magenta: #c0408a;
+
+  --bar-sugar: #f09000;
+  --bar-sweetener: #9030a0;
+  --bar-calorie: #2088d0;
+  --bar-caffeine: #1aa8b8;
+}
+
 html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
@@ -115,4 +141,166 @@ button {
   #root {
     margin-left: calc(var(--sidebar-width) + 60px);
   }
+}
+
+/* ── Light mode: global component overrides ── */
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* Cards, sections, panels — glass surfaces */
+[data-theme="light"] .scan-status,
+[data-theme="light"] .exposure,
+[data-theme="light"] .coverage,
+[data-theme="light"] .stack-signal,
+[data-theme="light"] .signal-explainer,
+[data-theme="light"] .explaining-signals,
+[data-theme="light"] .context-panel,
+[data-theme="light"] .supp-card,
+[data-theme="light"] .med-card,
+[data-theme="light"] .dashboard__section,
+[data-theme="light"] .interaction-warnings {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Tiles and secondary surfaces */
+[data-theme="light"] .scan-status__tile {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .scan-status__tile:hover {
+  background: rgba(108, 92, 231, 0.06);
+  border-color: rgba(108, 92, 231, 0.2);
+}
+
+[data-theme="light"] .scan-status__tile--primary {
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.1), rgba(108, 92, 231, 0.04));
+  border-color: rgba(108, 92, 231, 0.25);
+  box-shadow: 0 0 12px rgba(108, 92, 231, 0.08);
+}
+
+[data-theme="light"] .scan-status__tile--primary:hover {
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.16), rgba(108, 92, 231, 0.06));
+  box-shadow: 0 0 18px rgba(108, 92, 231, 0.12);
+}
+
+/* Buttons — secondary / outline */
+[data-theme="light"] .scan-status__dismissBtn,
+[data-theme="light"] .scan-status__frontOnly {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: var(--veda-text-muted);
+}
+
+[data-theme="light"] .scan-status__dismissBtn:hover,
+[data-theme="light"] .scan-status__frontOnly:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Caffeine follow-up */
+[data-theme="light"] .scan-status__caffeineQ {
+  background: rgba(108, 92, 231, 0.05);
+  border-color: rgba(108, 92, 231, 0.15);
+}
+
+[data-theme="light"] .scan-status__caffeineQBtn--decaf {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: var(--veda-text-muted);
+}
+
+/* History divider */
+[data-theme="light"] .scan-status__history {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Drink builder */
+[data-theme="light"] .drink-builder {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .drink-chip {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .drink-chip--selected {
+  border-color: rgba(108, 92, 231, 0.3);
+  background: rgba(108, 92, 231, 0.08);
+}
+
+/* Modals and sheets */
+[data-theme="light"] .add-scanned-modal__content,
+[data-theme="light"] .buy-sheet {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .add-scanned-modal__backdrop,
+[data-theme="light"] .buy-backdrop {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .buy-sheet__row {
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Dashboard chips and cards */
+[data-theme="light"] .day__chip {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .overlap__card {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .timing__dot--morning { background: #e8920a; }
+[data-theme="light"] .timing__dot--midday { background: #2088d0; }
+[data-theme="light"] .timing__dot--evening { background: #6c5ce7; }
+
+/* Auth screens */
+[data-theme="light"] .auth-card,
+[data-theme="light"] .profile-card,
+[data-theme="light"] .plans-card {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .auth-card input,
+[data-theme="light"] .profile-card select,
+[data-theme="light"] .scan-status__urlInput {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--veda-text);
+}
+
+/* Loading banner */
+[data-theme="light"] .loading-banner {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Coverage bars / exposure bars */
+[data-theme="light"] .exposure__bar-track,
+[data-theme="light"] .coverage__bar-bg {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Stack signal states */
+[data-theme="light"] .stack-signal__badge--balanced {
+  background: rgba(46, 158, 51, 0.1);
+}
+
+[data-theme="light"] .stack-signal__badge--redundant {
+  background: rgba(232, 146, 10, 0.1);
+}
+
+[data-theme="light"] .stack-signal__badge--excessive {
+  background: rgba(216, 67, 116, 0.1);
 }
