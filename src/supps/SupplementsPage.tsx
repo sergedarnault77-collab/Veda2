@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import InteractionWarnings from "../shared/InteractionWarnings";
+import BuySheet from "../shared/BuySheet";
 import type { Interaction } from "../shared/InteractionWarnings";
 import type { ScannedItem, ItemInsights } from "../shared/AddScannedItemModal";
 import type { NutrientRow } from "../home/stubs";
@@ -105,6 +106,7 @@ export default function SupplementsPage() {
   const [urlLoading, setUrlLoading] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
+  const [buyId, setBuyId] = useState<string | null>(null);
 
   const persistUpdate = (updater: (prev: Supp[]) => Supp[]) => {
     setItems((prev) => {
@@ -361,7 +363,10 @@ export default function SupplementsPage() {
                   </div>
                 )}
 
-                <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+                  <button className="btn btn--primary supp-card__buy" onClick={() => setBuyId(s.id)}>
+                    🛒 Buy / Refill
+                  </button>
                   <button className="btn btn--secondary" onClick={() => setEditId(s.id)}>
                     Re-read / replace label
                   </button>
@@ -396,6 +401,18 @@ export default function SupplementsPage() {
           onConfirm={(item) => saveEdit(item)}
         />
       )}
+
+      {buyId && (() => {
+        const buyItem = items.find((x) => x.id === buyId);
+        if (!buyItem) return null;
+        return (
+          <BuySheet
+            productName={buyItem.displayName}
+            brand={buyItem.brand}
+            onClose={() => setBuyId(null)}
+          />
+        );
+      })()}
 
       {showUrlInput && (
         <div className="modal-backdrop" role="dialog" aria-modal="true">

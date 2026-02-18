@@ -1,0 +1,161 @@
+.buy-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: buy-fade-in 0.2s ease-out;
+}
+
+@keyframes buy-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.buy-sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--veda-bg, #141428);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 12px 20px 28px;
+  animation: buy-slide-up 0.25s ease-out;
+}
+
+@keyframes buy-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.buy-sheet__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 auto 16px;
+}
+
+.buy-sheet__header {
+  margin-bottom: 18px;
+}
+
+.buy-sheet__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.buy-sheet__product {
+  font-size: 0.88rem;
+  opacity: 0.75;
+  margin: 0 0 6px;
+  line-height: 1.3;
+}
+
+.buy-sheet__market {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(108, 92, 231, 0.15);
+  color: var(--veda-accent-light, #a899f7);
+}
+
+.buy-sheet__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.buy-sheet__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--veda-surface, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--veda-border, rgba(255, 255, 255, 0.06));
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.buy-sheet__row:hover {
+  background: rgba(108, 92, 231, 0.1);
+  border-color: rgba(108, 92, 231, 0.25);
+}
+
+.buy-sheet__icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+
+.buy-sheet__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.buy-sheet__retailer {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.buy-sheet__type {
+  font-size: 0.7rem;
+  opacity: 0.5;
+  text-transform: capitalize;
+  margin-top: 1px;
+}
+
+.buy-sheet__arrow {
+  font-size: 1rem;
+  opacity: 0.35;
+  flex-shrink: 0;
+}
+
+.buy-sheet__disclaimer {
+  font-size: 0.72rem;
+  opacity: 0.45;
+  line-height: 1.4;
+  text-align: center;
+  margin: 0 0 14px;
+}
+
+.buy-sheet__close {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--veda-border, rgba(255, 255, 255, 0.08));
+  background: transparent;
+  color: var(--veda-text, #fff);
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.buy-sheet__close:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@media (min-width: 600px) {
+  .buy-sheet {
+    border-radius: 20px;
+    margin-bottom: 40px;
+  }
+
+  .buy-backdrop {
+    align-items: center;
+  }
+}

@@ -210,6 +210,11 @@
   color: var(--veda-text-muted);
 }
 
+.supp-card__buy {
+  font-size: 0.82rem !important;
+  padding: 8px 16px !important;
+}
+
 /* Photos behind expander */
 .supp-card__photos {
   margin-top: 2px;
