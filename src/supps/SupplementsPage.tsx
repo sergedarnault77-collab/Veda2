@@ -70,14 +70,9 @@ export default function SupplementsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
-  const persist = (next: Supp[]) => {
-    setItems(next);
-    saveLS(LS_KEY, next);
-  };
-
-  const updateItemInsights = (itemId: string, insights: ItemInsights) => {
+  const persistUpdate = (updater: (prev: Supp[]) => Supp[]) => {
     setItems((prev) => {
-      const next = prev.map((it) => (it.id === itemId ? { ...it, insights } : it));
+      const next = updater(prev);
       saveLS(LS_KEY, next);
       return next;
     });
@@ -85,28 +80,34 @@ export default function SupplementsPage() {
 
   const addSupp = (s: ScannedItem) => {
     const newId = uid();
-    const next: Supp[] = [{ ...s, id: newId }, ...items];
-    persist(next);
-    // Fetch insights in background
+    persistUpdate((prev) => [{ ...s, id: newId }, ...prev]);
     fetchInsights(s).then((ins) => {
-      if (ins) updateItemInsights(newId, ins);
+      if (ins) {
+        persistUpdate((prev) =>
+          prev.map((it) => (it.id === newId ? { ...it, insights: ins } : it))
+        );
+      }
     });
   };
 
   const saveEdit = (updated: ScannedItem) => {
     if (!editId) return;
-    const next = items.map((it) => (it.id === editId ? { ...it, ...updated } : it));
-    persist(next);
     const savedId = editId;
+    persistUpdate((prev) =>
+      prev.map((it) => (it.id === savedId ? { ...it, ...updated } : it))
+    );
     setEditId(null);
-    // Fetch insights in background
     fetchInsights(updated).then((ins) => {
-      if (ins) updateItemInsights(savedId, ins);
+      if (ins) {
+        persistUpdate((prev) =>
+          prev.map((it) => (it.id === savedId ? { ...it, insights: ins } : it))
+        );
+      }
     });
   };
 
   const removeSupp = (rid: string) => {
-    persist(items.filter((x) => x.id !== rid));
+    persistUpdate((prev) => prev.filter((x) => x.id !== rid));
   };
 
   const editingItem = useMemo(() => {

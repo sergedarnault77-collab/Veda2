@@ -69,14 +69,9 @@ export default function MedicationsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
-  const persist = (next: Med[]) => {
-    setItems(next);
-    saveLS(LS_KEY, next);
-  };
-
-  const updateItemInsights = (itemId: string, insights: ItemInsights) => {
+  const persistUpdate = (updater: (prev: Med[]) => Med[]) => {
     setItems((prev) => {
-      const next = prev.map((it) => (it.id === itemId ? { ...it, insights } : it));
+      const next = updater(prev);
       saveLS(LS_KEY, next);
       return next;
     });
@@ -84,26 +79,34 @@ export default function MedicationsPage() {
 
   const addMed = (m: ScannedItem) => {
     const newId = uid();
-    const next: Med[] = [{ ...m, id: newId }, ...items];
-    persist(next);
+    persistUpdate((prev) => [{ ...m, id: newId }, ...prev]);
     fetchInsights(m).then((ins) => {
-      if (ins) updateItemInsights(newId, ins);
+      if (ins) {
+        persistUpdate((prev) =>
+          prev.map((it) => (it.id === newId ? { ...it, insights: ins } : it))
+        );
+      }
     });
   };
 
   const saveEdit = (updated: ScannedItem) => {
     if (!editId) return;
-    const next = items.map((it) => (it.id === editId ? { ...it, ...updated } : it));
-    persist(next);
     const savedId = editId;
+    persistUpdate((prev) =>
+      prev.map((it) => (it.id === savedId ? { ...it, ...updated } : it))
+    );
     setEditId(null);
     fetchInsights(updated).then((ins) => {
-      if (ins) updateItemInsights(savedId, ins);
+      if (ins) {
+        persistUpdate((prev) =>
+          prev.map((it) => (it.id === savedId ? { ...it, insights: ins } : it))
+        );
+      }
     });
   };
 
   const removeMed = (rid: string) => {
-    persist(items.filter((x) => x.id !== rid));
+    persistUpdate((prev) => prev.filter((x) => x.id !== rid));
   };
 
   const editingItem = useMemo(() => {
