@@ -40,12 +40,22 @@
 }
 
 .scan-status__tile--primary {
-  background: linear-gradient(135deg, rgba(108, 92, 231, 0.12), rgba(108, 92, 231, 0.04));
-  border-color: rgba(108, 92, 231, 0.3);
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.14), rgba(108, 92, 231, 0.05));
+  border-color: rgba(108, 92, 231, 0.4);
+  box-shadow: 0 0 12px rgba(124, 108, 240, 0.12);
 }
 
 .scan-status__tile--primary:hover {
-  background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(108, 92, 231, 0.08));
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.22), rgba(108, 92, 231, 0.1));
+  box-shadow: 0 0 18px rgba(124, 108, 240, 0.2);
+}
+
+.scan-status__tile--primary .scan-status__tileIcon {
+  font-size: 1.6rem;
+}
+
+.scan-status__tile--primary .scan-status__tileLabel {
+  font-size: 0.88rem;
 }
 
 .scan-status__tile input[type="file"] {
