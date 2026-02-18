@@ -126,7 +126,7 @@
 
 .plans__feature--on::before {
   content: "✓";
-  color: var(--veda-green, #2ecc71);
+  color: var(--veda-orange, #FF8C1A);
 }
 
 .plans__feature--off {

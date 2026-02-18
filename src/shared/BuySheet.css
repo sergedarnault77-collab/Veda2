@@ -70,8 +70,8 @@
 .buy-sheet__equiv {
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(46, 204, 113, 0.08);
-  border: 1px solid rgba(46, 204, 113, 0.2);
+  background: rgba(46, 91, 255, 0.06);
+  border: 1px solid rgba(46, 91, 255, 0.18);
   margin-bottom: 14px;
 }
 
@@ -80,7 +80,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--veda-green, #2ecc71);
+  color: var(--veda-orange, #FF8C1A);
   margin-bottom: 4px;
 }
 

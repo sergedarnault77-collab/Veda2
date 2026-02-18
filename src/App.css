@@ -20,7 +20,7 @@
   gap: 4px;
   padding: 8px;
   border-radius: var(--radius-lg);
-  background: rgba(11, 16, 32, 0.85);
+  background: rgba(10, 14, 28, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -113,7 +113,7 @@
     border-radius: 0;
     border: none;
     border-right: 1px solid rgba(255, 255, 255, 0.04);
-    background: rgba(11, 16, 32, 0.5);
+    background: rgba(10, 14, 28, 0.55);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }

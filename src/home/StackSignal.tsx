@@ -151,7 +151,7 @@ function computeSignal(): StackSignalData {
 }
 
 const STATE_CONFIG: Record<SignalState, { label: string; color: string; bg: string }> = {
-  balanced: { label: "Normal range", color: "var(--veda-green, #2ecc71)", bg: "rgba(46,204,113,0.08)" },
+  balanced: { label: "Normal range", color: "var(--veda-orange, #FF8C1A)", bg: "rgba(46, 91, 255, 0.06)" },
   redundant: { label: "Redundant", color: "var(--veda-orange, #e67e22)", bg: "rgba(230,126,34,0.08)" },
   excessive: { label: "Excessive", color: "var(--veda-red, #e74c3c)", bg: "rgba(231,76,60,0.08)" },
   interaction: { label: "Potential interaction", color: "var(--veda-red, #e74c3c)", bg: "rgba(231,76,60,0.08)" },

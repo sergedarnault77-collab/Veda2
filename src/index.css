@@ -9,12 +9,12 @@
 }
 
 :root {
-  /* palette — royal blue & dutch orange */
-  --veda-bg: #0B1020;
-  --veda-bg-gradient: linear-gradient(145deg, #0B1020 0%, #101830 50%, #0D1225 100%);
-  --veda-surface: rgba(18, 26, 47, 0.7);
-  --veda-surface-solid: #121A2F;
-  --veda-surface-hover: #1a2540;
+  /* palette — dutch royal blue & orange */
+  --veda-bg: #0A0E1C;
+  --veda-bg-gradient: linear-gradient(145deg, #0A0E1C 0%, #10172D 50%, #0C1024 100%);
+  --veda-surface: rgba(16, 23, 45, 0.7);
+  --veda-surface-solid: #10172D;
+  --veda-surface-hover: #141D3A;
   --veda-border: rgba(255, 255, 255, 0.07);
   --veda-border-accent: rgba(46, 91, 255, 0.25);
   --veda-text: #E8EBF2;
@@ -22,11 +22,13 @@
   --veda-accent: #2E5BFF;
   --veda-accent-light: #5a80ff;
   --veda-accent-glow: rgba(46, 91, 255, 0.2);
+  --veda-royal-deep: #1F3A5F;
 
-  /* status colors */
+  /* status colors — no green; OK states use orange */
   --veda-red: #f06292;
   --veda-orange: #FF8C1A;
-  --veda-green: #66bb6a;
+  --veda-orange-soft: #FFB35C;
+  --veda-green: var(--veda-orange);
   --veda-magenta: #e056a0;
 
   /* exposure bar fills */
@@ -68,7 +70,8 @@
 
   --veda-red: #d84374;
   --veda-orange: #e8920a;
-  --veda-green: #2e9e33;
+  --veda-orange-soft: #d4940a;
+  --veda-green: var(--veda-orange);
   --veda-magenta: #c0408a;
 
   --bar-sugar: #f09000;
@@ -294,7 +297,7 @@ button {
 
 /* Stack signal states */
 [data-theme="light"] .stack-signal__badge--balanced {
-  background: rgba(46, 158, 51, 0.1);
+  background: rgba(46, 91, 255, 0.08);
 }
 
 [data-theme="light"] .stack-signal__badge--redundant {

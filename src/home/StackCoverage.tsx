@@ -43,15 +43,15 @@ type SavedSupp = {
 
 function coverageColor(pct: number): string {
   if (pct < 25) return "var(--veda-red)";
-  if (pct < 75) return "var(--veda-orange)";
-  if (pct <= 100) return "var(--veda-green)";
+  if (pct < 75) return "var(--veda-orange-soft, #FFB35C)";
+  if (pct <= 100) return "var(--veda-accent, #2E5BFF)";
   return "var(--veda-magenta)";
 }
 
 function riskColor(risk: string) {
-  if (risk === "high") return "var(--veda-red, #e74c3c)";
-  if (risk === "medium") return "var(--veda-orange, #e67e22)";
-  return "var(--veda-green, #2ecc71)";
+  if (risk === "high") return "var(--veda-red, #f06292)";
+  if (risk === "medium") return "var(--veda-orange, #FF8C1A)";
+  return "var(--veda-accent, #2E5BFF)";
 }
 
 function loadSupps(): SavedSupp[] {

@@ -205,8 +205,8 @@
 }
 
 .supp-card__badge--high {
-  background: rgba(46, 204, 113, 0.15);
-  color: var(--veda-green);
+  background: rgba(255, 140, 26, 0.12);
+  color: var(--veda-orange, #FF8C1A);
 }
 
 .supp-card__badge--med {

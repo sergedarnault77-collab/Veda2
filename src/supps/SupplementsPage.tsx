@@ -34,7 +34,7 @@ function pctDV(n: NutrientRow) {
 function riskColor(risk: string) {
   if (risk === "high") return "var(--veda-red, #e74c3c)";
   if (risk === "medium") return "var(--veda-orange, #e67e22)";
-  return "var(--veda-green, #2ecc71)";
+  return "var(--veda-accent, #2E5BFF)";
 }
 
 /** Fire-and-forget: fetch insights for an item and persist */

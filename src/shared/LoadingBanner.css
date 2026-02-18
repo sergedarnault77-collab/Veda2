@@ -77,7 +77,7 @@
 
 /* Success title */
 .lb--success .lb__title {
-  color: var(--veda-green, #66bb6a);
+  color: var(--veda-orange, #FF8C1A);
 }
 
 /* Indeterminate progress bar */

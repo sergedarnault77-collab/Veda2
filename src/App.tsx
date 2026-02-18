@@ -244,7 +244,7 @@ function AccountBar({
             width: 260,
             padding: "20px",
             borderRadius: 20,
-            background: theme === "dark" ? "rgba(11,16,32,0.94)" : "rgba(255,255,255,0.95)",
+            background: theme === "dark" ? "rgba(10,14,28,0.94)" : "rgba(255,255,255,0.95)",
             border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}`,
             boxShadow: theme === "dark" ? "0 16px 48px rgba(0,0,0,0.6)" : "0 16px 48px rgba(0,0,0,0.12)",
             backdropFilter: "blur(20px)",
