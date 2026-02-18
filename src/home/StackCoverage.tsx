@@ -158,10 +158,10 @@ export function StackCoverage() {
   const hasContent = supps.length > 0 && anyTaken;
 
   return (
-    <section className="coverage" aria-label="Stack coverage today">
+    <section className="coverage" aria-label="Today's Supplement Balance">
       <details className="coverage__details" open={hasContent}>
         <summary className="coverage__summary">
-          <h3 className="coverage__title">Stack coverage (today)</h3>
+          <h3 className="coverage__title">Today's Supplement Balance</h3>
         </summary>
 
       {supps.length === 0 && (
