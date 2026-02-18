@@ -1,8 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { compressImageDataUrl } from "../lib/image";
 import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
 import LoadingBanner from "../shared/LoadingBanner";
+import InteractionWarnings from "../shared/InteractionWarnings";
+import type { Interaction } from "../shared/InteractionWarnings";
 import DrinkBuilder from "./DrinkBuilder";
 import type { DrinkEstimate } from "./DrinkBuilder";
 import "./ScanSection.css";
@@ -110,6 +112,8 @@ export default function ScanSection({ onScanComplete }: Props) {
   const [urlValue, setUrlValue] = useState("");
   const [urlLoading, setUrlLoading] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [ixLoading, setIxLoading] = useState(false);
 
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
@@ -129,6 +133,46 @@ export default function ScanSection({ onScanComplete }: Props) {
   }, [result, productName]);
 
   const needsCaffeineQ = caffeineBevKey !== null && caffeineQ === null;
+
+  /* ── Check interactions against saved meds/supps when a result appears ── */
+  useEffect(() => {
+    if (!result || !productName) return;
+    setIxLoading(true);
+    setInteractions([]);
+
+    const supps = loadLS<any[]>("veda.supps.v1", []);
+    const meds = loadLS<any[]>("veda.meds.v1", []);
+    const existing = [
+      ...meds.map((m: any) => ({ ...m, type: "medication" })),
+      ...supps.map((s: any) => ({ ...s, type: "supplement" })),
+    ];
+
+    if (existing.length === 0) {
+      setIxLoading(false);
+      return;
+    }
+
+    const newItem = {
+      displayName: productName,
+      type: "scanned item",
+      nutrients: result?.nutrients || [],
+      ingredientsList: result?.ingredientsList || result?.normalized?.detectedEntities || [],
+    };
+
+    fetch("/api/interactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newItem, existingItems: existing }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.ok && Array.isArray(data.interactions)) {
+          setInteractions(data.interactions);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIxLoading(false));
+  }, [result, productName]);
 
   /* -- Summary of what was detected (compact) -- */
   const detectedSummary = useMemo(() => {
@@ -354,6 +398,8 @@ export default function ScanSection({ onScanComplete }: Props) {
     setMode("idle");
     setUrlValue("");
     setUrlError(null);
+    setInteractions([]);
+    setIxLoading(false);
   }
 
   function scanAnother() {
@@ -368,6 +414,8 @@ export default function ScanSection({ onScanComplete }: Props) {
     setMode("idle");
     setUrlValue("");
     setUrlError(null);
+    setInteractions([]);
+    setIxLoading(false);
   }
 
   /* -- Render -- */
@@ -557,6 +605,9 @@ export default function ScanSection({ onScanComplete }: Props) {
               <span className="scan-status__detected">{detectedSummary}</span>
             )}
           </div>
+
+          {/* Interaction warnings */}
+          <InteractionWarnings interactions={interactions} loading={ixLoading} />
 
           {/* Caffeine follow-up question */}
           {needsCaffeineQ && !added && (

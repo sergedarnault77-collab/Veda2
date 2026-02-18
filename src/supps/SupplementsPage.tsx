@@ -1,11 +1,13 @@
 import { useMemo, useState, useCallback } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
+import InteractionWarnings from "../shared/InteractionWarnings";
+import type { Interaction } from "../shared/InteractionWarnings";
 import type { ScannedItem, ItemInsights } from "../shared/AddScannedItemModal";
 import type { NutrientRow } from "../home/stubs";
 import "./SupplementsPage.css";
 
-type Supp = ScannedItem & { id: string };
+type Supp = ScannedItem & { id: string; interactions?: Interaction[] };
 const LS_KEY = "veda.supps.v1";
 
 function uid() {
@@ -35,6 +37,36 @@ function riskColor(risk: string) {
 }
 
 /** Fire-and-forget: fetch insights for an item and persist */
+async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
+  try {
+    const supps = loadLS<any[]>("veda.supps.v1", []);
+    const meds = loadLS<any[]>("veda.meds.v1", []);
+    const existing = [
+      ...meds.map((m: any) => ({ ...m, type: "medication" })),
+      ...supps.filter((s: any) => s.displayName !== item.displayName).map((s: any) => ({ ...s, type: "supplement" })),
+    ];
+    if (existing.length === 0) return [];
+
+    const newItem = {
+      displayName: item.displayName,
+      type: "supplement",
+      nutrients: item.nutrients ?? [],
+      ingredientsList: item.ingredientsList ?? [],
+    };
+
+    const res = await fetch("/api/interactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newItem, existingItems: existing }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data?.ok && Array.isArray(data.interactions) ? data.interactions : [];
+  } catch {
+    return [];
+  }
+}
+
 async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
   try {
     const res = await fetch("/api/advise", {
@@ -89,6 +121,13 @@ export default function SupplementsPage() {
       if (ins) {
         persistUpdate((prev) =>
           prev.map((it) => (it.id === newId ? { ...it, insights: ins } : it))
+        );
+      }
+    });
+    fetchInteractions(s).then((ix) => {
+      if (ix.length > 0) {
+        persistUpdate((prev) =>
+          prev.map((it) => (it.id === newId ? { ...it, interactions: ix } : it))
         );
       }
     });
@@ -291,6 +330,11 @@ export default function SupplementsPage() {
                       ))}
                     </div>
                   </details>
+                )}
+
+                {/* Interaction warnings */}
+                {Array.isArray(s.interactions) && s.interactions.length > 0 && (
+                  <InteractionWarnings interactions={s.interactions} />
                 )}
 
                 {/* Insights */}

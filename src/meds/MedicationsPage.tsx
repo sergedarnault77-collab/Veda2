@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
+import InteractionWarnings from "../shared/InteractionWarnings";
+import type { Interaction } from "../shared/InteractionWarnings";
 import type { ScannedItem, ItemInsights } from "../shared/AddScannedItemModal";
 import type { NutrientRow } from "../home/stubs";
 import "./MedicationsPage.css";
 
-type Med = ScannedItem & { id: string };
+type Med = ScannedItem & { id: string; interactions?: Interaction[] };
 const LS_KEY = "veda.meds.v1";
 
 function uid() {
@@ -32,6 +34,36 @@ function riskColor(risk: string) {
   if (risk === "high") return "var(--veda-red, #e74c3c)";
   if (risk === "medium") return "var(--veda-orange, #e67e22)";
   return "var(--veda-green, #2ecc71)";
+}
+
+async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
+  try {
+    const supps = loadLS<any[]>("veda.supps.v1", []);
+    const meds = loadLS<any[]>("veda.meds.v1", []);
+    const existing = [
+      ...meds.filter((m: any) => m.displayName !== item.displayName).map((m: any) => ({ ...m, type: "medication" })),
+      ...supps.map((s: any) => ({ ...s, type: "supplement" })),
+    ];
+    if (existing.length === 0) return [];
+
+    const newItem = {
+      displayName: item.displayName,
+      type: "medication",
+      nutrients: item.nutrients ?? [],
+      ingredientsList: item.ingredientsList ?? [],
+    };
+
+    const res = await fetch("/api/interactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newItem, existingItems: existing }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data?.ok && Array.isArray(data.interactions) ? data.interactions : [];
+  } catch {
+    return [];
+  }
 }
 
 async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
@@ -84,6 +116,13 @@ export default function MedicationsPage() {
       if (ins) {
         persistUpdate((prev) =>
           prev.map((it) => (it.id === newId ? { ...it, insights: ins } : it))
+        );
+      }
+    });
+    fetchInteractions(m).then((ix) => {
+      if (ix.length > 0) {
+        persistUpdate((prev) =>
+          prev.map((it) => (it.id === newId ? { ...it, interactions: ix } : it))
         );
       }
     });
@@ -214,6 +253,11 @@ export default function MedicationsPage() {
                       ))}
                     </div>
                   </details>
+                )}
+
+                {/* Interaction warnings */}
+                {Array.isArray(m.interactions) && m.interactions.length > 0 && (
+                  <InteractionWarnings interactions={m.interactions} />
                 )}
 
                 {/* Insights */}
