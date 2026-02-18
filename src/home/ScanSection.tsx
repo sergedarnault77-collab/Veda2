@@ -3,6 +3,8 @@ import { compressImageDataUrl } from "../lib/image";
 import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
 import LoadingBanner from "../shared/LoadingBanner";
+import DrinkBuilder from "./DrinkBuilder";
+import type { DrinkEstimate } from "./DrinkBuilder";
 import "./ScanSection.css";
 
 export type ScanResult = {
@@ -104,7 +106,7 @@ export default function ScanSection({ onScanComplete }: Props) {
   const [added, setAdded] = useState(false);
   const [todayScans, setTodayScans] = useState<StoredScan[]>(() => loadScans().scans);
   const [caffeineQ, setCaffeineQ] = useState<CaffeineAnswer>(null);
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [mode, setMode] = useState<"idle" | "scan" | "drink">("idle");
 
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
@@ -241,28 +243,46 @@ export default function ScanSection({ onScanComplete }: Props) {
     onScanComplete?.(scanResult);
   }
 
-  function quickAdd(bevKey: string, decaf: boolean) {
-    const bev = CAFFEINE_BEVERAGES[bevKey];
-    if (!bev) return;
-
-    const label = bevKey.charAt(0).toUpperCase() + bevKey.slice(1);
-    const pName = decaf ? `${label} (decaf)` : label;
-    const caffeineAmt = decaf ? 2 : bev.caffeine;
+  function handleDrinkAdd(est: DrinkEstimate) {
+    const sizeSuffix = est.size !== "M" ? ` (${est.size})` : "";
+    const pName = est.isDecaf
+      ? `${est.drinkLabel}${sizeSuffix} (decaf)`
+      : `${est.drinkLabel}${sizeSuffix}`;
 
     const nutrients: any[] = [
-      { nutrientId: "caffeine", name: decaf ? "Caffeine (decaf)" : "Caffeine", unit: "mg", amountToday: caffeineAmt, dailyReference: 400 },
+      {
+        nutrientId: "caffeine",
+        name: est.isDecaf ? "Caffeine (decaf)" : "Caffeine",
+        unit: "mg",
+        amountToday: est.caffeineMg,
+        dailyReference: 400,
+      },
     ];
-    if (bev.calories > 0) {
-      nutrients.push({ nutrientId: "calories", name: "Calories", unit: "kcal", amountToday: bev.calories, dailyReference: null });
+    if (est.caloriesKcal > 0) {
+      nutrients.push({
+        nutrientId: "calories",
+        name: "Calories",
+        unit: "kcal",
+        amountToday: est.caloriesKcal,
+        dailyReference: null,
+      });
     }
 
-    const ents = decaf ? [] : ["caffeine"];
-    const cats: Record<string, string[]> = decaf ? {} : { Stimulants: ["caffeine"] };
-    const summaryStr = decaf ? "decaf" : `caffeine ~${caffeineAmt} mg`;
+    const ents: string[] = est.isDecaf ? [] : ["caffeine"];
+    const cats: Record<string, string[]> = est.isDecaf ? {} : { Stimulants: ["caffeine"] };
+    if (est.sweetenerType) {
+      if (!cats.Sweeteners) cats.Sweeteners = [];
+      cats.Sweeteners.push(est.sweetenerType);
+      ents.push(est.sweetenerType);
+    }
+
+    const summaryStr = est.isDecaf
+      ? `decaf · ~${est.caloriesKcal} kcal`
+      : `~${est.caffeineMg} mg caffeine · ~${est.caloriesKcal} kcal`;
 
     const day = persistScan(pName, summaryStr);
     setTodayScans(day.scans);
-    setShowQuickAdd(false);
+    setMode("idle");
 
     onScanComplete?.({ productName: pName, categories: cats, nutrients, detectedEntities: ents });
   }
@@ -276,6 +296,7 @@ export default function ScanSection({ onScanComplete }: Props) {
     setProductName("");
     setAdded(false);
     setCaffeineQ(null);
+    setMode("idle");
   }
 
   function scanAnother() {
@@ -287,69 +308,84 @@ export default function ScanSection({ onScanComplete }: Props) {
     setProductName("");
     setAdded(false);
     setCaffeineQ(null);
+    setMode("idle");
   }
 
   /* -- Render -- */
 
   return (
     <section className="scan-status">
-      {/* Scan button + status (compact) */}
-      <div className="scan-status__row">
-        <label className="scan-status__btn">
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
-              e.target.value = "";
-              handleCapture(f, step === "idle" && !frontImage ? "front" : "ingredients");
-            }}
-          />
-          Scan
-        </label>
+      {/* Entry tiles — two clear paths */}
+      {step === "idle" && !loading && mode === "idle" && (
+        <div className="scan-status__tiles">
+          <label className="scan-status__tile scan-status__tile--primary">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                e.target.value = "";
+                setMode("scan");
+                handleCapture(f, "front");
+              }}
+            />
+            <span className="scan-status__tileIcon">📷</span>
+            <span className="scan-status__tileLabel">Scan label</span>
+            <span className="scan-status__tileSub">Meds, supps, food & drink</span>
+          </label>
 
-        <div className="scan-status__info">
-          <div className="scan-status__checks">
-            <span>Front {frontImage ? "✓" : "—"}</span>
-            <span>Label {hasIngredients ? "✓" : "—"}</span>
-          </div>
-          {scanCount > 0 && (
-            <div className="scan-status__count">
-              {scanCount} item{scanCount !== 1 ? "s" : ""} added today
-            </div>
-          )}
+          <button
+            className="scan-status__tile scan-status__tile--secondary"
+            onClick={() => setMode("drink")}
+          >
+            <span className="scan-status__tileIcon">☕</span>
+            <span className="scan-status__tileLabel">Log drink</span>
+            <span className="scan-status__tileSub">Coffee, tea, matcha, energy</span>
+          </button>
         </div>
-      </div>
-
-      {/* Quick add toggle */}
-      {step === "idle" && !loading && (
-        <button
-          className="scan-status__quickToggle"
-          onClick={() => setShowQuickAdd((v) => !v)}
-        >
-          {showQuickAdd ? "Hide quick add" : "Quick add: coffee, tea…"}
-        </button>
       )}
 
-      {/* Quick add panel */}
-      {showQuickAdd && step === "idle" && (
-        <div className="scan-status__quickPanel">
-          <div className="scan-status__quickTitle">What did you have?</div>
-          <div className="scan-status__quickGrid">
-            {(["coffee", "espresso", "cappuccino", "latte", "black tea", "green tea", "matcha"] as const).map((bev) => (
-              <div key={bev} className="scan-status__quickItem">
-                <span className="scan-status__quickLabel">
-                  {bev.charAt(0).toUpperCase() + bev.slice(1)}
-                </span>
-                <div className="scan-status__quickBtns">
-                  <button className="scan-status__quickBtn" onClick={() => quickAdd(bev, false)}>Regular</button>
-                  <button className="scan-status__quickBtn scan-status__quickBtn--decaf" onClick={() => quickAdd(bev, true)}>Decaf</button>
-                </div>
-              </div>
-            ))}
+      {/* Active scan: show status row */}
+      {mode === "scan" && step !== "idle" && (
+        <div className="scan-status__row">
+          <label className="scan-status__btn">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                e.target.value = "";
+                handleCapture(f, frontImage ? "ingredients" : "front");
+              }}
+            />
+            Scan
+          </label>
+
+          <div className="scan-status__info">
+            <div className="scan-status__checks">
+              <span>Front {frontImage ? "✓" : "—"}</span>
+              <span>Label {hasIngredients ? "✓" : "—"}</span>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Drink builder */}
+      {mode === "drink" && (
+        <DrinkBuilder
+          onAdd={handleDrinkAdd}
+          onCancel={() => setMode("idle")}
+        />
+      )}
+
+      {/* Scan count */}
+      {scanCount > 0 && mode === "idle" && step === "idle" && (
+        <div className="scan-status__count">
+          {scanCount} item{scanCount !== 1 ? "s" : ""} added today
         </div>
       )}
 
@@ -470,7 +506,7 @@ export default function ScanSection({ onScanComplete }: Props) {
       )}
 
       {/* Persisted scan history (shows even after tab switch) */}
-      {step !== "done" && todayScans.length > 0 && !showQuickAdd && (
+      {step !== "done" && todayScans.length > 0 && mode === "idle" && (
         <div className="scan-status__history">
           {todayScans.slice().reverse().slice(0, 5).map((s, i) => (
             <div className="scan-status__historyRow" key={`${s.ts}-${i}`}>
