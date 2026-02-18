@@ -70,6 +70,7 @@ function stripHtml(html: string): string {
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
     .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
+    .replace(/<header[\s\S]*?<\/header>/gi, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
@@ -79,6 +80,36 @@ function stripHtml(html: string): string {
     .replace(/&#\d+;/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Extract just the product-relevant section from full page text. */
+function extractProductSection(fullText: string): string {
+  const markers = [
+    /samenstelling/i, /supplement\s*facts/i, /nutrition\s*facts/i,
+    /ingredients/i, /ingredi[eë]nten/i, /productinformatie/i,
+    /beschrijving/i, /composition/i, /zusammensetzung/i,
+    /per\s+(?:dag)?dosering/i, /per\s+serving/i, /% RI/i, /% DV/i,
+  ];
+
+  let bestIdx = -1;
+  for (const re of markers) {
+    const m = fullText.search(re);
+    if (m !== -1 && (bestIdx === -1 || m < bestIdx)) {
+      bestIdx = m;
+    }
+  }
+
+  // Take product name from the beginning (first ~400 chars) + the nutrition section
+  const header = fullText.slice(0, 400);
+
+  if (bestIdx !== -1) {
+    const start = Math.max(0, bestIdx - 100);
+    const section = fullText.slice(start, start + 3000);
+    return (header + "\n\n" + section).slice(0, 3500);
+  }
+
+  // No markers found — send the first 3500 chars
+  return fullText.slice(0, 3500);
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -102,11 +133,11 @@ export default async function handler(req: Request): Promise<Response> {
       return jsonResp({ ok: false, error: "A valid URL starting with http(s):// is required" });
     }
 
-    /* ── Step 1: Fetch the page (max 8s) ── */
+    /* ── Step 1: Fetch the page (max 6s) ── */
     let pageText: string;
     try {
       const ac = new AbortController();
-      const timer = setTimeout(() => ac.abort(), 8_000);
+      const timer = setTimeout(() => ac.abort(), 6_000);
       const pageRes = await fetch(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -123,7 +154,8 @@ export default async function handler(req: Request): Promise<Response> {
       }
 
       const html = await pageRes.text();
-      pageText = stripHtml(html).slice(0, 8_000);
+      const fullText = stripHtml(html);
+      pageText = extractProductSection(fullText);
     } catch (e: any) {
       return jsonResp({
         ok: false,
@@ -137,7 +169,7 @@ export default async function handler(req: Request): Promise<Response> {
       return jsonResp({ ok: false, error: "Page returned very little text." });
     }
 
-    /* ── Step 2: Extract with OpenAI (max 14s) ── */
+    /* ── Step 2: Extract with OpenAI (max 16s) ── */
     const system = [
       "Extract supplement data from webpage text. Return JSON matching the schema.",
       "Map Dutch/German: IJzer=Iron, Zink=Zinc, Foliumzuur=Folate, Jodium=Iodine, Koper=Copper, Chroom=Chromium, Seleen/Selenium=Selenium, Mangaan=Manganese, Kalium=Potassium, Biotine=Biotin, Vitamine=Vitamin. mcg→µg.",
@@ -145,7 +177,7 @@ export default async function handler(req: Request): Promise<Response> {
     ].join("\n");
 
     const ac2 = new AbortController();
-    const timer2 = setTimeout(() => ac2.abort(), 14_000);
+    const timer2 = setTimeout(() => ac2.abort(), 16_000);
     try {
       const r = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
