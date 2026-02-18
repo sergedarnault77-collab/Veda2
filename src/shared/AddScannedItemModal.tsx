@@ -93,9 +93,10 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     });
   }, [initialItem]);
 
+  const [submitting, setSubmitting] = useState(false);
   const hasIngredients = ingredientsImages.length > 0;
   const canScanIngredients = !!frontImage;
-  const canConfirm = !!name.trim() && !!frontImage && parseStatus !== "parsing";
+  const canConfirm = !!name.trim() && !!frontImage && parseStatus !== "parsing" && !submitting;
 
   const title = isEdit
     ? (kind === "med" ? "Edit medication" : "Edit supplement")
@@ -173,7 +174,8 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
   const needsRescan = parsedItem?.meta?.needsRescan === true;
 
   const confirm = () => {
-    if (!canConfirm) return;
+    if (!canConfirm || submitting) return;
+    setSubmitting(true);
     const nowISO = new Date().toISOString();
     const item: ScannedItem = {
       displayName: name.trim(),
@@ -357,7 +359,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
             onClick={confirm}
             disabled={!canConfirm}
           >
-            {parseStatus === "parsing" ? "Reading…" : confirmLabel}
+            {submitting ? "Adding…" : parseStatus === "parsing" ? "Reading label…" : confirmLabel}
           </button>
         </div>
 
