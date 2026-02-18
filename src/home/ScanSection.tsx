@@ -34,6 +34,7 @@ type StoredScan = {
   detectedSummary: string;
   ts: number;
   exposure?: ScanExposure;
+  nutrients?: any[];
 };
 
 type StoredScansDay = {
@@ -52,9 +53,11 @@ function loadScans(): StoredScansDay {
   return { date: todayStr(), scans: [] };
 }
 
-function persistScan(name: string, summary: string, exposure?: ScanExposure) {
+function persistScan(name: string, summary: string, exposure?: ScanExposure, nutrients?: any[]) {
   const day = loadScans();
-  day.scans.push({ productName: name, detectedSummary: summary, ts: Date.now(), exposure });
+  const entry: StoredScan = { productName: name, detectedSummary: summary, ts: Date.now(), exposure };
+  if (nutrients && nutrients.length > 0) entry.nutrients = nutrients;
+  day.scans.push(entry);
   saveLS(SCANS_KEY, day);
   return day;
 }
@@ -303,8 +306,41 @@ export default function ScanSection({ onScanComplete }: Props) {
     const summaryStr = ents.slice(0, 4).join(", ") + (ents.length > 4 ? ` +${ents.length - 4} more` : "");
 
     const exposure = extractExposureFromScan(scanResult);
-    const day = persistScan(productName, summaryStr, exposure);
+    const day = persistScan(productName, summaryStr, exposure, scanResult.nutrients);
     setTodayScans(day.scans);
+
+    // If the scan has real nutrients, also save as a supplement and auto-mark taken
+    const realNutrients = scanResult.nutrients.filter(
+      (n: any) => n?.nutrientId && n?.name && typeof n?.amountToday === "number"
+    );
+    if (realNutrients.length > 0) {
+      const suppId = Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
+      const newSupp = {
+        id: suppId,
+        displayName: scanResult.productName,
+        brand: result?.normalized?.brand ?? null,
+        nutrients: realNutrients,
+        ingredientsList: ents,
+        detectedEntities: ents,
+        form: result?.normalized?.form ?? null,
+        createdAtISO: new Date().toISOString(),
+      };
+      const supps = loadLS<any[]>("veda.supps.v1", []);
+      supps.push(newSupp);
+      saveLS("veda.supps.v1", supps);
+
+      // Auto-mark as taken today
+      const takenRaw = loadLS<any>("veda.supps.taken.v1", null);
+      const todayDate = todayStr();
+      let flags: Record<string, boolean> = {};
+      if (takenRaw && typeof takenRaw === "object") {
+        if (takenRaw.date === todayDate) flags = takenRaw.flags || {};
+      }
+      flags[suppId] = true;
+      saveLS("veda.supps.taken.v1", { date: todayDate, flags });
+
+      window.dispatchEvent(new Event("veda:supps-updated"));
+    }
 
     onScanComplete?.(scanResult);
   }
@@ -348,7 +384,7 @@ export default function ScanSection({ onScanComplete }: Props) {
 
     const drinkResult = { productName: pName, categories: cats, nutrients, detectedEntities: ents };
     const exposure = extractExposureFromScan(drinkResult);
-    const day = persistScan(pName, summaryStr, exposure);
+    const day = persistScan(pName, summaryStr, exposure, nutrients);
     setTodayScans(day.scans);
     setMode("idle");
 
@@ -395,7 +431,7 @@ export default function ScanSection({ onScanComplete }: Props) {
 
       const urlResult = { productName: pName, categories: cats, nutrients, detectedEntities: ents };
       const exposure = extractExposureFromScan(urlResult);
-      const day = persistScan(pName, summaryStr || "from URL", exposure);
+      const day = persistScan(pName, summaryStr || "from URL", exposure, nutrients);
       setTodayScans(day.scans);
 
       setMode("idle");

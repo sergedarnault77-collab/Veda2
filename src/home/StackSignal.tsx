@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { NutrientRow } from "./stubs";
 import { loadLS } from "../lib/persist";
 import ContextPanel from "../shared/ContextPanel";
@@ -8,6 +8,7 @@ import "./StackSignal.css";
 const SUPPS_KEY = "veda.supps.v1";
 const MEDS_KEY = "veda.meds.v1";
 const TAKEN_KEY = "veda.supps.taken.v1";
+const SCANS_KEY = "veda.scans.today.v1";
 
 function loadTakenFlags(): Record<string, boolean> {
   const raw = (typeof window !== "undefined") ? localStorage.getItem(TAKEN_KEY) : null;
@@ -30,6 +31,11 @@ interface StackSignalData {
   explanation: string;
 }
 
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function loadAllNutrients(): { nutrients: Map<string, NutrientRow>; suppNames: string[]; medNames: string[] } {
   const taken = loadTakenFlags();
   const supps = loadLS<any[]>(SUPPS_KEY, []).filter((s) => s?.id && taken[s.id]);
@@ -39,31 +45,33 @@ function loadAllNutrients(): { nutrients: Map<string, NutrientRow>; suppNames: s
   const suppNames: string[] = [];
   const medNames: string[] = [];
 
+  const addToMap = (n: NutrientRow, sourceName: string) => {
+    if (!n?.nutrientId) return;
+    const existing = map.get(n.nutrientId);
+    if (existing) {
+      existing.amountToday += n.amountToday;
+      existing.sources.push(sourceName);
+    } else {
+      map.set(n.nutrientId, { ...n, sources: [sourceName] });
+    }
+  };
+
   for (const s of supps) {
     suppNames.push(s.displayName || "Supplement");
-    for (const n of (s.nutrients || []) as NutrientRow[]) {
-      if (!n?.nutrientId) continue;
-      const existing = map.get(n.nutrientId);
-      if (existing) {
-        existing.amountToday += n.amountToday;
-        existing.sources.push(s.displayName || "Supplement");
-      } else {
-        map.set(n.nutrientId, { ...n, sources: [s.displayName || "Supplement"] });
-      }
-    }
+    for (const n of (s.nutrients || []) as NutrientRow[]) addToMap(n, s.displayName || "Supplement");
   }
 
   for (const m of meds) {
     medNames.push(m.displayName || "Medication");
-    for (const n of (m.nutrients || []) as NutrientRow[]) {
-      if (!n?.nutrientId) continue;
-      const existing = map.get(n.nutrientId);
-      if (existing) {
-        existing.amountToday += n.amountToday;
-        existing.sources.push(m.displayName || "Medication");
-      } else {
-        map.set(n.nutrientId, { ...n, sources: [m.displayName || "Medication"] });
-      }
+    for (const n of (m.nutrients || []) as NutrientRow[]) addToMap(n, m.displayName || "Medication");
+  }
+
+  // Also include nutrients from today's scans (catches items not yet in supps list)
+  const scansRaw = loadLS<any>(SCANS_KEY, null);
+  if (scansRaw && scansRaw.date === todayStr() && Array.isArray(scansRaw.scans)) {
+    for (const scan of scansRaw.scans) {
+      if (!Array.isArray(scan.nutrients)) continue;
+      for (const n of scan.nutrients as NutrientRow[]) addToMap(n, scan.productName || "Scanned item");
     }
   }
 
@@ -150,7 +158,20 @@ const STATE_CONFIG: Record<SignalState, { label: string; color: string; bg: stri
 };
 
 export default function StackSignal() {
-  const signal = useMemo(() => computeSignal(), []);
+  const [ver, setVer] = useState(0);
+
+  useEffect(() => {
+    const bump = () => setVer((v) => v + 1);
+    window.addEventListener("veda:synced", bump);
+    window.addEventListener("veda:supps-updated", bump);
+    return () => {
+      window.removeEventListener("veda:synced", bump);
+      window.removeEventListener("veda:supps-updated", bump);
+    };
+  }, []);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const signal = useMemo(() => computeSignal(), [ver]);
   const cfg = STATE_CONFIG[signal.state];
   const [explainSignal, setExplainSignal] = useState<ExplainSignal | null>(null);
 

@@ -77,12 +77,16 @@ export function StackCoverage() {
   const [stackInsight, setStackInsight] = useState<ItemInsights | null>(null);
 
   useEffect(() => {
-    const onSync = () => {
+    const refresh = () => {
       setSupps(loadSupps());
       setTaken(loadTakenToday());
     };
-    window.addEventListener("veda:synced", onSync);
-    return () => window.removeEventListener("veda:synced", onSync);
+    window.addEventListener("veda:synced", refresh);
+    window.addEventListener("veda:supps-updated", refresh);
+    return () => {
+      window.removeEventListener("veda:synced", refresh);
+      window.removeEventListener("veda:supps-updated", refresh);
+    };
   }, []);
 
   const toggle = useCallback((id: string) => {
