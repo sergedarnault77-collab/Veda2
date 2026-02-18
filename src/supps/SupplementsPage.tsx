@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import type { ScannedItem, ItemInsights } from "../shared/AddScannedItemModal";
@@ -68,6 +68,10 @@ async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
 export default function SupplementsPage() {
   const [items, setItems] = useState<Supp[]>(() => loadLS<Supp[]>(LS_KEY, []));
   const [showAdd, setShowAdd] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlValue, setUrlValue] = useState("");
+  const [urlLoading, setUrlLoading] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
 
   const persistUpdate = (updater: (prev: Supp[]) => Supp[]) => {
@@ -110,6 +114,59 @@ export default function SupplementsPage() {
     persistUpdate((prev) => prev.filter((x) => x.id !== rid));
   };
 
+  const submitUrl = useCallback(async () => {
+    const trimmed = urlValue.trim();
+    if (!trimmed) return;
+    setUrlError(null);
+    setUrlLoading(true);
+    try {
+      const res = await fetch("/api/parse-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      const json = await res.json();
+      if (!json?.ok) {
+        setUrlError(json?.error || "Could not extract supplement data from that URL.");
+        return;
+      }
+
+      const item: ScannedItem = {
+        displayName: json.productName || "Supplement (from URL)",
+        brand: json.brand || null,
+        form: json.form || null,
+        strengthPerUnit: null,
+        strengthUnit: null,
+        servingSizeText: json.servingSizeText || null,
+        rawTextHints: [trimmed],
+        confidence: 0.7,
+        mode: "openai",
+        frontImage: null,
+        ingredientsImage: null,
+        ingredientsImages: [],
+        labelTranscription: null,
+        nutrients: (json.nutrients || []).filter(
+          (n: any) => n && typeof n.nutrientId === "string" && typeof n.amountToday === "number",
+        ),
+        ingredientsDetected: [],
+        ingredientsList: json.ingredientsList || [],
+        ingredientsCount: (json.ingredientsList || []).length,
+        insights: null,
+        meta: { transcriptionConfidence: 0.7, needsRescan: false, rescanHint: null },
+        createdAtISO: new Date().toISOString(),
+      };
+
+      addSupp(item);
+      setShowUrlInput(false);
+      setUrlValue("");
+      setUrlError(null);
+    } catch {
+      setUrlError("Network error. Check your connection and try again.");
+    } finally {
+      setUrlLoading(false);
+    }
+  }, [urlValue]);
+
   const editingItem = useMemo(() => {
     if (!editId) return null;
     const found = items.find((x) => x.id === editId);
@@ -123,9 +180,17 @@ export default function SupplementsPage() {
           <h1>Your supplements</h1>
           <p>Maintain your supplements here. We'll show overlap and interaction flags within this stack.</p>
         </div>
-        <button className="supps-page__add" onClick={() => setShowAdd(true)}>
-          + Add
-        </button>
+        <div className="supps-page__actions">
+          <button className="supps-page__add" onClick={() => setShowAdd(true)}>
+            + Scan
+          </button>
+          <button
+            className="supps-page__add supps-page__add--url"
+            onClick={() => { setShowUrlInput(true); setUrlError(null); }}
+          >
+            + URL
+          </button>
+        </div>
       </div>
 
       {items.length === 0 ? (
@@ -275,6 +340,65 @@ export default function SupplementsPage() {
           onClose={() => setEditId(null)}
           onConfirm={(item) => saveEdit(item)}
         />
+      )}
+
+      {showUrlInput && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card supps-url-modal">
+            <button
+              className="modal-close"
+              onClick={() => { setShowUrlInput(false); setUrlError(null); }}
+              aria-label="Close"
+            >
+              ×
+            </button>
+
+            <h2>Add from URL</h2>
+            <p className="modal-sub">
+              Paste a product page URL and we'll extract the supplement facts.
+            </p>
+
+            <label className="modal-label">Product URL</label>
+            <input
+              className="modal-input"
+              type="url"
+              placeholder="https://..."
+              value={urlValue}
+              onChange={(e) => setUrlValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !urlLoading) submitUrl(); }}
+              disabled={urlLoading}
+              autoFocus
+            />
+
+            {urlError && (
+              <div className="supps-url-modal__error">{urlError}</div>
+            )}
+
+            {urlLoading && (
+              <div className="supps-url-modal__loading">
+                <div className="supps-url-modal__spinner" />
+                Fetching and analyzing page…
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button
+                className="btn btn--secondary"
+                onClick={() => { setShowUrlInput(false); setUrlError(null); }}
+                disabled={urlLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn--primary"
+                onClick={submitUrl}
+                disabled={urlLoading || !urlValue.trim()}
+              >
+                {urlLoading ? "Extracting…" : "Add supplement"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
