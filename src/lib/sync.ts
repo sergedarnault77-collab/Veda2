@@ -124,18 +124,35 @@ export async function pullAll(): Promise<boolean> {
           localData !== null &&
           !Array.isArray(localData)
         ) {
+          // Date-based objects (exposure, scans): compare dates to pick correct base
+          const today = new Date().toISOString().slice(0, 10);
+          const serverDate = server.data.date;
+          const localDate = localData.date;
+
+          if (serverDate === today && localDate !== today) {
+            // Server has today's data, local is stale — server wins
+            localStorage.setItem(lsKey, JSON.stringify(server.data));
+            continue;
+          }
+
           const merged = { ...server.data, ...localData };
 
-          // For nested arrays (e.g. scans.scans), merge rather than overwrite
           for (const key of Object.keys(server.data)) {
-            if (Array.isArray(server.data[key]) && Array.isArray(localData[key])) {
-              const localArr = localData[key] as any[];
-              const serverArr = server.data[key] as any[];
-              const localTs = new Set(localArr.map((x: any) => x?.ts || JSON.stringify(x)));
-              const extras = serverArr.filter((x: any) => !localTs.has(x?.ts || JSON.stringify(x)));
+            const sv = server.data[key];
+            const lv = localData[key];
+
+            // Nested arrays: merge by dedup
+            if (Array.isArray(sv) && Array.isArray(lv)) {
+              const localIds = new Set(lv.map((x: any) => x?.ts || JSON.stringify(x)));
+              const extras = sv.filter((x: any) => !localIds.has(x?.ts || JSON.stringify(x)));
               if (extras.length > 0) {
-                merged[key] = [...localArr, ...extras];
+                merged[key] = [...lv, ...extras];
               }
+            }
+
+            // Numeric fields: take the higher value (accumulated totals)
+            if (typeof sv === "number" && typeof lv === "number") {
+              merged[key] = Math.max(sv, lv);
             }
           }
 
