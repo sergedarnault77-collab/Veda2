@@ -44,12 +44,12 @@
   color: #fff;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(124, 108, 240, 0.2);
+  box-shadow: 0 4px 12px rgba(46, 91, 255, 0.2);
   transition: box-shadow 0.2s, transform 0.15s;
 }
 
 .supps-page__add:hover {
-  box-shadow: 0 6px 20px rgba(124, 108, 240, 0.3);
+  box-shadow: 0 6px 20px rgba(46, 91, 255, 0.3);
   transform: translateY(-1px);
 }
 
@@ -257,7 +257,7 @@
   margin-top: 12px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.10);
-  background: rgba(108, 92, 231, 0.08);
+  background: rgba(31, 58, 95, 0.08);
   padding: 10px 10px 8px;
 }
 
@@ -347,8 +347,8 @@
   padding: 3px 8px;
   border-radius: 999px;
   font-size: 11px;
-  background: rgba(108, 92, 231, 0.12);
-  border: 1px solid rgba(108, 92, 231, 0.22);
+  background: rgba(31, 58, 95, 0.12);
+  border: 1px solid rgba(31, 58, 95, 0.22);
   white-space: nowrap;
 }
 
@@ -358,8 +358,8 @@
   margin-top: 10px;
   padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(108, 92, 231, 0.28);
-  background: rgba(108, 92, 231, 0.06);
+  border: 1px solid rgba(31, 58, 95, 0.28);
+  background: rgba(31, 58, 95, 0.06);
 }
 
 .item-insights__title {

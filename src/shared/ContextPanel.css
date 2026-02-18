@@ -63,7 +63,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--veda-accent, #6c5ce7);
+  color: var(--veda-accent, #2E5BFF);
   margin: 0 0 6px;
 }
 
@@ -87,7 +87,7 @@
   width: 18px;
   height: 18px;
   border: 2px solid rgba(255, 255, 255, 0.15);
-  border-top-color: var(--veda-accent, #6c5ce7);
+  border-top-color: var(--veda-accent, #2E5BFF);
   border-radius: 50%;
   animation: ctx-spin 0.7s linear infinite;
 }
@@ -145,7 +145,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--veda-accent, #6c5ce7);
+  background: var(--veda-accent, #2E5BFF);
   opacity: 0.6;
 }
 

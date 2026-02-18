@@ -63,7 +63,7 @@
   letter-spacing: 0.04em;
   padding: 2px 10px;
   border-radius: 999px;
-  background: rgba(108, 92, 231, 0.15);
+  background: rgba(31, 58, 95, 0.15);
   color: var(--veda-accent-light, #a899f7);
 }
 
@@ -118,8 +118,8 @@
 }
 
 .buy-sheet__row:hover {
-  background: rgba(108, 92, 231, 0.1);
-  border-color: rgba(108, 92, 231, 0.25);
+  background: rgba(31, 58, 95, 0.1);
+  border-color: rgba(31, 58, 95, 0.25);
 }
 
 .buy-sheet__icon {

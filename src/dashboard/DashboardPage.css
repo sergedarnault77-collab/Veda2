@@ -97,8 +97,8 @@
 }
 
 .day__slot-icon--moon {
-  background: linear-gradient(135deg, #7c6cf0, #a29bfe);
-  box-shadow: 0 0 8px rgba(124, 108, 240, 0.3);
+  background: linear-gradient(135deg, #2E5BFF, #5a80ff);
+  box-shadow: 0 0 8px rgba(46, 91, 255, 0.3);
 }
 
 .day__slot-label {
@@ -178,9 +178,9 @@
   justify-content: center;
   font-size: 0.78rem;
   font-weight: 700;
-  background: linear-gradient(135deg, rgba(124, 108, 240, 0.25), rgba(162, 155, 254, 0.12));
+  background: linear-gradient(135deg, rgba(46, 91, 255, 0.25), rgba(90, 128, 255, 0.12));
   color: var(--veda-accent-light);
-  border: 1px solid rgba(124, 108, 240, 0.2);
+  border: 1px solid rgba(46, 91, 255, 0.2);
 }
 
 .overlap__body {
@@ -235,8 +235,8 @@
 }
 
 .timing__dot--evening {
-  background: #7c6cf0;
-  box-shadow: 0 0 6px rgba(124, 108, 240, 0.35);
+  background: #2E5BFF;
+  box-shadow: 0 0 6px rgba(46, 91, 255, 0.35);
 }
 
 .timing__text {

@@ -12,7 +12,7 @@
   font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--veda-accent), #a29bfe);
+  background: linear-gradient(135deg, var(--veda-accent), #5a80ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -121,7 +121,7 @@
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, var(--veda-accent), var(--veda-accent-light));
-  box-shadow: 0 4px 16px rgba(124, 108, 240, 0.25);
+  box-shadow: 0 4px 16px rgba(46, 91, 255, 0.25);
   border: none;
   border-radius: var(--radius-lg);
   cursor: pointer;

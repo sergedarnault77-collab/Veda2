@@ -130,7 +130,7 @@
   padding: 12px 14px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--veda-border-accent);
-  background: rgba(124, 108, 240, 0.04);
+  background: rgba(46, 91, 255, 0.04);
 }
 
 .coverage__insight-title {

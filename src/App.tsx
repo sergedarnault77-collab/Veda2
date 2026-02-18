@@ -218,8 +218,8 @@ function AccountBar({
           borderRadius: "50%",
           border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)"}`,
           background: theme === "dark"
-            ? "linear-gradient(135deg, rgba(124,108,240,0.3), rgba(162,155,254,0.15))"
-            : "linear-gradient(135deg, rgba(108,92,231,0.2), rgba(108,92,231,0.08))",
+            ? "linear-gradient(135deg, rgba(46,91,255,0.3), rgba(90,128,255,0.15))"
+            : "linear-gradient(135deg, rgba(46,91,255,0.2), rgba(46,91,255,0.08))",
           color: theme === "dark" ? "#fff" : "#1a1a2e",
           fontWeight: 700,
           fontSize: "0.82rem",
@@ -227,7 +227,7 @@ function AccountBar({
           alignItems: "center",
           justifyContent: "center",
           cursor: "pointer",
-          boxShadow: theme === "dark" ? "0 4px 16px rgba(0,0,0,0.3)" : "0 4px 16px rgba(0,0,0,0.08)",
+          boxShadow: theme === "dark" ? "0 4px 16px rgba(0,0,0,0.35)" : "0 4px 16px rgba(0,0,0,0.08)",
         }}
         aria-label="Account"
       >
@@ -244,7 +244,7 @@ function AccountBar({
             width: 260,
             padding: "20px",
             borderRadius: 20,
-            background: theme === "dark" ? "rgba(16,16,38,0.92)" : "rgba(255,255,255,0.95)",
+            background: theme === "dark" ? "rgba(11,16,32,0.94)" : "rgba(255,255,255,0.95)",
             border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}`,
             boxShadow: theme === "dark" ? "0 16px 48px rgba(0,0,0,0.6)" : "0 16px 48px rgba(0,0,0,0.12)",
             backdropFilter: "blur(20px)",

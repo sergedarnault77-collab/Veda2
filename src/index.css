@@ -9,30 +9,30 @@
 }
 
 :root {
-  /* palette — deep navy dashboard */
-  --veda-bg: #0c0c1d;
-  --veda-bg-gradient: linear-gradient(145deg, #0c0c1d 0%, #12122a 50%, #0e0e20 100%);
-  --veda-surface: rgba(20, 20, 45, 0.65);
-  --veda-surface-solid: #16163a;
-  --veda-surface-hover: #1e1e48;
-  --veda-border: rgba(255, 255, 255, 0.06);
-  --veda-border-accent: rgba(108, 92, 231, 0.25);
-  --veda-text: #eaeaf4;
-  --veda-text-muted: #8a8ab0;
-  --veda-accent: #7c6cf0;
-  --veda-accent-light: #a29bfe;
-  --veda-accent-glow: rgba(124, 108, 240, 0.2);
+  /* palette — royal blue & dutch orange */
+  --veda-bg: #0B1020;
+  --veda-bg-gradient: linear-gradient(145deg, #0B1020 0%, #101830 50%, #0D1225 100%);
+  --veda-surface: rgba(18, 26, 47, 0.7);
+  --veda-surface-solid: #121A2F;
+  --veda-surface-hover: #1a2540;
+  --veda-border: rgba(255, 255, 255, 0.07);
+  --veda-border-accent: rgba(46, 91, 255, 0.25);
+  --veda-text: #E8EBF2;
+  --veda-text-muted: #9AA4BF;
+  --veda-accent: #2E5BFF;
+  --veda-accent-light: #5a80ff;
+  --veda-accent-glow: rgba(46, 91, 255, 0.2);
 
   /* status colors */
   --veda-red: #f06292;
-  --veda-orange: #ffb74d;
+  --veda-orange: #FF8C1A;
   --veda-green: #66bb6a;
   --veda-magenta: #e056a0;
 
-  /* exposure bar fills — softer gradient tones */
-  --bar-sugar: #ffa726;
+  /* exposure bar fills */
+  --bar-sugar: #FF8C1A;
   --bar-sweetener: #ab47bc;
-  --bar-calorie: #42a5f5;
+  --bar-calorie: #2E5BFF;
   --bar-caffeine: #26c6da;
 
   /* typography */
@@ -59,12 +59,12 @@
   --veda-surface-solid: #ffffff;
   --veda-surface-hover: #f0effa;
   --veda-border: rgba(0, 0, 0, 0.08);
-  --veda-border-accent: rgba(108, 92, 231, 0.2);
+  --veda-border-accent: rgba(31, 58, 95, 0.2);
   --veda-text: #1a1a2e;
   --veda-text-muted: #6b6b8a;
-  --veda-accent: #6c5ce7;
-  --veda-accent-light: #8b7cf6;
-  --veda-accent-glow: rgba(108, 92, 231, 0.15);
+  --veda-accent: #2E5BFF;
+  --veda-accent-light: #5a80ff;
+  --veda-accent-glow: rgba(46, 91, 255, 0.15);
 
   --veda-red: #d84374;
   --veda-orange: #e8920a;
@@ -172,19 +172,19 @@ button {
 }
 
 [data-theme="light"] .scan-status__tile:hover {
-  background: rgba(108, 92, 231, 0.06);
-  border-color: rgba(108, 92, 231, 0.2);
+  background: rgba(31, 58, 95, 0.06);
+  border-color: rgba(31, 58, 95, 0.2);
 }
 
 [data-theme="light"] .scan-status__tile--primary {
-  background: linear-gradient(135deg, rgba(108, 92, 231, 0.1), rgba(108, 92, 231, 0.04));
-  border-color: rgba(108, 92, 231, 0.25);
-  box-shadow: 0 0 12px rgba(108, 92, 231, 0.08);
+  background: linear-gradient(135deg, rgba(31, 58, 95, 0.1), rgba(31, 58, 95, 0.04));
+  border-color: rgba(31, 58, 95, 0.25);
+  box-shadow: 0 0 12px rgba(46, 91, 255, 0.08);
 }
 
 [data-theme="light"] .scan-status__tile--primary:hover {
-  background: linear-gradient(135deg, rgba(108, 92, 231, 0.16), rgba(108, 92, 231, 0.06));
-  box-shadow: 0 0 18px rgba(108, 92, 231, 0.12);
+  background: linear-gradient(135deg, rgba(31, 58, 95, 0.16), rgba(31, 58, 95, 0.06));
+  box-shadow: 0 0 18px rgba(46, 91, 255, 0.12);
 }
 
 /* Buttons — secondary / outline */
@@ -202,8 +202,8 @@ button {
 
 /* Caffeine follow-up */
 [data-theme="light"] .scan-status__caffeineQ {
-  background: rgba(108, 92, 231, 0.05);
-  border-color: rgba(108, 92, 231, 0.15);
+  background: rgba(31, 58, 95, 0.05);
+  border-color: rgba(31, 58, 95, 0.15);
 }
 
 [data-theme="light"] .scan-status__caffeineQBtn--decaf {
@@ -229,8 +229,8 @@ button {
 }
 
 [data-theme="light"] .drink-chip--selected {
-  border-color: rgba(108, 92, 231, 0.3);
-  background: rgba(108, 92, 231, 0.08);
+  border-color: rgba(31, 58, 95, 0.3);
+  background: rgba(31, 58, 95, 0.08);
 }
 
 /* Modals and sheets */
@@ -262,7 +262,7 @@ button {
 
 [data-theme="light"] .timing__dot--morning { background: #e8920a; }
 [data-theme="light"] .timing__dot--midday { background: #2088d0; }
-[data-theme="light"] .timing__dot--evening { background: #6c5ce7; }
+[data-theme="light"] .timing__dot--evening { background: #2E5BFF; }
 
 /* Auth screens */
 [data-theme="light"] .auth-card,

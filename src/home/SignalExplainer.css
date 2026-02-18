@@ -76,9 +76,9 @@
 }
 
 .explainer__why:hover {
-  background: rgba(108, 92, 231, 0.2);
+  background: rgba(31, 58, 95, 0.2);
   color: rgba(255, 255, 255, 0.85);
-  border-color: rgba(108, 92, 231, 0.4);
+  border-color: rgba(31, 58, 95, 0.4);
 }
 
 @media (min-width: 600px) {

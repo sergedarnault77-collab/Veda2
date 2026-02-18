@@ -34,20 +34,20 @@
 }
 
 .scan-status__tile:hover {
-  background: rgba(108, 92, 231, 0.08);
-  border-color: rgba(108, 92, 231, 0.25);
+  background: rgba(31, 58, 95, 0.08);
+  border-color: rgba(31, 58, 95, 0.25);
   transform: translateY(-1px);
 }
 
 .scan-status__tile--primary {
-  background: linear-gradient(135deg, rgba(108, 92, 231, 0.14), rgba(108, 92, 231, 0.05));
-  border-color: rgba(108, 92, 231, 0.4);
-  box-shadow: 0 0 12px rgba(124, 108, 240, 0.12);
+  background: linear-gradient(135deg, rgba(31, 58, 95, 0.14), rgba(31, 58, 95, 0.05));
+  border-color: rgba(31, 58, 95, 0.4);
+  box-shadow: 0 0 12px rgba(46, 91, 255, 0.12);
 }
 
 .scan-status__tile--primary:hover {
-  background: linear-gradient(135deg, rgba(108, 92, 231, 0.22), rgba(108, 92, 231, 0.1));
-  box-shadow: 0 0 18px rgba(124, 108, 240, 0.2);
+  background: linear-gradient(135deg, rgba(31, 58, 95, 0.22), rgba(31, 58, 95, 0.1));
+  box-shadow: 0 0 18px rgba(46, 91, 255, 0.2);
 }
 
 .scan-status__tile--primary .scan-status__tileIcon {
@@ -106,12 +106,12 @@
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  box-shadow: 0 4px 16px rgba(124, 108, 240, 0.25);
+  box-shadow: 0 4px 16px rgba(46, 91, 255, 0.25);
   transition: box-shadow 0.2s, transform 0.15s;
 }
 
 .scan-status__btn:hover {
-  box-shadow: 0 6px 24px rgba(124, 108, 240, 0.35);
+  box-shadow: 0 6px 24px rgba(46, 91, 255, 0.35);
   transform: translateY(-1px);
 }
 
@@ -158,7 +158,7 @@
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(124, 108, 240, 0.2);
+  box-shadow: 0 4px 16px rgba(46, 91, 255, 0.2);
 }
 
 .scan-status__frontOnly {
@@ -229,7 +229,7 @@
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(124, 108, 240, 0.2);
+  box-shadow: 0 4px 12px rgba(46, 91, 255, 0.2);
   transition: opacity 0.15s;
 }
 
@@ -296,7 +296,7 @@
   margin-top: 12px;
   padding: 14px;
   border-radius: var(--radius-lg);
-  background: rgba(124, 108, 240, 0.05);
+  background: rgba(46, 91, 255, 0.05);
   border: 1px solid var(--veda-border-accent);
 }
 
@@ -412,7 +412,7 @@
 }
 
 .scan-status__urlInput:focus {
-  border-color: rgba(124, 108, 240, 0.4);
+  border-color: rgba(46, 91, 255, 0.4);
 }
 
 .scan-status__urlInput:disabled {
