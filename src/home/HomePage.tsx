@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import StackSignal from "./StackSignal";
-import SignalExplainer from "./SignalExplainer";
 import { DailyReferenceBars } from "./DailyReferenceBars";
 import ScanSection from "./ScanSection";
 import type { ScanResult } from "./ScanSection";
@@ -166,17 +165,14 @@ export default function HomePage({ isAI = false, userName }: Props) {
           {/* 1. PRIMARY — Overall Stack Signal (hero, full width) */}
           <StackSignal />
 
-          {/* 2. SECONDARY — Why this signal */}
-          <SignalExplainer />
+          {/* 2. Scan entry (label + drink) */}
+          <ScanSection onScanComplete={handleScanComplete} />
 
           {/* 3 + 4: Exposure + Stack coverage side-by-side on tablet+ */}
           <div className="home__columns">
             <DailyReferenceBars entries={entries} />
             <StackCoverage />
           </div>
-
-          {/* 5. Scan status + scan button */}
-          <ScanSection onScanComplete={handleScanComplete} />
         </>
       ) : (
         <div className="home__freemium">
