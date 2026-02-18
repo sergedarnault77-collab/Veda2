@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { detectMarket, getRetailersForMarket, buildSearchQuery } from "../lib/retailers";
+import { detectMarket, getRetailersForMarket, getMarketLabel, buildSearchQuery } from "../lib/retailers";
 import type { Market, Retailer } from "../lib/retailers";
 import type { NutrientRow } from "../home/stubs";
 import { loadUser } from "../lib/auth";
@@ -50,10 +50,7 @@ export default function BuySheet({ productName, brand, nutrients, form, onClose 
     return { query: nameQ, isEquivalent: false, ingredientLabel: null };
   }, [productName, brand, nutrients, form]);
 
-  const marketLabel: Record<Market, string> = {
-    CH: "Switzerland", US: "United States", DE: "Germany",
-    NL: "Netherlands", EU: "Europe",
-  };
+  const label = getMarketLabel(market);
 
   return (
     <div className="buy-backdrop" onClick={onClose}>
@@ -63,7 +60,7 @@ export default function BuySheet({ productName, brand, nutrients, form, onClose 
         <div className="buy-sheet__header">
           <h3 className="buy-sheet__title">Buy / Refill</h3>
           <p className="buy-sheet__product">{productName}</p>
-          <span className="buy-sheet__market">{marketLabel[market] ?? market}</span>
+          <span className="buy-sheet__market">{label}</span>
         </div>
 
         {isEquivalent && ingredientLabel && (
