@@ -6,7 +6,6 @@ import "./DashboardPage.css";
 /* ── LocalStorage keys ── */
 const SUPPS_KEY = "veda.supps.v1";
 const MEDS_KEY = "veda.meds.v1";
-const TAKEN_KEY = "veda.supps.taken.v1";
 const SCANS_KEY = "veda.scans.today.v1";
 
 /* ── Types ── */
@@ -18,8 +17,6 @@ type SavedItem = {
   ingredientsList?: string[];
   createdAtISO?: string;
 };
-
-type TakenStore = { date: string; flags: Record<string, boolean> };
 
 type StoredScan = {
   productName: string;
@@ -72,17 +69,6 @@ function loadItems(key: string): SavedItem[] {
     }));
 }
 
-function loadTakenToday(): Record<string, boolean> {
-  const raw = loadLS<TakenStore | Record<string, boolean> | null>(TAKEN_KEY, null);
-  if (!raw) return {};
-  if (typeof (raw as TakenStore).date === "string") {
-    const store = raw as TakenStore;
-    if (store.date === todayStr()) return store.flags;
-    return {};
-  }
-  return raw as Record<string, boolean>;
-}
-
 function loadScansToday(): StoredScan[] {
   const stored = loadLS<StoredScansDay | null>(SCANS_KEY, null);
   if (stored && stored.date === todayStr()) return stored.scans;
@@ -112,7 +98,6 @@ function slotIcon(slot: TimeSlot): string {
 function buildTypicalDay(
   supps: SavedItem[],
   meds: SavedItem[],
-  taken: Record<string, boolean>,
   scans: StoredScan[],
 ): DayChip[] {
   const nutrientSources = new Map<string, { name: string; sources: Set<string>; slots: Set<TimeSlot> }>();
@@ -136,11 +121,7 @@ function buildTypicalDay(
   };
 
   for (const supp of supps) {
-    if (!taken[supp.id]) continue;
-    const slot: TimeSlot = supp.createdAtISO
-      ? hourToSlot(new Date(supp.createdAtISO).getHours())
-      : "morning";
-    addNutrients(supp, "supplement", slot);
+    addNutrients(supp, "supplement", "morning");
   }
 
   for (const med of meds) {
@@ -205,7 +186,6 @@ function buildTypicalDay(
 function buildOverlaps(
   supps: SavedItem[],
   meds: SavedItem[],
-  taken: Record<string, boolean>,
 ): OverlapSignal[] {
   const nutrientMap = new Map<string, { name: string; sources: Set<string> }>();
 
@@ -226,7 +206,7 @@ function buildOverlaps(
   };
 
   for (const supp of supps) {
-    if (taken[supp.id]) addNutrients(supp);
+    addNutrients(supp);
   }
   for (const med of meds) {
     addNutrients(med);
@@ -249,7 +229,6 @@ function buildOverlaps(
 
 function buildTimingPatterns(
   supps: SavedItem[],
-  taken: Record<string, boolean>,
   scans: StoredScan[],
 ): TimingEntry[] {
   const entries: TimingEntry[] = [];
@@ -257,11 +236,7 @@ function buildTimingPatterns(
   const slotItems: Record<TimeSlot, string[]> = { morning: [], midday: [], evening: [] };
 
   for (const supp of supps) {
-    if (!taken[supp.id]) continue;
-    const slot: TimeSlot = supp.createdAtISO
-      ? hourToSlot(new Date(supp.createdAtISO).getHours())
-      : "morning";
-    slotItems[slot].push(supp.displayName);
+    slotItems["morning"].push(supp.displayName);
   }
 
   for (const scan of scans) {
@@ -324,13 +299,12 @@ export default function DashboardPage() {
   const data = useMemo(() => {
     const supps = loadItems(SUPPS_KEY);
     const meds = loadItems(MEDS_KEY);
-    const taken = loadTakenToday();
     const scans = loadScansToday();
 
     return {
-      chips: buildTypicalDay(supps, meds, taken, scans),
-      overlaps: buildOverlaps(supps, meds, taken),
-      timing: buildTimingPatterns(supps, taken, scans),
+      chips: buildTypicalDay(supps, meds, scans),
+      overlaps: buildOverlaps(supps, meds),
+      timing: buildTimingPatterns(supps, scans),
       hasData: supps.length > 0 || meds.length > 0 || scans.length > 0,
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
