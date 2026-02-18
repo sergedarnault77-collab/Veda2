@@ -610,9 +610,9 @@ function buildJsonSchema() {
             properties: {
               nutrientId: { type: "string" },
               name: { type: "string" },
-              unit: { type: "string", enum: ["mg", "µg", "IU", "g", "mL"] },
+              unit: { type: "string", enum: ["mg", "µg", "IU", "g", "mL", "kcal", "mcg"] },
               amountToday: { type: "number" },
-              dailyReference: { type: "number" },
+              dailyReference: { type: ["number", "null"] },
               percentLabel: { type: ["number", "null"] },
             },
           },
@@ -745,28 +745,27 @@ export default async function handler(req: Request): Promise<Response> {
         "- Return JSON matching the schema.",
       ].join("\n");
 
-      const frontOnlyPayload = {
-        model: "gpt-4o-mini",
-        input: [
-          { role: "system", content: [{ type: "input_text", text: frontOnlySystem }] },
-          { role: "user", content: [
-            { type: "input_text", text: "Identify this product from the front photo and provide known composition details:" },
-            { type: "input_image", image_url: frontImageDataUrl, detail: "high" as const },
-          ]},
-        ],
-        text: {
-          format: { type: "json_schema" as const, ...buildJsonSchema() },
-        },
-      };
-
+      /* Use Chat Completions (faster than Responses API for front-only) */
       const frontAC = new AbortController();
-      const frontTimer = setTimeout(() => frontAC.abort(), 50_000);
+      const frontTimer = setTimeout(() => frontAC.abort(), 45_000);
       let frontR: Response;
       try {
-        frontR = await fetch("https://api.openai.com/v1/responses", {
+        frontR = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-          body: JSON.stringify(frontOnlyPayload),
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: frontOnlySystem },
+              { role: "user", content: [
+                { type: "text", text: "Identify this product from the front photo and provide known composition details. Return JSON with: productName, transcription (null), transcriptionConfidence (0.3), nutrients (array of {nutrientId, name, unit, amountToday, dailyReference}), ingredientsList (string array), categories ({Sweeteners,Stimulants,Sugars,Calories,Vitamins,Minerals,Supplements,Other} each string array), detectedEntities (string array), signals (array of {type,severity,confidence,headline,explanation,relatedEntities})." },
+                { type: "image_url", image_url: { url: frontImageDataUrl, detail: "high" } },
+              ]},
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.15,
+            max_tokens: 2000,
+          }),
           signal: frontAC.signal,
         });
       } catch (abortErr: any) {
@@ -787,9 +786,9 @@ export default async function handler(req: Request): Promise<Response> {
       }
 
       const frontResp = await frontR.json().catch(() => null);
-      const frontOutText = extractOutputText(frontResp);
+      const frontOutText = frontResp?.choices?.[0]?.message?.content;
       if (!frontOutText) {
-        return new Response(JSON.stringify(stub("OpenAI: no output_text (front-only)")), {
+        return new Response(JSON.stringify(stub("OpenAI: no output (front-only)")), {
           status: 200, headers: { "content-type": "application/json" },
         });
       }

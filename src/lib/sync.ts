@@ -125,6 +125,20 @@ export async function pullAll(): Promise<boolean> {
           !Array.isArray(localData)
         ) {
           const merged = { ...server.data, ...localData };
+
+          // For nested arrays (e.g. scans.scans), merge rather than overwrite
+          for (const key of Object.keys(server.data)) {
+            if (Array.isArray(server.data[key]) && Array.isArray(localData[key])) {
+              const localArr = localData[key] as any[];
+              const serverArr = server.data[key] as any[];
+              const localTs = new Set(localArr.map((x: any) => x?.ts || JSON.stringify(x)));
+              const extras = serverArr.filter((x: any) => !localTs.has(x?.ts || JSON.stringify(x)));
+              if (extras.length > 0) {
+                merged[key] = [...localArr, ...extras];
+              }
+            }
+          }
+
           localStorage.setItem(lsKey, JSON.stringify(merged));
         }
         // For primitives/other: local wins (already set)
