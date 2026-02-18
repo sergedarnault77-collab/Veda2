@@ -96,7 +96,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
   const [submitting, setSubmitting] = useState(false);
   const hasIngredients = ingredientsImages.length > 0;
   const canScanIngredients = !!frontImage;
-  const canConfirm = !!name.trim() && !!frontImage && parseStatus !== "parsing" && !submitting;
+  const canConfirm = !!name.trim() && (!!frontImage || kind === "med") && parseStatus !== "parsing" && !submitting;
 
   const title = isEdit
     ? (kind === "med" ? "Edit medication" : "Edit supplement")
@@ -151,10 +151,13 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     }
   };
 
-  // Auto-parse when images change (front-only or front+ingredients)
+  // Auto-parse: for meds, parse immediately from front photo.
+  // For supps, wait until ingredients photos are added.
   useEffect(() => {
     if (!frontImage) return;
-    if (hasIngredients) {
+    if (kind === "med") {
+      doParseNow();
+    } else if (hasIngredients) {
       doParseNow();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -215,7 +218,11 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
         </button>
 
         <h2>{title}</h2>
-        <p className="modal-sub">Take a photo of the front, then the ingredients label if available.</p>
+        <p className="modal-sub">
+          {kind === "med"
+            ? "Take a photo of the front of the box — or type the name below."
+            : "Take a photo of the front, then the ingredients label if available."}
+        </p>
 
         <label className="modal-label">Name</label>
         <input
@@ -265,21 +272,43 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
             }}
           />
 
-          <label className="btn btn--secondary" htmlFor="front-file">
-            {frontImage ? "Re-scan product front" : "Scan product front"}
+          <label className="btn btn--primary" htmlFor="front-file">
+            {frontImage ? "Re-scan product front" : kind === "med" ? "📷 Take photo of box" : "Scan product front"}
           </label>
-          <label
-            className={`btn ${canScanIngredients ? "btn--primary" : "btn--disabled"}`}
-            htmlFor={canScanIngredients ? "ing-file" : undefined}
-            title={canScanIngredients ? "" : "Scan the front first"}
-            aria-disabled={!canScanIngredients}
-          >
-            {ingButtonLabel}
-          </label>
+
+          {kind === "med" ? (
+            /* Medications: ingredients label is optional, shown only after front photo */
+            frontImage && parseStatus !== "parsing" && (
+              <label
+                className="btn btn--secondary"
+                htmlFor="ing-file"
+                style={{ opacity: 0.8 }}
+              >
+                {hasIngredients ? `Add another label photo (${ingredientsImages.length} taken)` : "Optional: scan ingredients label"}
+              </label>
+            )
+          ) : (
+            /* Supplements: ingredients label is primary action */
+            <label
+              className={`btn ${canScanIngredients ? "btn--primary" : "btn--disabled"}`}
+              htmlFor={canScanIngredients ? "ing-file" : undefined}
+              title={canScanIngredients ? "" : "Scan the front first"}
+              aria-disabled={!canScanIngredients}
+            >
+              {ingButtonLabel}
+            </label>
+          )}
         </div>
 
-        {/* Front-only: identify without ingredients label */}
-        {frontImage && !hasIngredients && parseStatus !== "parsing" && parseStatus !== "parsed" && (
+        {/* Manual medication entry */}
+        {kind === "med" && !frontImage && (
+          <div className="modal-manual-entry">
+            <div className="modal-manual-entry__or">or type the medication name above and tap Add</div>
+          </div>
+        )}
+
+        {/* Front-only: identify without ingredients label (supplements only) */}
+        {kind !== "med" && frontImage && !hasIngredients && parseStatus !== "parsing" && parseStatus !== "parsed" && (
           <button
             className="btn btn--tertiary"
             style={{ marginTop: 6 }}

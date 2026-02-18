@@ -23,7 +23,7 @@ if (!connStr) { console.error("DATABASE_URL not set"); process.exit(1); }
 const sql = neon(connStr);
 
 const args = process.argv.slice(2);
-const limit = parseInt(args.find(a => a.startsWith("--limit="))?.split("=")[1] || "0", 10);
+const limit = parseInt(args.find(a => a.startsWith("--limit="))?.split("=")[1] || "2000", 10);
 const categoryArg = args.find(a => a.startsWith("--category="))?.split("=")[1] || "";
 
 const DEFAULT_CATEGORIES = [

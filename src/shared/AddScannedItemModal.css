@@ -228,6 +228,17 @@
   font-family: monospace;
 }
 
+/* ── Manual medication entry ── */
+.modal-manual-entry {
+  text-align: center;
+  padding: 6px 0 2px;
+}
+.modal-manual-entry__or {
+  font-size: 0.78rem;
+  opacity: 0.55;
+  font-style: italic;
+}
+
 /* ── Responsive: tablet ── */
 @media (min-width: 600px) {
   .modal-card {
