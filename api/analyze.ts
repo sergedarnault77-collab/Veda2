@@ -662,9 +662,14 @@ function buildJsonSchema() {
    ══════════════════════════════════════════════════════════ */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const result = await innerHandler(req.method ?? "GET", req.body);
-  const json = await result.json();
-  res.status(result.status).json(json);
+  try {
+    const result = await innerHandler(req.method ?? "GET", req.body);
+    const json = await result.json();
+    res.status(result.status).json(json);
+  } catch (e: any) {
+    console.error("[analyze] handler crash:", e);
+    res.status(200).json(stub(`handler error: ${String(e?.message || e).slice(0, 120)}`));
+  }
 }
 
 async function innerHandler(method: string, body: any): Promise<Response> {
@@ -881,25 +886,26 @@ async function innerHandler(method: string, body: any): Promise<Response> {
         const tAC = new AbortController();
         const tTimer = setTimeout(() => tAC.abort(), 30_000);
         try {
-          const tR = await fetch("https://api.openai.com/v1/responses", {
+          const tR = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
             body: JSON.stringify({
               model: "gpt-4o-mini",
-              input: [
-                { role: "system", content: [{ type: "input_text", text: transcribeSystem }] },
+              messages: [
+                { role: "system", content: transcribeSystem },
                 { role: "user", content: [
-                  { type: "input_text", text: `Label photo ${i + 1} of ${ingredientImages.length}:` },
-                  { type: "input_image", image_url: img, detail: "high" as const },
+                  { type: "text", text: `Label photo ${i + 1} of ${ingredientImages.length}:` },
+                  { type: "image_url", image_url: { url: img, detail: "high" } },
                 ]},
               ],
+              max_tokens: 2000,
             }),
             signal: tAC.signal,
           });
           clearTimeout(tTimer);
           if (!tR.ok) return `[Photo ${i + 1}: server error ${tR.status}]`;
           const tResp = await tR.json().catch(() => null);
-          return extractOutputText(tResp) || `[Photo ${i + 1}: no text extracted]`;
+          return tResp?.choices?.[0]?.message?.content || `[Photo ${i + 1}: no text extracted]`;
         } catch {
           clearTimeout(tTimer);
           return `[Photo ${i + 1}: timed out]`;
@@ -946,30 +952,37 @@ async function innerHandler(method: string, body: any): Promise<Response> {
       "Ingredients list: split 'Ingredients:' or 'Other ingredients:' section by commas/semicolons. Up to 80 items. Preserve original casing.",
       "",
       "Signals: 1–2 short signals. no_notable_interaction if nothing stands out.",
+      "  signal types: interaction_detected, amplification_likely, timing_conflict, no_notable_interaction, no_read",
+      "  severity: low, medium, high",
       "",
-      "Rules: No medical advice. Descriptive language only. Return JSON matching the schema.",
+      "Return JSON with these exact fields: productName (string|null), transcription (string|null), transcriptionConfidence (number 0-1),",
+      "nutrients (array of {nutrientId, name, unit, amountToday, dailyReference, percentLabel}),",
+      "ingredientsList (string array), categories ({Sweeteners,Stimulants,Sugars,Calories,Vitamins,Minerals,Supplements,Other} each string array),",
+      "detectedEntities (string array), signals (array of {type,severity,confidence,headline,explanation,relatedEntities}).",
+      "",
+      "Rules: No medical advice. Descriptive language only.",
     ].join("\n");
 
     const extractPayload = {
       model: "gpt-4o-mini",
-      input: [
-        { role: "system", content: [{ type: "input_text", text: extractSystem }] },
+      messages: [
+        { role: "system", content: extractSystem },
         { role: "user", content: [
-          { type: "input_text", text: "Front of product (read product name / brand):" },
-          { type: "input_image", image_url: frontImageDataUrl, detail: "low" as const },
-          { type: "input_text", text: `Complete label transcription from ${ingredientImages.length} photo(s):\n\n${combinedTranscription}` },
+          { type: "text", text: "Front of product (read product name / brand):" },
+          { type: "image_url", image_url: { url: frontImageDataUrl, detail: "low" as const } },
+          { type: "text", text: `Complete label transcription from ${ingredientImages.length} photo(s):\n\n${combinedTranscription}` },
         ]},
       ],
-      text: {
-        format: { type: "json_schema" as const, ...schema },
-      },
+      response_format: { type: "json_object" as const },
+      temperature: 0.15,
+      max_tokens: 3000,
     };
 
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), 40_000);
     let r: Response;
     try {
-      r = await fetch("https://api.openai.com/v1/responses", {
+      r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
         body: JSON.stringify(extractPayload),
@@ -993,9 +1006,9 @@ async function innerHandler(method: string, body: any): Promise<Response> {
     }
 
     const resp = await r.json().catch(() => null);
-    const outText = extractOutputText(resp);
+    const outText = resp?.choices?.[0]?.message?.content || extractOutputText(resp);
     if (!outText) {
-      return new Response(JSON.stringify(stub("OpenAI: no output_text")), {
+      return new Response(JSON.stringify(stub("OpenAI: no output")), {
         status: 200, headers: { "content-type": "application/json" },
       });
     }
