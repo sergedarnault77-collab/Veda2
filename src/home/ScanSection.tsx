@@ -106,7 +106,10 @@ export default function ScanSection({ onScanComplete }: Props) {
   const [added, setAdded] = useState(false);
   const [todayScans, setTodayScans] = useState<StoredScan[]>(() => loadScans().scans);
   const [caffeineQ, setCaffeineQ] = useState<CaffeineAnswer>(null);
-  const [mode, setMode] = useState<"idle" | "scan" | "drink">("idle");
+  const [mode, setMode] = useState<"idle" | "scan" | "drink" | "url">("idle");
+  const [urlValue, setUrlValue] = useState("");
+  const [urlLoading, setUrlLoading] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
@@ -287,6 +290,58 @@ export default function ScanSection({ onScanComplete }: Props) {
     onScanComplete?.({ productName: pName, categories: cats, nutrients, detectedEntities: ents });
   }
 
+  async function handleUrlSubmit() {
+    const trimmed = urlValue.trim();
+    if (!trimmed) return;
+    setUrlError(null);
+    setUrlLoading(true);
+    try {
+      const res = await fetch("/api/parse-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      let data: any;
+      try { data = await res.json(); } catch {
+        setUrlError(`Server error (HTTP ${res.status}).`);
+        return;
+      }
+      if (!data?.ok) {
+        setUrlError(data?.error || "Could not extract data from that URL.");
+        return;
+      }
+
+      const pName = data.productName || "Item (from URL)";
+      const nutrients: any[] = (data.nutrients || []).filter(
+        (n: any) => n && typeof n.nutrientId === "string" && typeof n.amountToday === "number",
+      );
+      const ingredientsList: string[] = data.ingredientsList || [];
+
+      const ents = nutrients.map((n: any) => String(n.name));
+      const summaryStr = ents.slice(0, 4).join(", ") + (ents.length > 4 ? ` +${ents.length - 4}` : "");
+
+      const day = persistScan(pName, summaryStr || "from URL");
+      setTodayScans(day.scans);
+
+      const cats: Record<string, string[]> = { Vitamins: [], Minerals: [], Supplements: [] };
+      for (const n of nutrients) {
+        const id = String(n.nutrientId || "").toLowerCase();
+        if (/vitamin/.test(id)) cats.Vitamins.push(n.name);
+        else if (/iron|zinc|magnesium|calcium|selenium|iodine|chromium|copper|manganese|potassium|phosphorus/.test(id)) cats.Minerals.push(n.name);
+        else cats.Supplements.push(n.name);
+      }
+
+      setMode("idle");
+      setUrlValue("");
+      setUrlError(null);
+      onScanComplete?.({ productName: pName, categories: cats, nutrients, detectedEntities: ents });
+    } catch (err: any) {
+      setUrlError(`Request failed: ${err?.message || "check your connection."}`);
+    } finally {
+      setUrlLoading(false);
+    }
+  }
+
   function dismiss() {
     setStep("idle");
     setFrontImage(null);
@@ -297,6 +352,8 @@ export default function ScanSection({ onScanComplete }: Props) {
     setAdded(false);
     setCaffeineQ(null);
     setMode("idle");
+    setUrlValue("");
+    setUrlError(null);
   }
 
   function scanAnother() {
@@ -309,15 +366,17 @@ export default function ScanSection({ onScanComplete }: Props) {
     setAdded(false);
     setCaffeineQ(null);
     setMode("idle");
+    setUrlValue("");
+    setUrlError(null);
   }
 
   /* -- Render -- */
 
   return (
     <section className="scan-status">
-      {/* Entry tiles — two clear paths */}
+      {/* Entry tiles — three clear paths */}
       {step === "idle" && !loading && mode === "idle" && (
-        <div className="scan-status__tiles">
+        <div className="scan-status__tiles scan-status__tiles--3">
           <label className="scan-status__tile scan-status__tile--primary">
             <input
               type="file"
@@ -343,6 +402,15 @@ export default function ScanSection({ onScanComplete }: Props) {
             <span className="scan-status__tileIcon">☕</span>
             <span className="scan-status__tileLabel">Log drink</span>
             <span className="scan-status__tileSub">Coffee, tea, matcha, energy</span>
+          </button>
+
+          <button
+            className="scan-status__tile scan-status__tile--secondary"
+            onClick={() => { setMode("url"); setUrlError(null); }}
+          >
+            <span className="scan-status__tileIcon">🔗</span>
+            <span className="scan-status__tileLabel">Paste URL</span>
+            <span className="scan-status__tileSub">Check a product online</span>
           </button>
         </div>
       )}
@@ -380,6 +448,49 @@ export default function ScanSection({ onScanComplete }: Props) {
           onAdd={handleDrinkAdd}
           onCancel={() => setMode("idle")}
         />
+      )}
+
+      {/* URL input */}
+      {mode === "url" && (
+        <div className="scan-status__urlPanel">
+          <h4 className="scan-status__urlTitle">Check a product by URL</h4>
+          <p className="scan-status__urlSub">
+            Paste a product page link to see how it interacts with your routine.
+          </p>
+          <input
+            className="scan-status__urlInput"
+            type="url"
+            placeholder="https://..."
+            value={urlValue}
+            onChange={(e) => setUrlValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !urlLoading) handleUrlSubmit(); }}
+            disabled={urlLoading}
+            autoFocus
+          />
+          {urlError && <div className="scan-status__urlError">{urlError}</div>}
+          {urlLoading && (
+            <div className="scan-status__urlLoading">
+              <div className="scan-status__urlSpinner" />
+              Fetching and analyzing…
+            </div>
+          )}
+          <div className="scan-status__urlActions">
+            <button
+              className="scan-status__addBtn"
+              onClick={handleUrlSubmit}
+              disabled={urlLoading || !urlValue.trim()}
+            >
+              {urlLoading ? "Analyzing…" : "Add to today's intake"}
+            </button>
+            <button
+              className="scan-status__dismissBtn"
+              onClick={() => { setMode("idle"); setUrlValue(""); setUrlError(null); }}
+              disabled={urlLoading}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Scan count */}
