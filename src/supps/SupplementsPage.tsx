@@ -6,6 +6,14 @@ import BuySheet from "../shared/BuySheet";
 import type { Interaction } from "../shared/InteractionWarnings";
 import type { ScannedItem, ItemInsights } from "../shared/AddScannedItemModal";
 import type { NutrientRow } from "../home/stubs";
+import { loadUser } from "../lib/auth";
+import {
+  resolveTarget,
+  getUl,
+  getNutrientMeta,
+  ageRangeToAgeBucket,
+  bioSexToSex,
+} from "../lib/nutrition";
 import "./SupplementsPage.css";
 
 type Supp = ScannedItem & { id: string; interactions?: Interaction[] };
@@ -21,14 +29,64 @@ function confLabel(c: number) {
   return "Low";
 }
 
-function pctDV(n: NutrientRow) {
-  if (n.dailyReference == null) return null;
+const UNIT_TO_REF: Record<string, "mg" | "ug" | null> = {
+  mg: "mg", ug: "ug", "µg": "ug", mcg: "ug",
+};
+
+function pctOfTarget(n: NutrientRow): { pct: number; source: "label" | "ref" } | null {
   const a = Number(n.amountToday);
-  const d = Number(n.dailyReference);
-  if (!isFinite(a) || !isFinite(d) || d <= 0) return null;
-  const pct = Math.round((a / d) * 100);
-  if (!isFinite(pct)) return null;
-  return pct;
+  if (!isFinite(a) || a <= 0) return null;
+
+  if (n.dailyReference != null) {
+    const d = Number(n.dailyReference);
+    if (isFinite(d) && d > 0) {
+      const pct = Math.round((a / d) * 100);
+      if (isFinite(pct)) return { pct, source: "label" };
+    }
+  }
+
+  const user = loadUser();
+  const sex = bioSexToSex(user?.sex ?? null);
+  const ageBucket = ageRangeToAgeBucket(user?.ageRange ?? null);
+  const refUnit = UNIT_TO_REF[n.unit] ?? null;
+  if (!refUnit) return null;
+
+  const meta = getNutrientMeta(n.nutrientId);
+  if (!meta) return null;
+
+  let amount = a;
+  if (refUnit !== meta.unit) {
+    amount = refUnit === "mg" && meta.unit === "ug" ? a * 1000 : a / 1000;
+  }
+
+  const t = resolveTarget(sex, ageBucket, n.nutrientId);
+  if (!t || t.target <= 0) return null;
+  const pct = Math.round((amount / t.target) * 100);
+  return isFinite(pct) ? { pct, source: "ref" } : null;
+}
+
+function ulFlag(n: NutrientRow): "exceeds" | "approaching" | null {
+  const refUnit = UNIT_TO_REF[n.unit] ?? null;
+  if (!refUnit) return null;
+  const meta = getNutrientMeta(n.nutrientId);
+  if (!meta) return null;
+  const ulObj = getUl(n.nutrientId);
+  if (!ulObj || ulObj.ul == null || ulObj.applies_to === "no_ul") return null;
+
+  let amount = Number(n.amountToday);
+  if (refUnit !== meta.unit) {
+    amount = refUnit === "mg" && meta.unit === "ug" ? amount * 1000 : amount / 1000;
+  }
+  if (amount > ulObj.ul) return "exceeds";
+  if (amount >= ulObj.ul * 0.8) return "approaching";
+  return null;
+}
+
+function pctColor(pct: number, ul: "exceeds" | "approaching" | null): string {
+  if (ul === "exceeds") return "var(--veda-red, #e74c3c)";
+  if (ul === "approaching") return "var(--veda-orange, #FF8C1A)";
+  if (pct > 200) return "var(--veda-red, #e74c3c)";
+  return "var(--veda-text-muted)";
 }
 
 function riskColor(risk: string) {
@@ -301,19 +359,40 @@ export default function SupplementsPage() {
                     <div className="supp-nutrients__grid">
                       {nutrients
                         .slice()
-                        .sort((a, b) => (pctDV(b) ?? -1) - (pctDV(a) ?? -1))
+                        .sort((a, b) => {
+                          const pa = pctOfTarget(a);
+                          const pb = pctOfTarget(b);
+                          return (pb?.pct ?? -1) - (pa?.pct ?? -1);
+                        })
                         .slice(0, 6)
                         .map((n) => {
-                          const pct = pctDV(n);
+                          const ref = pctOfTarget(n);
+                          const ul = ulFlag(n);
                           return (
                             <div className="supp-nutrients__row" key={`${n.nutrientId}-${n.name}`}>
-                              <div className="supp-nutrients__name" title={n.name}>{n.name}</div>
+                              <div className="supp-nutrients__name" title={n.name}>
+                                {n.name}
+                                {ul && (
+                                  <span
+                                    className="supp-nutrients__ul-flag"
+                                    style={{ color: ul === "exceeds" ? "var(--veda-red, #e74c3c)" : "var(--veda-orange, #FF8C1A)" }}
+                                  >
+                                    {ul === "exceeds" ? " ⚠ exceeds UL" : " ↑ near UL"}
+                                  </span>
+                                )}
+                              </div>
                               <div className="supp-nutrients__amt">{n.amountToday}{n.unit}</div>
-                              <div className="supp-nutrients__pct">{pct === null ? "" : `${pct}%`}</div>
+                              <div
+                                className="supp-nutrients__pct"
+                                style={ref ? { color: pctColor(ref.pct, ul) } : undefined}
+                              >
+                                {ref ? `${ref.pct}%` : ""}
+                              </div>
                             </div>
                           );
                         })}
                     </div>
+                    <div className="supp-nutrients__source">From supplements</div>
                     {nutrients.length > 6 && (
                       <div className="supp-nutrients__more">+{nutrients.length - 6} more</div>
                     )}
