@@ -269,8 +269,8 @@ export default function SupplementsPage() {
                     <div className="supp-card__title">{s.displayName}</div>
                     {s.brand && <div className="supp-card__subtitle">{s.brand}</div>}
                   </div>
-                  <button className="supp-card__remove" onClick={() => removeSupp(s.id)} aria-label="Remove">
-                    x
+                  <button className="supp-card__remove" onClick={() => removeSupp(s.id)} aria-label="Remove from daily use">
+                    Remove from daily use
                   </button>
                 </div>
 

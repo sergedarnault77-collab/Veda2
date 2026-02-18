@@ -190,8 +190,8 @@ export default function MedicationsPage() {
                     <div className="med-card__title">{m.displayName}</div>
                     {m.brand && <div className="med-card__subtitle">{m.brand}</div>}
                   </div>
-                  <button className="med-card__remove" onClick={() => removeMed(m.id)} aria-label="Remove">
-                    x
+                  <button className="med-card__remove" onClick={() => removeMed(m.id)} aria-label="Remove from daily use">
+                    Remove from daily use
                   </button>
                 </div>
 
