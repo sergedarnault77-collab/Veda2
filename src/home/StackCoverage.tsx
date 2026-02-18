@@ -10,7 +10,8 @@ const TAKEN_KEY = "veda.supps.taken.v1";
 type TakenStore = { date: string; flags: Record<string, boolean> };
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function loadTakenToday(): Record<string, boolean> {

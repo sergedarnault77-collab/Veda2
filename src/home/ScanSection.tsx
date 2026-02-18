@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { compressImageDataUrl } from "../lib/image";
 import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
+import { extractExposureFromScan } from "./HomePage";
 import LoadingBanner from "../shared/LoadingBanner";
 import InteractionWarnings from "../shared/InteractionWarnings";
 import type { Interaction } from "../shared/InteractionWarnings";
@@ -21,10 +22,18 @@ type ScanStep = "idle" | "front" | "ingredients" | "done";
 const MAX_ING_PHOTOS = 4;
 const SCANS_KEY = "veda.scans.today.v1";
 
+type ScanExposure = {
+  sugars?: number;
+  sweetenerNames?: string[];
+  calories?: number;
+  caffeine?: number;
+};
+
 type StoredScan = {
   productName: string;
   detectedSummary: string;
   ts: number;
+  exposure?: ScanExposure;
 };
 
 type StoredScansDay = {
@@ -33,7 +42,8 @@ type StoredScansDay = {
 };
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function loadScans(): StoredScansDay {
@@ -42,12 +52,14 @@ function loadScans(): StoredScansDay {
   return { date: todayStr(), scans: [] };
 }
 
-function persistScan(name: string, summary: string) {
+function persistScan(name: string, summary: string, exposure?: ScanExposure) {
   const day = loadScans();
-  day.scans.push({ productName: name, detectedSummary: summary, ts: Date.now() });
+  day.scans.push({ productName: name, detectedSummary: summary, ts: Date.now(), exposure });
   saveLS(SCANS_KEY, day);
   return day;
 }
+
+export { type StoredScan, type StoredScansDay, type ScanExposure };
 
 /* ── Caffeine detection helpers ── */
 
@@ -290,7 +302,8 @@ export default function ScanSection({ onScanComplete }: Props) {
     const ents = scanResult.detectedEntities;
     const summaryStr = ents.slice(0, 4).join(", ") + (ents.length > 4 ? ` +${ents.length - 4} more` : "");
 
-    const day = persistScan(productName, summaryStr);
+    const exposure = extractExposureFromScan(scanResult);
+    const day = persistScan(productName, summaryStr, exposure);
     setTodayScans(day.scans);
 
     onScanComplete?.(scanResult);
@@ -333,11 +346,13 @@ export default function ScanSection({ onScanComplete }: Props) {
       ? `decaf · ~${est.caloriesKcal} kcal`
       : `~${est.caffeineMg} mg caffeine · ~${est.caloriesKcal} kcal`;
 
-    const day = persistScan(pName, summaryStr);
+    const drinkResult = { productName: pName, categories: cats, nutrients, detectedEntities: ents };
+    const exposure = extractExposureFromScan(drinkResult);
+    const day = persistScan(pName, summaryStr, exposure);
     setTodayScans(day.scans);
     setMode("idle");
 
-    onScanComplete?.({ productName: pName, categories: cats, nutrients, detectedEntities: ents });
+    onScanComplete?.(drinkResult);
   }
 
   async function handleUrlSubmit() {
@@ -370,9 +385,6 @@ export default function ScanSection({ onScanComplete }: Props) {
       const ents = nutrients.map((n: any) => String(n.name));
       const summaryStr = ents.slice(0, 4).join(", ") + (ents.length > 4 ? ` +${ents.length - 4}` : "");
 
-      const day = persistScan(pName, summaryStr || "from URL");
-      setTodayScans(day.scans);
-
       const cats: Record<string, string[]> = { Vitamins: [], Minerals: [], Supplements: [] };
       for (const n of nutrients) {
         const id = String(n.nutrientId || "").toLowerCase();
@@ -381,10 +393,15 @@ export default function ScanSection({ onScanComplete }: Props) {
         else cats.Supplements.push(n.name);
       }
 
+      const urlResult = { productName: pName, categories: cats, nutrients, detectedEntities: ents };
+      const exposure = extractExposureFromScan(urlResult);
+      const day = persistScan(pName, summaryStr || "from URL", exposure);
+      setTodayScans(day.scans);
+
       setMode("idle");
       setUrlValue("");
       setUrlError(null);
-      onScanComplete?.({ productName: pName, categories: cats, nutrients, detectedEntities: ents });
+      onScanComplete?.(urlResult);
     } catch (err: any) {
       setUrlError(`Request failed: ${err?.message || "check your connection."}`);
     } finally {

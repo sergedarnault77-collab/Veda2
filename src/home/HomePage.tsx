@@ -5,7 +5,8 @@ import ScanSection from "./ScanSection";
 import type { ScanResult } from "./ScanSection";
 import { StackCoverage } from "./StackCoverage";
 import type { ExposureEntry } from "./stubs";
-import { loadLS, saveLS } from "../lib/persist";
+import { loadLS } from "../lib/persist";
+import type { StoredScansDay, ScanExposure } from "./ScanSection";
 import "./HomePage.css";
 
 interface Props {
@@ -13,10 +14,9 @@ interface Props {
   userName?: string;
 }
 
-const EXPOSURE_KEY = "veda.exposure.today.v1";
+const SCANS_KEY = "veda.scans.today.v1";
 
-type StoredExposure = {
-  date: string;
+type AggregatedExposure = {
   sugars: number;
   sweetenerTypes: string[];
   calories: number;
@@ -24,16 +24,74 @@ type StoredExposure = {
 };
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function loadExposure(): StoredExposure {
-  const stored = loadLS<StoredExposure | null>(EXPOSURE_KEY, null);
-  if (stored && stored.date === todayStr()) return stored;
-  return { date: todayStr(), sugars: 0, sweetenerTypes: [], calories: 0, caffeine: 0 };
+const CAFFEINE_LOOKUP: Record<string, { caffeine: number; calories: number }> = {
+  coffee: { caffeine: 95, calories: 2 }, espresso: { caffeine: 63, calories: 1 },
+  americano: { caffeine: 95, calories: 2 }, cappuccino: { caffeine: 63, calories: 80 },
+  latte: { caffeine: 63, calories: 120 }, "flat white": { caffeine: 63, calories: 80 },
+  macchiato: { caffeine: 63, calories: 15 }, mocha: { caffeine: 63, calories: 200 },
+  "black tea": { caffeine: 47, calories: 2 }, "green tea": { caffeine: 28, calories: 2 },
+  tea: { caffeine: 47, calories: 2 }, matcha: { caffeine: 70, calories: 5 },
+};
+
+const CAFFEINE_RE = /\b(coffee|espresso|americano|cappuccino|latte|flat\s*white|macchiato|mocha|matcha|black\s*tea|green\s*tea|\btea\b)/i;
+
+function inferExposureFromName(name: string, summary: string): ScanExposure {
+  const out: ScanExposure = {};
+  const hay = `${name} ${summary}`.toLowerCase();
+
+  const bevMatch = hay.match(CAFFEINE_RE);
+  if (bevMatch) {
+    const key = bevMatch[1].replace(/\s+/g, " ").trim();
+    const bev = CAFFEINE_LOOKUP[key];
+    if (bev) {
+      out.caffeine = /decaf/i.test(hay) ? 2 : bev.caffeine;
+      out.calories = bev.calories;
+    }
+  }
+
+  const caffeineMatch = summary.match(/~?(\d+)\s*mg\s*caffeine/i);
+  if (caffeineMatch) out.caffeine = Number(caffeineMatch[1]);
+
+  const calMatch = summary.match(/~?(\d+)\s*kcal/i);
+  if (calMatch) out.calories = Number(calMatch[1]);
+
+  const sweetenerNames: string[] = [];
+  for (const sw of ["aspartam", "acesulfam", "sucralose", "stevia", "cyclamat", "saccharin"]) {
+    if (hay.includes(sw)) sweetenerNames.push(sw);
+  }
+  if (sweetenerNames.length > 0) out.sweetenerNames = sweetenerNames;
+
+  return out;
 }
 
-function exposureToEntries(exp: StoredExposure): ExposureEntry[] {
+function deriveExposureFromScans(): AggregatedExposure {
+  const stored = loadLS<StoredScansDay | null>(SCANS_KEY, null);
+  const empty: AggregatedExposure = { sugars: 0, sweetenerTypes: [], calories: 0, caffeine: 0 };
+  if (!stored || stored.date !== todayStr()) return empty;
+
+  const sweetenerSet = new Set<string>();
+  let sugars = 0;
+  let calories = 0;
+  let caffeine = 0;
+
+  for (const scan of stored.scans) {
+    const exp = scan.exposure || inferExposureFromName(scan.productName, scan.detectedSummary);
+    sugars += exp.sugars || 0;
+    calories += exp.calories || 0;
+    caffeine += exp.caffeine || 0;
+    if (exp.sweetenerNames) {
+      for (const s of exp.sweetenerNames) sweetenerSet.add(s);
+    }
+  }
+
+  return { sugars, sweetenerTypes: Array.from(sweetenerSet), calories, caffeine };
+}
+
+function exposureToEntries(exp: AggregatedExposure): ExposureEntry[] {
   return [
     { label: "Added sugars (today)", value: exp.sugars, unit: "g", color: "var(--bar-sugar)" },
     { label: "Sweetener types detected", value: exp.sweetenerTypes.length, unit: "items", color: "var(--bar-sweetener)" },
@@ -42,23 +100,20 @@ function exposureToEntries(exp: StoredExposure): ExposureEntry[] {
   ];
 }
 
-function extractExposureFromScan(result: ScanResult): Partial<{
-  sugars: number;
-  sweetenerNames: string[];
-  calories: number;
-  caffeine: number;
-}> {
+export function extractExposureFromScan(result: ScanResult): {
+  sugars?: number;
+  sweetenerNames?: string[];
+  calories?: number;
+  caffeine?: number;
+} {
   const cats = result.categories || {};
   const ents = result.detectedEntities || [];
   const nutrients = result.nutrients || [];
   const out: ReturnType<typeof extractExposureFromScan> = {};
 
-  // Sweeteners — accumulate unique names
   const sw = Array.isArray(cats.Sweeteners) ? cats.Sweeteners : [];
   if (sw.length > 0) out.sweetenerNames = sw.map((s) => String(s).toLowerCase());
 
-  // ── Caffeine ──
-  // 1. Try nutrients (structured amount)
   for (const n of nutrients) {
     if (!n || typeof n !== "object") continue;
     const id = String(n.nutrientId || "").toLowerCase();
@@ -70,7 +125,6 @@ function extractExposureFromScan(result: ScanResult): Partial<{
       }
     }
   }
-  // 2. Fallback: check categories.Stimulants for caffeine (try to parse amount from string)
   if (!out.caffeine) {
     const stims = Array.isArray(cats.Stimulants) ? cats.Stimulants : [];
     for (const s of stims) {
@@ -82,12 +136,10 @@ function extractExposureFromScan(result: ScanResult): Partial<{
       }
     }
   }
-  // 3. Fallback: check detectedEntities
   if (!out.caffeine && ents.some((e) => /caffeine|koffein|cafeïne|cafeine/i.test(e))) {
     out.caffeine = 1;
   }
 
-  // ── Sugars ──
   for (const n of nutrients) {
     if (!n || typeof n !== "object") continue;
     const name = String(n.name || "").toLowerCase();
@@ -97,8 +149,6 @@ function extractExposureFromScan(result: ScanResult): Partial<{
     }
   }
 
-  // ── Calories ──
-  // 1. From nutrients
   for (const n of nutrients) {
     if (!n || typeof n !== "object") continue;
     const id = String(n.nutrientId || "").toLowerCase();
@@ -108,7 +158,6 @@ function extractExposureFromScan(result: ScanResult): Partial<{
       if (Number.isFinite(amt) && amt > 0) out.calories = (out.calories || 0) + amt;
     }
   }
-  // 2. From categories
   if (!out.calories) {
     const calCats = Array.isArray(cats.Calories) ? cats.Calories : [];
     for (const c of calCats) {
@@ -127,32 +176,16 @@ function extractExposureFromScan(result: ScanResult): Partial<{
 }
 
 export default function HomePage({ isAI = false, userName }: Props) {
-  const [exposure, setExposure] = useState<StoredExposure>(() => loadExposure());
+  const [exposure, setExposure] = useState<AggregatedExposure>(() => deriveExposureFromScans());
 
   useEffect(() => {
-    const onSync = () => setExposure(loadExposure());
+    const onSync = () => setExposure(deriveExposureFromScans());
     window.addEventListener("veda:synced", onSync);
     return () => window.removeEventListener("veda:synced", onSync);
   }, []);
 
-  const handleScanComplete = useCallback((result: ScanResult) => {
-    setExposure((prev) => {
-      const base = prev.date === todayStr() ? prev : { date: todayStr(), sugars: 0, sweetenerTypes: [], calories: 0, caffeine: 0 };
-      const extracted = extractExposureFromScan(result);
-
-      const newSweeteners = new Set([...base.sweetenerTypes]);
-      for (const s of (extracted.sweetenerNames || [])) newSweeteners.add(s);
-
-      const next: StoredExposure = {
-        date: todayStr(),
-        sugars: base.sugars + (extracted.sugars || 0),
-        sweetenerTypes: Array.from(newSweeteners),
-        calories: base.calories + (extracted.calories || 0),
-        caffeine: base.caffeine + (extracted.caffeine || 0),
-      };
-      saveLS(EXPOSURE_KEY, next);
-      return next;
-    });
+  const handleScanComplete = useCallback(() => {
+    setExposure(deriveExposureFromScans());
   }, []);
 
   const entries = exposureToEntries(exposure);
