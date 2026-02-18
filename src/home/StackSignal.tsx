@@ -92,7 +92,7 @@ function computeSignal(): StackSignalData {
   if (nutrients.size === 0) {
     return {
       state: "balanced",
-      headline: "You're within a normal range today",
+      headline: "You're within normal range today",
       explanation: "Based on what you've logged, there are no notable overlaps or excesses.",
     };
   }
@@ -145,7 +145,7 @@ function computeSignal(): StackSignalData {
 
   return {
     state: "balanced",
-    headline: "You're within a normal range today",
+    headline: "You're within normal range today",
     explanation: "Based on what you've logged, there are no notable overlaps or excesses.",
   };
 }

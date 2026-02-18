@@ -112,6 +112,8 @@ interface Props {
   onScanComplete?: (result: ScanResult) => void;
 }
 
+const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
 export default function ScanSection({ onScanComplete }: Props) {
   const [step, setStep] = useState<ScanStep>("idle");
   const [frontImage, setFrontImage] = useState<string | null>(null);
@@ -488,7 +490,7 @@ export default function ScanSection({ onScanComplete }: Props) {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
+              capture={isMobile ? "environment" : undefined}
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (!f) return;
@@ -529,7 +531,7 @@ export default function ScanSection({ onScanComplete }: Props) {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
+              capture={isMobile ? "environment" : undefined}
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (!f) return;
@@ -612,7 +614,7 @@ export default function ScanSection({ onScanComplete }: Props) {
         ref={ingredientsInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
+        capture={isMobile ? "environment" : undefined}
         style={{ display: "none" }}
         onChange={(e) => {
           const f = e.target.files?.[0];
