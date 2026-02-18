@@ -1,0 +1,281 @@
+/* ── Dashboard Page ── */
+
+.dashboard {
+  padding: 20px 0 100px;
+}
+
+.dashboard__header {
+  margin-bottom: 24px;
+}
+
+.dashboard__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.dashboard__sub {
+  font-size: 0.82rem;
+  color: var(--veda-text-muted);
+  margin: 4px 0 0;
+}
+
+.dashboard__empty {
+  padding: 40px 24px;
+  border-radius: var(--radius-xl);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  text-align: center;
+  color: var(--veda-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* ── Section ── */
+
+.dashboard__section {
+  margin-bottom: 20px;
+  padding: 20px;
+  border-radius: var(--radius-xl);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dashboard__section-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--veda-text-muted);
+  margin: 0 0 16px;
+}
+
+.dashboard__section-empty {
+  color: var(--veda-text-muted);
+  font-size: 0.82rem;
+  margin: 0;
+  opacity: 0.7;
+}
+
+/* ── Section 1: Your typical day ── */
+
+.day__slot {
+  margin-bottom: 16px;
+}
+
+.day__slot:last-child {
+  margin-bottom: 0;
+}
+
+.day__slot-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.day__slot-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.day__slot-icon--sunrise {
+  background: linear-gradient(135deg, #f9a825, #ff8f00);
+  box-shadow: 0 0 8px rgba(249, 168, 37, 0.3);
+}
+
+.day__slot-icon--sun {
+  background: linear-gradient(135deg, #fdd835, #ffb300);
+  box-shadow: 0 0 8px rgba(253, 216, 53, 0.3);
+}
+
+.day__slot-icon--moon {
+  background: linear-gradient(135deg, #7c6cf0, #a29bfe);
+  box-shadow: 0 0 8px rgba(124, 108, 240, 0.3);
+}
+
+.day__slot-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--veda-text);
+}
+
+.day__slot-empty {
+  font-size: 0.78rem;
+  color: var(--veda-text-muted);
+  margin: 0;
+  padding-left: 28px;
+  opacity: 0.6;
+}
+
+.day__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-left: 28px;
+}
+
+.day__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.day__chip-name {
+  color: var(--veda-text);
+  font-weight: 600;
+}
+
+.day__chip-src {
+  color: var(--veda-text-muted);
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
+/* ── Section 2: Overlap signals ── */
+
+.overlap__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.overlap__card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s;
+}
+
+.overlap__card:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.overlap__badge {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, rgba(124, 108, 240, 0.25), rgba(162, 155, 254, 0.12));
+  color: var(--veda-accent-light);
+  border: 1px solid rgba(124, 108, 240, 0.2);
+}
+
+.overlap__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.overlap__headline {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--veda-text);
+  line-height: 1.3;
+}
+
+.overlap__sources {
+  font-size: 0.72rem;
+  color: var(--veda-text-muted);
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+/* ── Section 3: Timing patterns ── */
+
+.timing__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timing__entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.timing__dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 4px;
+}
+
+.timing__dot--morning {
+  background: #f9a825;
+  box-shadow: 0 0 6px rgba(249, 168, 37, 0.35);
+}
+
+.timing__dot--midday {
+  background: #fdd835;
+  box-shadow: 0 0 6px rgba(253, 216, 53, 0.35);
+}
+
+.timing__dot--evening {
+  background: #7c6cf0;
+  box-shadow: 0 0 6px rgba(124, 108, 240, 0.35);
+}
+
+.timing__text {
+  font-size: 0.82rem;
+  color: var(--veda-text);
+  line-height: 1.45;
+}
+
+/* ── Responsive ── */
+
+@media (min-width: 600px) {
+  .dashboard {
+    padding: 24px 0 100px;
+  }
+
+  .dashboard__title {
+    font-size: 1.7rem;
+  }
+
+  .dashboard__section {
+    padding: 24px;
+  }
+
+  .day__chip {
+    padding: 7px 14px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard {
+    padding: 32px 0 60px;
+  }
+
+  .dashboard__title {
+    font-size: 1.8rem;
+  }
+
+  .dashboard__section {
+    padding: 28px;
+  }
+}

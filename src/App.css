@@ -16,8 +16,8 @@
   bottom: 12px;
   z-index: 50;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
   padding: 8px;
   border-radius: var(--radius-lg);
   background: rgba(12, 12, 30, 0.85);
@@ -32,13 +32,13 @@
 }
 
 .app-nav__btn {
-  padding: 12px 8px;
+  padding: 12px 4px;
   border-radius: var(--radius-md);
   border: none;
   background: transparent;
   color: var(--veda-text-muted);
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   font-family: inherit;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;

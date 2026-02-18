@@ -4,6 +4,7 @@ import LoginScreen from "./auth/LoginScreen";
 import ProfileScreen from "./auth/ProfileScreen";
 import PlanScreen from "./auth/PlanScreen";
 import HomePage from "./home/HomePage";
+import DashboardPage from "./dashboard/DashboardPage";
 import MedicationsPage from "./meds/MedicationsPage";
 import SupplementsPage from "./supps/SupplementsPage";
 import { loadUser, saveUser, setPlan as persistPlan, setProfile as persistProfile } from "./lib/auth";
@@ -12,7 +13,7 @@ import { setSyncEmail, pullAll, pushAll } from "./lib/sync";
 import "./App.css";
 
 type AuthView = "register" | "login";
-type Tab = "home" | "meds" | "supps";
+type Tab = "home" | "dashboard" | "meds" | "supps";
 
 export default function App() {
   const [user, setUser] = useState<VedaUser | null>(() => loadUser());
@@ -133,12 +134,14 @@ export default function App() {
       <nav className="app-nav">
         <div className="app-nav__logo">Veda</div>
         <button onClick={() => setTab("home")} className={`app-nav__btn ${tab === "home" ? "app-nav__btn--active" : ""}`}>Scan</button>
-        <button onClick={() => setTab("supps")} className={`app-nav__btn ${tab === "supps" ? "app-nav__btn--active" : ""}`}>Supplements</button>
+        <button onClick={() => setTab("dashboard")} className={`app-nav__btn ${tab === "dashboard" ? "app-nav__btn--active" : ""}`}>Dashboard</button>
+        <button onClick={() => setTab("supps")} className={`app-nav__btn ${tab === "supps" ? "app-nav__btn--active" : ""}`}>Supps</button>
         <button onClick={() => setTab("meds")} className={`app-nav__btn ${tab === "meds" ? "app-nav__btn--active" : ""}`}>Meds</button>
       </nav>
 
       <div className="app-content">
         {tab === "home" && <HomePage isAI={isAI} userName={user.firstName} />}
+        {tab === "dashboard" && <DashboardPage />}
         {tab === "meds" && <MedicationsPage />}
         {tab === "supps" && <SupplementsPage />}
       </div>
