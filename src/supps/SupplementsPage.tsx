@@ -409,6 +409,8 @@ export default function SupplementsPage() {
           <BuySheet
             productName={buyItem.displayName}
             brand={buyItem.brand}
+            nutrients={Array.isArray(buyItem.nutrients) ? buyItem.nutrients as any : []}
+            form={buyItem.form}
             onClose={() => setBuyId(null)}
           />
         );
