@@ -84,8 +84,8 @@ function computeSignal(): StackSignalData {
   if (nutrients.size === 0) {
     return {
       state: "balanced",
-      headline: "No unusual stacking or redundancy detected today",
-      explanation: "Based on what's currently tracked, nothing stands out.",
+      headline: "You're within a normal range today",
+      explanation: "Based on what you've logged, there are no notable overlaps or excesses.",
     };
   }
 
@@ -106,7 +106,6 @@ function computeSignal(): StackSignalData {
   excessive.sort((a, b) => b.pct - a.pct);
   redundant.sort((a, b) => b.count - a.count);
 
-  // Check for supp+med overlap by shared ingredient names
   const hasOverlap = suppNames.length > 0 && medNames.length > 0 && redundant.length > 0;
 
   if (hasOverlap) {
@@ -138,13 +137,13 @@ function computeSignal(): StackSignalData {
 
   return {
     state: "balanced",
-    headline: "No unusual stacking or redundancy detected today",
-    explanation: "Based on what's currently tracked, nothing stands out.",
+    headline: "You're within a normal range today",
+    explanation: "Based on what you've logged, there are no notable overlaps or excesses.",
   };
 }
 
 const STATE_CONFIG: Record<SignalState, { label: string; color: string; bg: string }> = {
-  balanced: { label: "Balanced", color: "var(--veda-green, #2ecc71)", bg: "rgba(46,204,113,0.08)" },
+  balanced: { label: "Normal range", color: "var(--veda-green, #2ecc71)", bg: "rgba(46,204,113,0.08)" },
   redundant: { label: "Redundant", color: "var(--veda-orange, #e67e22)", bg: "rgba(230,126,34,0.08)" },
   excessive: { label: "Excessive", color: "var(--veda-red, #e74c3c)", bg: "rgba(231,76,60,0.08)" },
   interaction: { label: "Potential interaction", color: "var(--veda-red, #e74c3c)", bg: "rgba(231,76,60,0.08)" },
