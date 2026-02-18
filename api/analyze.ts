@@ -1,4 +1,4 @@
-export const config = { runtime: "edge" };
+export const config = { maxDuration: 60 };
 
 type CategoryKey =
   | "Sweeteners"
@@ -666,11 +666,24 @@ export default async function handler(req: Request): Promise<Response> {
         },
       };
 
-      const frontR = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-        body: JSON.stringify(frontOnlyPayload),
-      });
+      const frontAC = new AbortController();
+      const frontTimer = setTimeout(() => frontAC.abort(), 50_000);
+      let frontR: Response;
+      try {
+        frontR = await fetch("https://api.openai.com/v1/responses", {
+          method: "POST",
+          headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+          body: JSON.stringify(frontOnlyPayload),
+          signal: frontAC.signal,
+        });
+      } catch (abortErr: any) {
+        clearTimeout(frontTimer);
+        return new Response(
+          JSON.stringify(stub("OpenAI request timed out (front-only). Try a clearer photo.")),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      clearTimeout(frontTimer);
 
       if (!frontR.ok) {
         const errText = await frontR.text().catch(() => "");
@@ -834,11 +847,24 @@ export default async function handler(req: Request): Promise<Response> {
       },
     };
 
-    const r = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 50_000);
+    let r: Response;
+    try {
+      r = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: ac.signal,
+      });
+    } catch (abortErr: any) {
+      clearTimeout(timer);
+      return new Response(
+        JSON.stringify(stub("OpenAI request timed out. Dense labels may take longer — try fewer photos or a closer shot of the key panel.")),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }
+    clearTimeout(timer);
 
     if (!r.ok) {
       const errText = await r.text().catch(() => "");

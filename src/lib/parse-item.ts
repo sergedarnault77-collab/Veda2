@@ -82,7 +82,11 @@ export async function parseScannedItem(
 
     if (!res.ok) {
       console.warn(`[parse-item] /api/analyze HTTP ${res.status}`);
-      return stubItem(kind, `HTTP ${res.status} from /api/analyze`);
+      const hint =
+        res.status === 504 || res.status === 503
+          ? "Request timed out — dense labels can take longer. Try a single close-up photo of just the nutrition panel."
+          : `Server error (${res.status}). Try again in a moment.`;
+      return stubItem(kind, hint);
     }
 
     const json = await res.json();
