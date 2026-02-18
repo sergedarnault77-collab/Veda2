@@ -750,97 +750,106 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    /* ── FULL MODE (front + ingredients) ── */
-
-    const system = [
-      "You are Veda's label reader. You follow a strict two-step process.",
-      "",
-      "IMPORTANT: The ingredients/nutrition panel may be split across MULTIPLE COLUMNS and MULTIPLE PHOTOS.",
-      "You MUST read ALL columns and ALL ingredient photos provided. Do not skip any.",
-      "",
-      "Step 1 — TRANSCRIPTION (strict):",
-      "Read ALL ingredient/nutrition label images and transcribe the text exactly as written.",
-      "• Include text from ALL photos and ALL columns (left, center, right).",
-      "• Preserve casing, punctuation, and symbols like µg, mcg, mg.",
-      "• Preserve non-English text (Dutch, German, etc.) exactly as written.",
-      "• Do NOT interpret or infer.",
-      "• Put the COMPLETE transcription in the 'transcription' field.",
-      "• If text is unreadable, set transcription to null.",
-      "",
-      "Also set 'transcriptionConfidence' (0..1):",
-      "• 0.9–1.0 if the label text is clear, complete, and you transcribed most/all of it.",
-      "• 0.6–0.8 if the text is partially readable but some parts are blurry or cut off.",
-      "• 0.2–0.5 if most text is illegible, very short, or heavily obscured.",
-      "• 0.0–0.1 if you cannot read the label at all.",
-      "",
-      "Step 2 — EXTRACTION:",
-      "Using ONLY the transcribed text from Step 1:",
-      "• Detect sweeteners, caffeine, sugars, calories, vitamins, minerals",
-      "• Do NOT add anything not explicitly present in the transcription",
-      "• Use the front image only for productName / brand",
-      "• Recognize non-English nutrient/ingredient names:",
-      "  Dutch: IJzer=Iron, Zink=Zinc, Foliumzuur=Folate, Jodium=Iodine, Koper=Copper, Chroom=Chromium, Kalium=Potassium",
-      "  German: Eisen=Iron, Folsäure=Folate, Jod=Iodine",
-      "  Map these to their English canonical names in detectedEntities.",
-      "",
-      "Nutrients guidance (populate 'nutrients' array):",
-      "• Only include a nutrient if the transcription explicitly states BOTH the nutrient name AND a numeric amount.",
-      "• nutrientId: use snake_case canonical English id (e.g. vitamin_d, iron, magnesium, caffeine, omega_3_epa)",
-      "• Map non-English names: IJzer→iron, Zink→zinc, Foliumzuur→folate, Vitamine B12→vitamin_b12, etc.",
-      "• For unit: use EXACTLY what the label says. If label says µg, use µg. If label says mcg, use µg. If label says mg, use mg.",
-      "• dailyReference: use standard adult daily reference IN THE SAME UNIT as amountToday.",
-      "• percentLabel: if the label shows an explicit % number next to the nutrient (e.g. '1250%' or '14% RI'), extract that number (just the number, e.g. 1250 or 14). Set to null if no percent is shown on the label.",
-      "• CRITICAL: if label amount is in µg, dailyReference MUST also be in µg. If label amount is in mg, reference must be in mg.",
-      "• If you don't know the reference, set dailyReference to 0. Do NOT guess.",
-      "• Do NOT hallucinate amounts.",
-      "",
-      "Categories guidance:",
-      "- Sweeteners: aspartame, sucralose, acesulfame K, stevia, cyclamate, saccharin, etc.",
-      "- Stimulants: caffeine, taurine, guarana — only if word appears in transcription.",
-      "- Sugars: sugar, glucose, fructose, syrup.",
-      "- Calories: kcal string if stated.",
-      "- Vitamins/Minerals: ONLY if the nutrient name appears in the transcribed text.",
-      "- Supplements: amino acids / herb extracts / etc — only if present.",
-      "- Other: anything notable not covered above.",
-      "",
-      "Ingredients list guidance (populate 'ingredientsList' array):",
-      "• Read the 'Ingredients:' or 'Other ingredients:' section from the transcription.",
-      "• Split by commas, semicolons, or periods into individual ingredient names.",
-      "• Include ALL ingredients — up to 80 items.",
-      "• Only include an ingredient if its name appears in the transcription.",
-      "• Preserve original casing.",
-      "",
-      "Signals guidance (1–2 short signals):",
-      "- no_notable_interaction: if nothing stands out.",
-      "- timing_conflict / interaction_detected / amplification_likely: only if obvious.",
-      "- no_read: if you cannot read the label at all.",
-      "",
-      "Rules:",
-      "- No medical advice. Avoid: should, stop, causes, treats.",
-      "- Use interpretive language: tends to, commonly associated with, often flagged.",
-      "- Return JSON only matching the schema.",
-    ].join("\n");
+    /* ── FULL MODE (front + ingredients) — two-step pipeline ──
+       Step 1: Transcribe each ingredient image in PARALLEL (fast, no schema)
+       Step 2: Extract structured data from combined text + front image (no heavy images) */
 
     const schema = buildJsonSchema();
 
-    const userContent: any[] = [
-      { type: "input_text", text: "Front of product (read product name / brand):" },
-      { type: "input_image", image_url: frontImageDataUrl, detail: "low" as const },
-    ];
+    /* ── Step 1: parallel transcription ── */
 
-    for (let i = 0; i < ingredientImages.length; i++) {
-      const label = ingredientImages.length === 1
-        ? "Ingredients / nutrition label (transcribe ALL text exactly, then extract from transcription only):"
-        : `Ingredients / nutrition label photo ${i + 1} of ${ingredientImages.length} (transcribe ALL text from ALL photos):`;
-      userContent.push({ type: "input_text", text: label });
-      userContent.push({ type: "input_image", image_url: ingredientImages[i], detail: "high" as const });
+    const transcribeSystem = [
+      "Transcribe ALL text visible in this label/nutrition panel image.",
+      "Include every word, number, unit, symbol, and percentage you can read.",
+      "Read ALL columns: left, center, right — top to bottom.",
+      "Preserve casing, punctuation, symbols (µg, mcg, mg, %, RI, DV, kcal).",
+      "Preserve non-English text exactly as written (Dutch, German, etc.).",
+      "Output ONLY the transcribed text. No commentary, no JSON.",
+    ].join("\n");
+
+    const transcriptionResults = await Promise.all(
+      ingredientImages.map(async (img, i) => {
+        const tAC = new AbortController();
+        const tTimer = setTimeout(() => tAC.abort(), 30_000);
+        try {
+          const tR = await fetch("https://api.openai.com/v1/responses", {
+            method: "POST",
+            headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              input: [
+                { role: "system", content: [{ type: "input_text", text: transcribeSystem }] },
+                { role: "user", content: [
+                  { type: "input_text", text: `Label photo ${i + 1} of ${ingredientImages.length}:` },
+                  { type: "input_image", image_url: img, detail: "high" as const },
+                ]},
+              ],
+            }),
+            signal: tAC.signal,
+          });
+          clearTimeout(tTimer);
+          if (!tR.ok) return `[Photo ${i + 1}: server error ${tR.status}]`;
+          const tResp = await tR.json().catch(() => null);
+          return extractOutputText(tResp) || `[Photo ${i + 1}: no text extracted]`;
+        } catch {
+          clearTimeout(tTimer);
+          return `[Photo ${i + 1}: timed out]`;
+        }
+      }),
+    );
+
+    const combinedTranscription = transcriptionResults.join("\n\n--- next photo ---\n\n");
+    const anyTranscribed = transcriptionResults.some((t) => !t.startsWith("[Photo"));
+
+    if (!anyTranscribed) {
+      return new Response(
+        JSON.stringify(stub("Could not read any of the label photos. Try closer, steadier shots with good lighting.")),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
     }
 
-    const payload = {
+    /* ── Step 2: extract structured data from transcription text + front image ── */
+
+    const extractSystem = [
+      "You are Veda's label extractor. You are given:",
+      "1. A front-of-product image (for product name / brand only).",
+      "2. A COMPLETE TEXT TRANSCRIPTION of the ingredients/nutrition label (already transcribed from photos).",
+      "",
+      "Your job: extract structured data from the transcription text. Do NOT re-read images for ingredients.",
+      "",
+      "Set the 'transcription' field to the transcription text provided.",
+      "Set 'transcriptionConfidence' based on how complete/coherent the transcription looks (0..1).",
+      "",
+      "Nutrients guidance (populate 'nutrients' array):",
+      "• Only include a nutrient if the transcription explicitly states BOTH the nutrient name AND a numeric amount.",
+      "• nutrientId: snake_case canonical English id (vitamin_d, iron, magnesium, caffeine, omega_3_epa)",
+      "• Map non-English names: IJzer→iron, Zink→zinc, Foliumzuur→folate, Vitamine B12→vitamin_b12, Jodium→iodine, Koper→copper, Chroom→chromium, Kalium→potassium, Eisen→iron, Folsäure→folate, Jod→iodine",
+      "• unit: use EXACTLY what the label says. µg/mcg→µg, mg→mg, g→g, IU→IU.",
+      "• dailyReference: standard adult daily reference IN THE SAME UNIT as amountToday.",
+      "• percentLabel: if the transcription shows an explicit % (e.g. '1250%' or '14% RI'), extract that number. Null if none.",
+      "• CRITICAL: if label amount is in µg, dailyReference MUST also be in µg.",
+      "• If you don't know the reference, set dailyReference to 0.",
+      "• Do NOT hallucinate amounts not in the transcription.",
+      "",
+      "Categories: Sweeteners, Stimulants, Sugars, Calories, Vitamins, Minerals, Supplements, Other.",
+      "Only include entities explicitly mentioned in the transcription.",
+      "",
+      "Ingredients list: split 'Ingredients:' or 'Other ingredients:' section by commas/semicolons. Up to 80 items. Preserve original casing.",
+      "",
+      "Signals: 1–2 short signals. no_notable_interaction if nothing stands out.",
+      "",
+      "Rules: No medical advice. Descriptive language only. Return JSON matching the schema.",
+    ].join("\n");
+
+    const extractPayload = {
       model: "gpt-4o-mini",
       input: [
-        { role: "system", content: [{ type: "input_text", text: system }] },
-        { role: "user", content: userContent },
+        { role: "system", content: [{ type: "input_text", text: extractSystem }] },
+        { role: "user", content: [
+          { type: "input_text", text: "Front of product (read product name / brand):" },
+          { type: "input_image", image_url: frontImageDataUrl, detail: "low" as const },
+          { type: "input_text", text: `Complete label transcription from ${ingredientImages.length} photo(s):\n\n${combinedTranscription}` },
+        ]},
       ],
       text: {
         format: { type: "json_schema" as const, ...schema },
@@ -848,19 +857,19 @@ export default async function handler(req: Request): Promise<Response> {
     };
 
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 50_000);
+    const timer = setTimeout(() => ac.abort(), 40_000);
     let r: Response;
     try {
       r = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
         headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(extractPayload),
         signal: ac.signal,
       });
     } catch (abortErr: any) {
       clearTimeout(timer);
       return new Response(
-        JSON.stringify(stub("OpenAI request timed out. Dense labels may take longer — try fewer photos or a closer shot of the key panel.")),
+        JSON.stringify(stub("Extraction timed out. The label was transcribed but processing took too long.")),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
