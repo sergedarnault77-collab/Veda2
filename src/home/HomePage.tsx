@@ -39,9 +39,43 @@ const CAFFEINE_LOOKUP: Record<string, { caffeine: number; calories: number }> = 
 
 const CAFFEINE_RE = /\b(coffee|espresso|americano|cappuccino|latte|flat\s*white|macchiato|mocha|matcha|black\s*tea|green\s*tea|\btea\b)/i;
 
+const SWEETENER_TERMS = [
+  "aspartam", "acesulfam", "sucralose", "stevia", "cyclamat", "saccharin",
+  "neotam", "advantam", "erythritol", "xylitol", "sorbitol", "maltitol",
+  "süßungsmittel", "sweetener", "édulcorant", "zoetstof",
+];
+
+const KNOWN_PRODUCTS: Record<string, ScanExposure> = {
+  "coca-cola zero":  { caffeine: 32, calories: 1, sweetenerNames: ["aspartame", "acesulfame k"] },
+  "coca cola zero":  { caffeine: 32, calories: 1, sweetenerNames: ["aspartame", "acesulfame k"] },
+  "coke zero":       { caffeine: 32, calories: 1, sweetenerNames: ["aspartame", "acesulfame k"] },
+  "cola zero":       { caffeine: 32, calories: 1, sweetenerNames: ["aspartame", "acesulfame k"] },
+  "diet coke":       { caffeine: 42, calories: 1, sweetenerNames: ["aspartame"] },
+  "diet cola":       { caffeine: 42, calories: 1, sweetenerNames: ["aspartame"] },
+  "pepsi zero":      { caffeine: 36, calories: 0, sweetenerNames: ["aspartame", "acesulfame k"] },
+  "pepsi max":       { caffeine: 43, calories: 1, sweetenerNames: ["aspartame", "acesulfame k"] },
+  "diet pepsi":      { caffeine: 35, calories: 0, sweetenerNames: ["aspartame"] },
+  "red bull":        { caffeine: 80, calories: 110 },
+  "monster energy":  { caffeine: 160, calories: 110 },
+  "coca-cola":       { caffeine: 32, calories: 140, sugars: 39 },
+  "coca cola":       { caffeine: 32, calories: 140, sugars: 39 },
+  "pepsi":           { caffeine: 38, calories: 150, sugars: 41 },
+  "fanta":           { calories: 160, sugars: 44 },
+  "sprite":          { calories: 140, sugars: 38 },
+  "sprite zero":     { calories: 0, sweetenerNames: ["aspartame", "acesulfame k"] },
+};
+
 function inferExposureFromName(name: string, summary: string): ScanExposure {
   const out: ScanExposure = {};
   const hay = `${name} ${summary}`.toLowerCase();
+
+  // Check known products (most specific first — "zero" variants before base names)
+  const sortedKeys = Object.keys(KNOWN_PRODUCTS).sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
+    if (hay.includes(key)) {
+      return { ...KNOWN_PRODUCTS[key] };
+    }
+  }
 
   const bevMatch = hay.match(CAFFEINE_RE);
   if (bevMatch) {
@@ -60,12 +94,17 @@ function inferExposureFromName(name: string, summary: string): ScanExposure {
   if (calMatch) out.calories = Number(calMatch[1]);
 
   const sweetenerNames: string[] = [];
-  for (const sw of ["aspartam", "acesulfam", "sucralose", "stevia", "cyclamat", "saccharin"]) {
+  for (const sw of SWEETENER_TERMS) {
     if (hay.includes(sw)) sweetenerNames.push(sw);
   }
   if (sweetenerNames.length > 0) out.sweetenerNames = sweetenerNames;
 
   return out;
+}
+
+function hasExposureData(exp?: ScanExposure): boolean {
+  if (!exp || typeof exp !== "object") return false;
+  return Boolean(exp.sugars || exp.calories || exp.caffeine || (exp.sweetenerNames && exp.sweetenerNames.length > 0));
 }
 
 function deriveExposureFromScans(): AggregatedExposure {
@@ -79,7 +118,9 @@ function deriveExposureFromScans(): AggregatedExposure {
   let caffeine = 0;
 
   for (const scan of stored.scans) {
-    const exp = scan.exposure || inferExposureFromName(scan.productName, scan.detectedSummary);
+    const exp = hasExposureData(scan.exposure)
+      ? scan.exposure!
+      : inferExposureFromName(scan.productName, scan.detectedSummary);
     sugars += exp.sugars || 0;
     calories += exp.calories || 0;
     caffeine += exp.caffeine || 0;
@@ -109,16 +150,35 @@ export function extractExposureFromScan(result: ScanResult): {
   const cats = result.categories || {};
   const ents = result.detectedEntities || [];
   const nutrients = result.nutrients || [];
+  const pName = (result.productName || "").toLowerCase();
+
+  // Try known product match first
+  const sortedKeys = Object.keys(KNOWN_PRODUCTS).sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
+    if (pName.includes(key)) {
+      return { ...KNOWN_PRODUCTS[key] };
+    }
+  }
+
   const out: ReturnType<typeof extractExposureFromScan> = {};
 
+  // Sweetener detection: from categories + entities + ingredients
+  const sweetenerSet = new Set<string>();
   const sw = Array.isArray(cats.Sweeteners) ? cats.Sweeteners : [];
-  if (sw.length > 0) out.sweetenerNames = sw.map((s) => String(s).toLowerCase());
+  for (const s of sw) sweetenerSet.add(String(s).toLowerCase());
 
+  const allText = [...ents, ...(result.nutrients || []).map((n: any) => String(n?.name || ""))].join(" ").toLowerCase();
+  for (const term of SWEETENER_TERMS) {
+    if (allText.includes(term) || pName.includes(term)) sweetenerSet.add(term);
+  }
+  if (sweetenerSet.size > 0) out.sweetenerNames = Array.from(sweetenerSet);
+
+  // Caffeine detection
   for (const n of nutrients) {
     if (!n || typeof n !== "object") continue;
     const id = String(n.nutrientId || "").toLowerCase();
     const name = String(n.name || "").toLowerCase();
-    if (id === "caffeine" || name.includes("caffeine") || name.includes("koffein") || name.includes("cafeïne")) {
+    if (id === "caffeine" || name.includes("caffeine") || name.includes("koffein") || name.includes("cafeïne") || name.includes("cafeine")) {
       const amt = Number(n.amountToday);
       if (Number.isFinite(amt) && amt > 0) {
         out.caffeine = (out.caffeine || 0) + amt;
@@ -136,8 +196,11 @@ export function extractExposureFromScan(result: ScanResult): {
       }
     }
   }
-  if (!out.caffeine && ents.some((e) => /caffeine|koffein|cafeïne|cafeine/i.test(e))) {
-    out.caffeine = 1;
+  if (!out.caffeine) {
+    const allEntText = ents.join(" ").toLowerCase();
+    if (/caffeine|koffein|cafeïne|cafeine|koffeinhalt/i.test(allEntText)) {
+      out.caffeine = 1;
+    }
   }
 
   for (const n of nutrients) {
