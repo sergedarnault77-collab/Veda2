@@ -311,11 +311,25 @@ export default function ScanSection({ onScanComplete }: Props) {
     const day = persistScan(productName, summaryStr, exposure, scanResult.nutrients);
     setTodayScans(day.scans);
 
-    // If the scan has real nutrients, also save as a supplement and auto-mark taken
+    // If the scan has real nutrients AND is not a medication, save as supplement
     const realNutrients = scanResult.nutrients.filter(
       (n: any) => n?.nutrientId && n?.name && typeof n?.amountToday === "number"
     );
-    if (realNutrients.length > 0) {
+    const isMedication = (() => {
+      const cats = scanResult.categories || {};
+      const otherCat: string[] = Array.isArray(cats.Other) ? cats.Other : [];
+      const vitsCat: string[] = Array.isArray(cats.Vitamins) ? cats.Vitamins : [];
+      const minsCat: string[] = Array.isArray(cats.Minerals) ? cats.Minerals : [];
+      const suppsCat: string[] = Array.isArray(cats.Supplements) ? cats.Supplements : [];
+      const hasVitaminsOrMinerals = vitsCat.length > 0 || minsCat.length > 0 || suppsCat.length > 0;
+      if (hasVitaminsOrMinerals && otherCat.length <= 1) return false;
+      const meds = loadLS<any[]>("veda.meds.v1", []);
+      const name = (scanResult.productName || "").toLowerCase();
+      if (meds.some((m: any) => name && (m.displayName || "").toLowerCase().includes(name))) return true;
+      if (otherCat.length > 0 && !hasVitaminsOrMinerals) return true;
+      return false;
+    })();
+    if (realNutrients.length > 0 && !isMedication) {
       const suppId = Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
       const newSupp = {
         id: suppId,
