@@ -202,7 +202,7 @@ function stub(reason: string): AnalyzeResponse {
       refSystem: "UNKNOWN",
       transcriptionConfidence: 0,
       needsRescan: true,
-      rescanHint: "Couldn't read the label reliably. Take a closer photo of the ingredients/nutrition panel.",
+      rescanHint: "Couldn't read the label. Try with more light or a steadier hand.",
       ingredientPhotosUsed: 0,
     },
   };
@@ -557,38 +557,29 @@ function computeTranscriptionConfidence(
   const len = t.length;
   const badMarks = (t.match(/[�?]{2,}/g) || []).length;
   const lineCount = t.split("\n").filter((l) => /[a-zA-Z0-9]/.test(l)).length;
-  const tokenCount = t.split(/\s+/).filter(Boolean).length;
 
   let base = clamp01(typeof openaiConfidence === "number" ? openaiConfidence : 0.7);
 
-  if (len < 60) base -= 0.25;
-  else if (len < 120) base -= 0.1;
-  if (lineCount < 3 && tokenCount < 15) base -= 0.1;
-  if (badMarks >= 3) base -= 0.2;
-  if (entityCount <= 1 && nutrientCount <= 1) base -= 0.1;
+  if (len < 40) base -= 0.15;
+  if (badMarks >= 5) base -= 0.15;
 
-  // Positive signals — dense labels that successfully extracted data
-  if (len >= 350 && lineCount >= 8) base += 0.1;
-  if (nutrientCount >= 3) base += 0.15;
-  if (nutrientCount >= 8) base += 0.15;  // multivitamin bonus
-  if (nutrientCount >= 15) base += 0.1;  // dense multivitamin bonus
-  if (entityCount >= 10) base += 0.1;
-  if (ingredientPhotosUsed >= 2 && nutrientCount >= 5) base += 0.1;
+  if (len >= 200 && lineCount >= 5) base += 0.1;
+  if (nutrientCount >= 1) base += 0.1;
+  if (nutrientCount >= 3) base += 0.1;
+  if (nutrientCount >= 8) base += 0.1;
+  if (entityCount >= 5) base += 0.1;
+  if (ingredientPhotosUsed >= 2 && nutrientCount >= 3) base += 0.05;
 
   const confidence = clamp01(base);
 
-  // If we successfully extracted 5+ nutrients, never flag as needing rescan
-  const needsRescan = nutrientCount >= 5 ? false : confidence < 0.4;
+  // Only flag needsRescan when we extracted literally nothing useful.
+  // Any nutrients, entities, or ingredients text means the photo was readable.
+  const gotSomething = nutrientCount >= 1 || entityCount >= 1 || len >= 60;
+  const needsRescan = !gotSomething;
 
   let rescanHint: string | null = null;
   if (needsRescan) {
-    if (entityCount < 15 && nutrientCount < 8) {
-      rescanHint = "This label looks split across columns. Take 2–3 close-up photos: left column, right column, and the minerals/vitamins panel. Avoid glare.";
-    } else if (ingredientPhotosUsed > 1 && confidence < 0.4) {
-      rescanHint = "Try closer + steadier shots; fill the frame with the text; reduce glare.";
-    } else {
-      rescanHint = "Label photo is hard to read. Take a closer photo of the ingredients/nutrition panel (fill the frame, avoid glare, steady your hand).";
-    }
+    rescanHint = "Couldn't read the label. Try a closer, steadier photo with good lighting.";
   }
 
   return { confidence, needsRescan, rescanHint };
@@ -902,12 +893,15 @@ async function innerHandler(method: string, body: any): Promise<Response> {
       "Transcribe ALL text visible in this label/nutrition panel image.",
       "Include every word, number, unit, symbol, and percentage you can read.",
       "",
+      "These are real-world photos taken by users in stores — they may be slightly blurry, tilted, or have glare. Do your BEST to read the text even if imperfect.",
+      "",
       "CRITICAL for vitamin/mineral/supplement tables:",
       "- Read EVERY ROW of the nutrition table — vitamins, minerals, and other ingredients.",
       "- For each row transcribe: ingredient name, amount, unit (mg, µg, mcg, IU), and % value (RI, DV, NRV) if shown.",
       "- Multivitamins may have 20-30+ rows — transcribe ALL of them, do not skip any.",
       "- If the table spans multiple columns, read left column top-to-bottom, then right column top-to-bottom.",
       "- Watch for small print rows at the bottom (e.g. chromium, molybdenum, selenium).",
+      "- If a word or number is partially readable, use your best guess rather than skipping it.",
       "",
       "Read ALL columns: left, center, right — top to bottom.",
       "Preserve casing, punctuation, symbols (µg, mcg, mg, %, RI, DV, kcal).",
@@ -918,7 +912,7 @@ async function innerHandler(method: string, body: any): Promise<Response> {
     const transcriptionResults = await Promise.all(
       ingredientImages.map(async (img, i) => {
         const tAC = new AbortController();
-        const tTimer = setTimeout(() => tAC.abort(), 22_000);
+        const tTimer = setTimeout(() => tAC.abort(), 30_000);
         try {
           const tR = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
@@ -952,7 +946,7 @@ async function innerHandler(method: string, body: any): Promise<Response> {
 
     if (!anyTranscribed) {
       return new Response(
-        JSON.stringify(stub("Could not read any of the label photos. Try closer, steadier shots with good lighting.")),
+        JSON.stringify(stub("Couldn't read the label photos — try with more light or a steadier hand.")),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
@@ -1021,7 +1015,7 @@ async function innerHandler(method: string, body: any): Promise<Response> {
     };
 
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 30_000);
+    const timer = setTimeout(() => ac.abort(), 40_000);
     let r: Response;
     try {
       r = await fetch("https://api.openai.com/v1/chat/completions", {

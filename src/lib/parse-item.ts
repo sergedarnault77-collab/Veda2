@@ -55,7 +55,7 @@ function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
     meta: {
       transcriptionConfidence: 0,
       needsRescan: true,
-      rescanHint: hint || "Couldn't read the label reliably. Take a closer photo of the ingredients/nutrition panel.",
+      rescanHint: hint || "Couldn't read the label. Try with more light or a steadier hand.",
     },
   };
 }
@@ -94,7 +94,7 @@ export async function parseScannedItem(
     } catch (fetchErr: any) {
       clearTimeout(timeout);
       const msg = fetchErr?.name === "AbortError"
-        ? "Request timed out — try fewer or clearer label photos."
+        ? "Request timed out — the server took too long. Try again in a moment."
         : `Connection failed: ${fetchErr?.message || "check your network and try again."}`;
       return stubItem(kind, msg);
     }

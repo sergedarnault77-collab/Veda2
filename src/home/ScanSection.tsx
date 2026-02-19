@@ -749,7 +749,7 @@ export default function ScanSection({ onScanComplete }: Props) {
           {needsRescan && (
             <LoadingBanner
               tone="warn"
-              title="Photo is hard to read"
+              title="Couldn't read the label"
               subtitle={rescanHint}
               compact
             />

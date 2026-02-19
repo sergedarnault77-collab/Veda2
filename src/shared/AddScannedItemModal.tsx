@@ -161,9 +161,9 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
       }
 
       if (item?.meta?.needsRescan) {
-        setParseWarning(item.meta.rescanHint || "Photo is hard to read. Take a closer photo of the ingredients label.");
+        setParseWarning(item.meta.rescanHint || "Couldn't read the label. Try with more light or a steadier hand.");
       } else if (item?.mode === "stub") {
-        setParseWarning(item?.rawTextHints?.[0] || "Couldn't read label reliably.");
+        setParseWarning(item?.rawTextHints?.[0] || "Couldn't read the label — try again.");
       } else {
         setParseWarning(null);
       }
