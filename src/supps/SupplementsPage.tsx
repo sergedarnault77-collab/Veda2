@@ -1,4 +1,4 @@
-import { Component, useMemo, useState, useCallback } from "react";
+import { Component, useEffect, useMemo, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
@@ -455,6 +455,12 @@ function SupplementsPageInner() {
   const [urlError, setUrlError] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [buyId, setBuyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const refresh = () => setItems(loadLS<Supp[]>(LS_KEY, []));
+    window.addEventListener("veda:supps-updated", refresh);
+    return () => window.removeEventListener("veda:supps-updated", refresh);
+  }, []);
 
   const persistUpdate = (updater: (prev: Supp[]) => Supp[]) => {
     setItems((prev) => {

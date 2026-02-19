@@ -358,31 +358,64 @@ export default function ScanSection({ onScanComplete }: Props) {
       return false;
     })();
     if (realNutrients.length > 0 && !isMedication) {
-      const suppId = Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
       const rawNuts = Array.isArray(result?.nutrients) ? result.nutrients : [];
-      const newSupp: any = {
-        id: suppId,
+      const ingList: string[] = Array.isArray(result?.ingredientsList) ? result.ingredientsList : [];
+      const suppData: any = {
         displayName: scanResult.productName,
         brand: result?.normalized?.brand ?? null,
-        nutrients: realNutrients,
-        ingredientsList: ents,
-        detectedEntities: ents,
         form: result?.normalized?.form ?? null,
-        createdAtISO: new Date().toISOString(),
+        strengthPerUnit: null,
+        strengthUnit: null,
+        servingSizeText: isPer100g && servingG ? `${servingG}g` : null,
         servingSizeG: servingG ?? null,
         nutritionPer: result?.nutritionPer ?? "unknown",
-        servingSizeText: isPer100g && servingG ? `${servingG}g` : null,
+        rawTextHints: ents.slice(0, 8),
+        confidence: 0.8,
+        mode: "openai",
+        frontImage: frontImage ?? null,
+        ingredientsImage: ingredientsImages[0] ?? null,
+        ingredientsImages: ingredientsImages.length > 0 ? ingredientsImages : undefined,
+        labelTranscription: result?.transcription ?? null,
+        nutrients: realNutrients,
+        ingredientsDetected: ents,
+        ingredientsList: ingList.length > 0 ? ingList : ents,
+        ingredientsCount: ingList.length || ents.length,
+        meta: {
+          transcriptionConfidence: result?.meta?.transcriptionConfidence ?? 0.7,
+          needsRescan: false,
+          rescanHint: null,
+        },
+        createdAtISO: new Date().toISOString(),
       };
       if (isPer100g) {
-        newSupp.nutrientsPer100g = rawNuts.filter(
+        suppData.nutrientsPer100g = rawNuts.filter(
           (n: any) => n?.nutrientId && n?.name && typeof n?.amountToday === "number",
         );
       }
+
       const supps = loadLS<any[]>("veda.supps.v1", []);
-      supps.push(newSupp);
+      const pNameLower = (scanResult.productName || "").toLowerCase();
+
+      // Update existing stub/matching supplement instead of creating duplicate
+      const existingIdx = supps.findIndex((s: any) => {
+        const name = (s.displayName || "").toLowerCase();
+        if (name === "new supplement") return true;
+        if (pNameLower && name === pNameLower) return true;
+        if (pNameLower && name.includes(pNameLower)) return true;
+        if (pNameLower && pNameLower.includes(name) && name.length > 3) return true;
+        return false;
+      });
+
+      let suppId: string;
+      if (existingIdx >= 0) {
+        suppId = supps[existingIdx].id || (Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36));
+        supps[existingIdx] = { ...suppData, id: suppId, insights: supps[existingIdx].insights ?? null };
+      } else {
+        suppId = Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
+        supps.unshift({ ...suppData, id: suppId });
+      }
       saveLS("veda.supps.v1", supps);
 
-      // Auto-mark as taken today
       const takenRaw = loadLS<any>("veda.supps.taken.v1", null);
       const todayDate = todayStr();
       let flags: Record<string, boolean> = {};
