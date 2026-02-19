@@ -57,6 +57,23 @@ const SIZE_INDEX: Record<Size, number> = { S: 0, M: 1, L: 2 };
 
 const MILK_CALORIES_BASE: Record<Milk, number> = { none: 0, dairy: 40, oat: 30 };
 const DAIRY_FAT_CALORIES: Record<MilkFat, number> = { skim: 20, semi: 40, whole: 55 };
+
+// kcal per 100 ml by milk type
+const CAL_PER_100ML: Record<string, number> = { skim: 34, semi: 46, whole: 64, oat: 42 };
+// Estimated milk volume (ml) per size [S, M, L] for dairy-based drinks
+const DAIRY_MILK_ML: Partial<Record<DrinkType, [number, number, number]>> = {
+  cappuccino: [60, 100, 150],
+  latte:      [120, 200, 280],
+  flat_white: [100, 160, 160],
+  chai:       [80, 130, 200],
+};
+// Non-milk base calories [S, M, L] (espresso / chai concentrate)
+const DAIRY_BASE_CAL: Partial<Record<DrinkType, [number, number, number]>> = {
+  cappuccino: [2, 2, 3],
+  latte:      [2, 2, 3],
+  flat_white: [2, 2, 2],
+  chai:       [50, 70, 100],
+};
 const SWEETENER_CALORIES: Record<Sweetener, number> = { none: 0, sugar: 16, syrup: 20, artificial: 0 };
 
 export interface DrinkEstimate {
@@ -104,11 +121,23 @@ export default function DrinkBuilder({ onAdd, onCancel }: Props) {
       };
     }
 
-    const baseCal = d.calories[idx];
-    const addsMilk = milk !== "none" && !["cappuccino", "latte", "flat_white", "chai"].includes(drink);
-    const milkCal = addsMilk
-      ? (milk === "dairy" ? DAIRY_FAT_CALORIES[milkFat] : MILK_CALORIES_BASE[milk])
-      : 0;
+    const isDairyDrink = (["cappuccino", "latte", "flat_white", "chai"] as DrinkType[]).includes(drink);
+    let totalCal: number;
+
+    if (isDairyDrink) {
+      const milkMl = DAIRY_MILK_ML[drink]?.[idx] ?? 150;
+      const baseCal = DAIRY_BASE_CAL[drink]?.[idx] ?? 2;
+      const milkKey = milk === "oat" ? "oat" : milkFat;
+      const milkCal = Math.round(milkMl * CAL_PER_100ML[milkKey] / 100);
+      totalCal = baseCal + milkCal + sweetCal;
+    } else {
+      const baseCal = d.calories[idx];
+      const addsMilk = milk !== "none";
+      const milkCal = addsMilk
+        ? (milk === "dairy" ? DAIRY_FAT_CALORIES[milkFat] : MILK_CALORIES_BASE[milk])
+        : 0;
+      totalCal = baseCal + milkCal + sweetCal;
+    }
 
     return {
       drinkLabel: d.label,
@@ -116,7 +145,7 @@ export default function DrinkBuilder({ onAdd, onCancel }: Props) {
       milk,
       sweetener,
       caffeineMg: baseCaffeine,
-      caloriesKcal: baseCal + milkCal + sweetCal,
+      caloriesKcal: totalCal,
       isDecaf: decaf,
       sweetenerType: sweetener === "artificial" ? "artificial sweetener" : sweetener === "none" ? null : sweetener,
     };
