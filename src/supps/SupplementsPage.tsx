@@ -1,4 +1,5 @@
-import { useMemo, useState, useCallback } from "react";
+import { Component, useMemo, useState, useCallback } from "react";
+import type { ReactNode } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import InteractionWarnings from "../shared/InteractionWarnings";
@@ -34,52 +35,64 @@ const UNIT_TO_REF: Record<string, "mg" | "ug" | null> = {
 };
 
 function pctOfTarget(n: NutrientRow): { pct: number; source: "label" | "ref" } | null {
-  const a = Number(n.amountToday);
-  if (!isFinite(a) || a <= 0) return null;
+  try {
+    if (!n || typeof n.amountToday !== "number") return null;
+    const a = Number(n.amountToday);
+    if (!isFinite(a) || a <= 0) return null;
 
-  if (n.dailyReference != null) {
-    const d = Number(n.dailyReference);
-    if (isFinite(d) && d > 0) {
-      const pct = Math.round((a / d) * 100);
-      if (isFinite(pct)) return { pct, source: "label" };
+    if (n.dailyReference != null) {
+      const d = Number(n.dailyReference);
+      if (isFinite(d) && d > 0) {
+        const pct = Math.round((a / d) * 100);
+        if (isFinite(pct)) return { pct, source: "label" };
+      }
     }
+
+    const refUnit = UNIT_TO_REF[n.unit] ?? null;
+    if (!refUnit || !n.nutrientId) return null;
+
+    const meta = getNutrientMeta(n.nutrientId);
+    if (!meta) return null;
+
+    const user = loadUser();
+    const sex = bioSexToSex(user?.sex ?? null);
+    const ageBucket = ageRangeToAgeBucket(user?.ageRange ?? null);
+
+    let amount = a;
+    if (refUnit !== meta.unit) {
+      amount = refUnit === "mg" && meta.unit === "ug" ? a * 1000 : a / 1000;
+    }
+
+    const t = resolveTarget(sex, ageBucket, n.nutrientId);
+    if (!t || t.target <= 0) return null;
+    const pct = Math.round((amount / t.target) * 100);
+    return isFinite(pct) ? { pct, source: "ref" } : null;
+  } catch {
+    return null;
   }
-
-  const user = loadUser();
-  const sex = bioSexToSex(user?.sex ?? null);
-  const ageBucket = ageRangeToAgeBucket(user?.ageRange ?? null);
-  const refUnit = UNIT_TO_REF[n.unit] ?? null;
-  if (!refUnit) return null;
-
-  const meta = getNutrientMeta(n.nutrientId);
-  if (!meta) return null;
-
-  let amount = a;
-  if (refUnit !== meta.unit) {
-    amount = refUnit === "mg" && meta.unit === "ug" ? a * 1000 : a / 1000;
-  }
-
-  const t = resolveTarget(sex, ageBucket, n.nutrientId);
-  if (!t || t.target <= 0) return null;
-  const pct = Math.round((amount / t.target) * 100);
-  return isFinite(pct) ? { pct, source: "ref" } : null;
 }
 
 function ulFlag(n: NutrientRow): "exceeds" | "approaching" | null {
-  const refUnit = UNIT_TO_REF[n.unit] ?? null;
-  if (!refUnit) return null;
-  const meta = getNutrientMeta(n.nutrientId);
-  if (!meta) return null;
-  const ulObj = getUl(n.nutrientId);
-  if (!ulObj || ulObj.ul == null || ulObj.applies_to === "no_ul") return null;
+  try {
+    if (!n || !n.nutrientId || typeof n.amountToday !== "number") return null;
+    const refUnit = UNIT_TO_REF[n.unit] ?? null;
+    if (!refUnit) return null;
+    const meta = getNutrientMeta(n.nutrientId);
+    if (!meta) return null;
+    const ulObj = getUl(n.nutrientId);
+    if (!ulObj || ulObj.ul == null || ulObj.applies_to === "no_ul") return null;
 
-  let amount = Number(n.amountToday);
-  if (refUnit !== meta.unit) {
-    amount = refUnit === "mg" && meta.unit === "ug" ? amount * 1000 : amount / 1000;
+    let amount = Number(n.amountToday);
+    if (!isFinite(amount)) return null;
+    if (refUnit !== meta.unit) {
+      amount = refUnit === "mg" && meta.unit === "ug" ? amount * 1000 : amount / 1000;
+    }
+    if (amount > ulObj.ul) return "exceeds";
+    if (amount >= ulObj.ul * 0.8) return "approaching";
+    return null;
+  } catch {
+    return null;
   }
-  if (amount > ulObj.ul) return "exceeds";
-  if (amount >= ulObj.ul * 0.8) return "approaching";
-  return null;
 }
 
 function pctColor(pct: number, ul: "exceeds" | "approaching" | null): string {
@@ -156,7 +169,28 @@ async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
   }
 }
 
-export default function SupplementsPage() {
+class SuppsErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 24, textAlign: "center", color: "var(--veda-text-muted)" }}>
+          <p>Something went wrong loading supplements.</p>
+          <button
+            className="btn btn--secondary"
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+          >
+            Reload
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function SupplementsPageInner() {
   const [items, setItems] = useState<Supp[]>(() => loadLS<Supp[]>(LS_KEY, []));
   const [showAdd, setShowAdd] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -554,5 +588,13 @@ export default function SupplementsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SupplementsPage() {
+  return (
+    <SuppsErrorBoundary>
+      <SupplementsPageInner />
+    </SuppsErrorBoundary>
   );
 }
