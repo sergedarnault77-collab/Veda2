@@ -11,6 +11,7 @@ import PrivacyPolicy from "./legal/PrivacyPolicy";
 import TermsOfService from "./legal/TermsOfService";
 import { loadUser, saveUser, setPlan as persistPlan, setProfile as persistProfile } from "./lib/auth";
 import type { VedaUser, Plan, BiologicalSex, AgeRange } from "./lib/auth";
+import { supabase } from "./lib/supabase";
 import { setSyncEmail, pullAll, pushAll } from "./lib/sync";
 import "./App.css";
 
@@ -56,8 +57,59 @@ export default function App() {
     });
   }, []);
 
+  // Restore Supabase session on app load / OAuth redirect
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && !user) {
+        restoreFromSupabaseUser(session.user);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user && !user) {
+          restoreFromSupabaseUser(session.user);
+        }
+      },
+    );
+
+    return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function restoreFromSupabaseUser(supaUser: { email?: string | null; user_metadata?: Record<string, any> }) {
+    const email = supaUser.email ?? "";
+    if (!email) return;
+
+    setSyncEmail(email);
+    setSyncing(true);
+    pullAll().then(() => {
+      const stored = loadUser();
+      if (stored && stored.email === email) {
+        setUser(stored);
+      } else {
+        const meta = supaUser.user_metadata ?? {};
+        const restored: VedaUser = {
+          firstName: meta.first_name || meta.full_name?.split(" ")[0] || "User",
+          lastName: meta.last_name || meta.full_name?.split(" ").slice(1).join(" ") || "",
+          email,
+          country: meta.country || "",
+          city: meta.city || "",
+          plan: null,
+          sex: null,
+          heightCm: null,
+          weightKg: null,
+          ageRange: null,
+          profileComplete: false,
+          createdAt: new Date().toISOString(),
+        };
+        saveUser(restored);
+        setUser(restored);
+      }
+    }).finally(() => setSyncing(false));
+  }
+
   // Set sync email whenever user changes, pull from server
-  // Individual pushes happen via saveLS → pushCollection on each change
   useEffect(() => {
     if (user?.email) {
       setSyncEmail(user.email);
@@ -125,7 +177,8 @@ export default function App() {
     localStorage.removeItem("veda.exposure.history.v1");
   }, []);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    await supabase.auth.signOut().catch(() => {});
     setSyncEmail(null);
     setUser(null);
     setAuthView("login");
@@ -144,6 +197,7 @@ export default function App() {
       });
     } catch { /* proceed with local cleanup even if server fails */ }
 
+    await supabase.auth.signOut().catch(() => {});
     setSyncEmail(null);
     setUser(null);
     setAuthView("register");
