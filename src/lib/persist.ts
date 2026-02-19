@@ -22,12 +22,55 @@ const LS_TO_COLLECTION: Record<string, "user" | "supps" | "meds" | "exposure" | 
 
 export function saveLS<T>(key: string, value: T) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(value));
+  const json = JSON.stringify(value);
+  try {
+    localStorage.setItem(key, json);
+  } catch (e: any) {
+    if (e?.name === "QuotaExceededError" || /quota/i.test(e?.message || "")) {
+      console.warn("[persist] Quota exceeded for", key, "— trying to free space");
+      try {
+        pruneLocalStorage();
+        localStorage.setItem(key, json);
+      } catch {
+        console.error("[persist] Still over quota after prune. Stripping images.");
+        try {
+          const stripped = stripImagesFromValue(value);
+          localStorage.setItem(key, JSON.stringify(stripped));
+        } catch {
+          console.error("[persist] Cannot save", key, "— localStorage is full");
+        }
+      }
+    } else {
+      throw e;
+    }
+  }
 
   const collection = LS_TO_COLLECTION[key];
   if (collection) {
     pushCollection(collection, value);
   }
+}
+
+function pruneLocalStorage() {
+  const expendable = ["veda.scans.today.v1", "veda.exposure.today.v1"];
+  for (const k of expendable) {
+    try { localStorage.removeItem(k); } catch { /* noop */ }
+  }
+}
+
+function stripImagesFromValue<T>(value: T): T {
+  if (!value || typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    return value.map((item) => {
+      if (!item || typeof item !== "object") return item;
+      const c = { ...item };
+      delete c.frontImage;
+      delete c.ingredientsImage;
+      delete c.ingredientsImages;
+      return c;
+    }) as T;
+  }
+  return value;
 }
 
 export async function fileToDataUrl(file: File): Promise<string> {

@@ -109,7 +109,9 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
   const [submitting, setSubmitting] = useState(false);
   const hasIngredients = ingredientsImages.length > 0;
   const canScanIngredients = !!frontImage;
-  const canConfirm = !!name.trim() && (!!frontImage || kind === "med") && parseStatus !== "parsing" && !submitting;
+  const hasRealParsedData = parsedItem && (parsedItem.mode === "openai" || (parsedItem.confidence ?? 0) > 0.3 || (Array.isArray(parsedItem.nutrients) && parsedItem.nutrients.length > 0));
+  const photosExistButNotParsed = !!frontImage && !hasRealParsedData && parseStatus !== "parsing" && parseStatus !== "parsed" && parseStatus !== "failed";
+  const canConfirm = !!name.trim() && (!!frontImage || kind === "med") && parseStatus !== "parsing" && !submitting && !photosExistButNotParsed;
 
   const isPer100g = parsedItem?.nutritionPer === "100g";
   const nutrientsPer100g = parsedItem?.nutrientsPer100g as NutrientRow[] | null;
@@ -171,8 +173,8 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     }
   };
 
-  // Auto-parse: only for medications (front photo triggers immediately).
-  // Supplements wait for the user to tap "Read label now".
+  // Auto-parse: medications parse on front photo; supplements parse once
+  // both front and ingredients photos are available.
   useEffect(() => {
     if (!frontImage) return;
     if (kind === "med") {
@@ -180,6 +182,16 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frontImage, kind]);
+
+  useEffect(() => {
+    if (kind === "med" || !frontImage || ingredientsImages.length === 0) return;
+    if (parseStatus === "parsing") return;
+    // Already parsed from initialItem pre-fill with real data — skip
+    if (parsedItem && parsedItem.mode === "openai" && parsedItem.confidence > 0.3) return;
+    const timer = setTimeout(() => doParseNow(), 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frontImage, ingredientsImages.length, kind]);
 
   const activeNutrients = useMemo((): NutrientRow[] => {
     if (!isPer100g || !nutrientsPer100g || !servingG) {
@@ -470,7 +482,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
             onClick={confirm}
             disabled={!canConfirm}
           >
-            {submitting ? "Adding…" : parseStatus === "parsing" ? "Reading label…" : confirmLabel}
+            {submitting ? "Adding…" : parseStatus === "parsing" ? "Reading label…" : photosExistButNotParsed ? "Waiting for analysis…" : confirmLabel}
           </button>
         </div>
 

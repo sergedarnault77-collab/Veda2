@@ -8,8 +8,13 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "test:critics": "node scripts/ai-vision-critic.mjs && node scripts/ai-data-sanity-critic.mjs && node scripts/critics-summary.mjs",
     "test:all": "playwright test && node scripts/ai-vision-critic.mjs && node scripts/ai-data-sanity-critic.mjs && node scripts/critics-summary.mjs",
+    "cap:sync:ios": "npm run build && npx cap sync ios",
+    "cap:sync:android": "npm run build && npx cap sync android",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android",
     "ingest:dsld": "node scripts/ingest-dsld.mjs",
     "ingest:off": "node scripts/ingest-off.mjs"
   },
@@ -24,7 +29,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.50.0",
+    "@playwright/test": "^1.58.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vercel/node": "^5.6.4",

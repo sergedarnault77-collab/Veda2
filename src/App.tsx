@@ -13,6 +13,7 @@ import { loadUser, saveUser, setPlan as persistPlan, setProfile as persistProfil
 import type { VedaUser, Plan, BiologicalSex, AgeRange } from "./lib/auth";
 import { supabase } from "./lib/supabase";
 import { setSyncEmail, pullAll, pushAll } from "./lib/sync";
+import { migrateStorageImages } from "./lib/storage-migrate";
 import "./App.css";
 
 type AuthView = "register" | "login";
@@ -56,6 +57,9 @@ export default function App() {
       return next;
     });
   }, []);
+
+  // One-time: shrink oversized images in localStorage to prevent quota errors
+  useEffect(() => { migrateStorageImages(); }, []);
 
   // Restore Supabase session on app load / OAuth redirect
   useEffect(() => {
@@ -257,7 +261,7 @@ export default function App() {
     <div className="app-shell">
       <nav className="app-nav">
         <div className="app-nav__logo">Veda</div>
-        <button onClick={() => setTab("home")} className={`app-nav__btn ${tab === "home" ? "app-nav__btn--active" : ""}`}>Scan</button>
+        <button data-testid="nav-scan" onClick={() => setTab("home")} className={`app-nav__btn ${tab === "home" ? "app-nav__btn--active" : ""}`}>Scan</button>
         <button onClick={() => setTab("dashboard")} className={`app-nav__btn ${tab === "dashboard" ? "app-nav__btn--active" : ""}`}>Dashboard</button>
         <button onClick={() => setTab("supps")} className={`app-nav__btn ${tab === "supps" ? "app-nav__btn--active" : ""}`}>Supps</button>
         <button onClick={() => setTab("meds")} className={`app-nav__btn ${tab === "meds" ? "app-nav__btn--active" : ""}`}>Meds</button>

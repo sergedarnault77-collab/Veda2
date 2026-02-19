@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
+import { shrinkImagesForStorage } from "../lib/image";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import InteractionWarnings from "../shared/InteractionWarnings";
 import type { Interaction } from "../shared/InteractionWarnings";
@@ -125,7 +126,11 @@ export default function MedicationsPage() {
 
   const addMed = (m: ScannedItem) => {
     const newId = uid();
-    persistUpdate((prev) => [{ ...m, id: newId }, ...prev]);
+    shrinkImagesForStorage(m).then((small) => {
+      persistUpdate((prev) => [{ ...small, id: newId }, ...prev]);
+    }).catch(() => {
+      persistUpdate((prev) => [{ ...m, frontImage: null, ingredientsImage: null, ingredientsImages: undefined, id: newId }, ...prev]);
+    });
     fetchInsights(m).then((ins) => {
       if (ins) {
         persistUpdate((prev) =>
@@ -145,9 +150,15 @@ export default function MedicationsPage() {
   const saveEdit = (updated: ScannedItem) => {
     if (!editId) return;
     const savedId = editId;
-    persistUpdate((prev) =>
-      prev.map((it) => (it.id === savedId ? { ...it, ...updated } : it))
-    );
+    shrinkImagesForStorage(updated).then((small) => {
+      persistUpdate((prev) =>
+        prev.map((it) => (it.id === savedId ? { ...it, ...small } : it))
+      );
+    }).catch(() => {
+      persistUpdate((prev) =>
+        prev.map((it) => (it.id === savedId ? { ...it, ...updated, frontImage: null, ingredientsImage: null, ingredientsImages: undefined } : it))
+      );
+    });
     setEditId(null);
     fetchInsights(updated).then((ins) => {
       if (ins) {

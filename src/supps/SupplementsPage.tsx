@@ -1,6 +1,7 @@
 import { Component, useEffect, useMemo, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import { loadLS, saveLS } from "../lib/persist";
+import { shrinkImagesForStorage } from "../lib/image";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import InteractionWarnings from "../shared/InteractionWarnings";
 import BuySheet from "../shared/BuySheet";
@@ -189,12 +190,42 @@ class SuppsErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
   componentDidCatch(error: Error, info: any) {
     console.error("[SuppsPage] render crash:", error, info?.componentStack);
   }
+  handleFreeSpace = () => {
+    try {
+      const raw = localStorage.getItem("veda.supps.v1");
+      if (raw) {
+        const items = JSON.parse(raw);
+        if (Array.isArray(items)) {
+          for (const item of items) {
+            delete item.frontImage;
+            delete item.ingredientsImage;
+            delete item.ingredientsImages;
+          }
+          localStorage.setItem("veda.supps.v1", JSON.stringify(items));
+        }
+      }
+      localStorage.removeItem("veda.scans.today.v1");
+      localStorage.removeItem("veda.img-migration.v1");
+    } catch { /* noop */ }
+    this.setState({ hasError: false, errorMsg: "" });
+    window.location.reload();
+  };
   render() {
     if (this.state.hasError) {
+      const isQuota = /quota/i.test(this.state.errorMsg);
       return (
         <div style={{ padding: 24, textAlign: "center", color: "var(--veda-text-muted)" }}>
           <p>Something went wrong loading supplements.</p>
           <p style={{ fontSize: "0.7rem", opacity: 0.5, marginTop: 8 }}>{this.state.errorMsg}</p>
+          {isQuota && (
+            <button
+              className="btn btn--primary"
+              style={{ marginTop: 12 }}
+              onClick={this.handleFreeSpace}
+            >
+              Free space & reload
+            </button>
+          )}
           <button
             className="btn btn--secondary"
             style={{ marginTop: 12 }}
@@ -486,7 +517,11 @@ function SupplementsPageInner() {
 
   const addSupp = (s: ScannedItem) => {
     const newId = uid();
-    persistUpdate((prev) => [{ ...s, id: newId }, ...prev]);
+    shrinkImagesForStorage(s).then((small) => {
+      persistUpdate((prev) => [{ ...small, id: newId }, ...prev]);
+    }).catch(() => {
+      persistUpdate((prev) => [{ ...s, frontImage: null, ingredientsImage: null, ingredientsImages: undefined, id: newId }, ...prev]);
+    });
     fetchInsights(s).then((ins) => {
       if (ins) {
         persistUpdate((prev) =>
@@ -506,9 +541,15 @@ function SupplementsPageInner() {
   const saveEdit = (updated: ScannedItem) => {
     if (!editId) return;
     const savedId = editId;
-    persistUpdate((prev) =>
-      prev.map((it) => (it.id === savedId ? { ...it, ...updated } : it))
-    );
+    shrinkImagesForStorage(updated).then((small) => {
+      persistUpdate((prev) =>
+        prev.map((it) => (it.id === savedId ? { ...it, ...small } : it))
+      );
+    }).catch(() => {
+      persistUpdate((prev) =>
+        prev.map((it) => (it.id === savedId ? { ...it, ...updated, frontImage: null, ingredientsImage: null, ingredientsImages: undefined } : it))
+      );
+    });
     setEditId(null);
     fetchInsights(updated).then((ins) => {
       if (ins) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { compressImageDataUrl } from "../lib/image";
+import { compressImageDataUrl, shrinkImagesForStorage } from "../lib/image";
 import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
 import { extractExposureFromScan } from "./HomePage";
@@ -339,10 +339,13 @@ export default function ScanSection({ onScanComplete }: Props) {
     const day = persistScan(productName, summaryStr, exposure, scanResult.nutrients);
     setTodayScans(day.scans);
 
-    // If the scan has real nutrients AND is not a medication, save as supplement
+    // Save as supplement unless it looks like a medication
     const realNutrients = scanResult.nutrients.filter(
       (n: any) => n?.nutrientId && n?.name && typeof n?.amountToday === "number"
     );
+    const ingList: string[] = Array.isArray(result?.ingredientsList) ? result.ingredientsList : [];
+    const hasUsefulData = realNutrients.length > 0 || ents.length > 0 || ingList.length > 0
+      || (scanResult.productName && scanResult.productName !== "(unnamed item)");
     const isMedication = (() => {
       const cats = scanResult.categories || {};
       const otherCat: string[] = Array.isArray(cats.Other) ? cats.Other : [];
@@ -357,9 +360,8 @@ export default function ScanSection({ onScanComplete }: Props) {
       if (otherCat.length > 0 && !hasVitaminsOrMinerals) return true;
       return false;
     })();
-    if (realNutrients.length > 0 && !isMedication) {
+    if (hasUsefulData && !isMedication) {
       const rawNuts = Array.isArray(result?.nutrients) ? result.nutrients : [];
-      const ingList: string[] = Array.isArray(result?.ingredientsList) ? result.ingredientsList : [];
       const suppData: any = {
         displayName: scanResult.productName,
         brand: result?.normalized?.brand ?? null,
@@ -393,39 +395,46 @@ export default function ScanSection({ onScanComplete }: Props) {
         );
       }
 
-      const supps = loadLS<any[]>("veda.supps.v1", []);
-      const pNameLower = (scanResult.productName || "").toLowerCase();
+      // Shrink images to thumbnails for localStorage, then save
+      (async () => {
+        try {
+          const smallSupp = await shrinkImagesForStorage(suppData);
+          const supps = loadLS<any[]>("veda.supps.v1", []);
+          const pNameLower = (scanResult.productName || "").toLowerCase();
 
-      // Update existing stub/matching supplement instead of creating duplicate
-      const existingIdx = supps.findIndex((s: any) => {
-        const name = (s.displayName || "").toLowerCase();
-        if (name === "new supplement") return true;
-        if (pNameLower && name === pNameLower) return true;
-        if (pNameLower && name.includes(pNameLower)) return true;
-        if (pNameLower && pNameLower.includes(name) && name.length > 3) return true;
-        return false;
-      });
+          const existingIdx = supps.findIndex((s: any) => {
+            const sName = (s.displayName || "").toLowerCase();
+            if (sName === "new supplement") return true;
+            if (pNameLower && sName === pNameLower) return true;
+            if (pNameLower && sName.includes(pNameLower)) return true;
+            if (pNameLower && pNameLower.includes(sName) && sName.length > 3) return true;
+            return false;
+          });
 
-      let suppId: string;
-      if (existingIdx >= 0) {
-        suppId = supps[existingIdx].id || (Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36));
-        supps[existingIdx] = { ...suppData, id: suppId, insights: supps[existingIdx].insights ?? null };
-      } else {
-        suppId = Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
-        supps.unshift({ ...suppData, id: suppId });
-      }
-      saveLS("veda.supps.v1", supps);
+          let suppId: string;
+          if (existingIdx >= 0) {
+            suppId = supps[existingIdx].id || (Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36));
+            supps[existingIdx] = { ...smallSupp, id: suppId, insights: supps[existingIdx].insights ?? null };
+          } else {
+            suppId = Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
+            supps.unshift({ ...smallSupp, id: suppId });
+          }
+          saveLS("veda.supps.v1", supps);
 
-      const takenRaw = loadLS<any>("veda.supps.taken.v1", null);
-      const todayDate = todayStr();
-      let flags: Record<string, boolean> = {};
-      if (takenRaw && typeof takenRaw === "object") {
-        if (takenRaw.date === todayDate) flags = takenRaw.flags || {};
-      }
-      flags[suppId] = true;
-      saveLS("veda.supps.taken.v1", { date: todayDate, flags });
+          const takenRaw = loadLS<any>("veda.supps.taken.v1", null);
+          const todayDate = todayStr();
+          let flags: Record<string, boolean> = {};
+          if (takenRaw && typeof takenRaw === "object") {
+            if (takenRaw.date === todayDate) flags = takenRaw.flags || {};
+          }
+          flags[suppId] = true;
+          saveLS("veda.supps.taken.v1", { date: todayDate, flags });
 
-      window.dispatchEvent(new Event("veda:supps-updated"));
+          window.dispatchEvent(new Event("veda:supps-updated"));
+        } catch (err) {
+          console.error("[ScanSection] Failed to save supplement:", err);
+        }
+      })();
     }
 
     onScanComplete?.(scanResult);
@@ -568,7 +577,7 @@ export default function ScanSection({ onScanComplete }: Props) {
   /* -- Render -- */
 
   return (
-    <section className="scan-status">
+    <section className="scan-status" data-testid="scan-page">
       {/* Entry tiles — three clear paths */}
       {step === "idle" && !loading && mode === "idle" && (
         <div className="scan-status__tiles scan-status__tiles--3">
@@ -722,7 +731,7 @@ export default function ScanSection({ onScanComplete }: Props) {
 
       {/* Analyze buttons */}
       {frontImage && hasIngredients && step !== "done" && !loading && (
-        <button className="scan-status__analyze" onClick={() => runAnalysis()}>
+        <button className="scan-status__analyze" data-testid="scan-submit" onClick={() => runAnalysis()}>
           Analyze
         </button>
       )}
@@ -736,7 +745,7 @@ export default function ScanSection({ onScanComplete }: Props) {
 
       {/* Current result (if active scan) */}
       {step === "done" && result && (
-        <div className="scan-status__result">
+        <div className="scan-status__result" data-testid="scan-results">
           {needsRescan && (
             <LoadingBanner
               tone="warn"

@@ -78,3 +78,69 @@ export function estimateDataUrlBytes(dataUrl: string): number {
   const b64 = dataUrl.slice(comma + 1);
   return Math.floor((b64.length * 3) / 4);
 }
+
+/**
+ * Create a tiny thumbnail (max 200x200, low quality) suitable for
+ * localStorage storage. ~5-15 KB instead of 200-500 KB.
+ */
+export async function toThumbnail(dataUrl: string): Promise<string> {
+  if (!dataUrl?.startsWith("data:image/")) return dataUrl;
+  try {
+    return await compressImageDataUrl(dataUrl, {
+      maxW: 200,
+      maxH: 200,
+      quality: 0.5,
+      mimeType: "image/jpeg",
+    });
+  } catch {
+    return dataUrl;
+  }
+}
+
+/**
+ * Strip large base64 images from a supplement/med object for localStorage.
+ * Replaces full-res images with tiny thumbnails synchronously where possible,
+ * or removes them if async thumbnail isn't feasible.
+ */
+export function stripLargeImages(obj: any): any {
+  if (!obj || typeof obj !== "object") return obj;
+  const clone = { ...obj };
+  const MAX_IMG_CHARS = 40_000; // ~30KB base64
+  if (typeof clone.frontImage === "string" && clone.frontImage.length > MAX_IMG_CHARS) {
+    clone.frontImage = null;
+  }
+  if (typeof clone.ingredientsImage === "string" && clone.ingredientsImage.length > MAX_IMG_CHARS) {
+    clone.ingredientsImage = null;
+  }
+  if (Array.isArray(clone.ingredientsImages)) {
+    clone.ingredientsImages = clone.ingredientsImages.filter(
+      (img: string) => typeof img === "string" && img.length <= MAX_IMG_CHARS
+    );
+    if (clone.ingredientsImages.length === 0) delete clone.ingredientsImages;
+  }
+  return clone;
+}
+
+/**
+ * Async version: downsample images to thumbnails before storage.
+ */
+export async function shrinkImagesForStorage(obj: any): Promise<any> {
+  if (!obj || typeof obj !== "object") return obj;
+  const clone = { ...obj };
+  if (typeof clone.frontImage === "string" && clone.frontImage.startsWith("data:image/")) {
+    clone.frontImage = await toThumbnail(clone.frontImage);
+  }
+  if (typeof clone.ingredientsImage === "string" && clone.ingredientsImage.startsWith("data:image/")) {
+    clone.ingredientsImage = await toThumbnail(clone.ingredientsImage);
+  }
+  if (Array.isArray(clone.ingredientsImages)) {
+    clone.ingredientsImages = await Promise.all(
+      clone.ingredientsImages
+        .slice(0, 2)
+        .map((img: string) =>
+          typeof img === "string" && img.startsWith("data:image/") ? toThumbnail(img) : img
+        )
+    );
+  }
+  return clone;
+}

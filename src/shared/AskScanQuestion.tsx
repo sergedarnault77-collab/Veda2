@@ -155,7 +155,7 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
   if (!expanded) {
     return (
       <div className="ask-scan">
-        <button className="ask-scan__trigger" onClick={() => {
+        <button className="ask-scan__trigger" data-testid="ask-button" onClick={() => {
           setExpanded(true);
           setTimeout(() => inputRef.current?.focus(), 100);
         }}>
@@ -180,6 +180,7 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
         <input
           ref={inputRef}
           className="ask-scan__input"
+          data-testid="ask-input"
           type="text"
           placeholder={placeholder}
           value={question}
@@ -190,6 +191,7 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
         />
         <button
           className="ask-scan__send"
+          data-testid="ask-submit"
           onClick={handleAsk}
           disabled={loading || !question.trim()}
           aria-label="Ask"
@@ -207,7 +209,7 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
       )}
 
       {answer && (
-        <div className="ask-scan__answer" ref={answerRef}>
+        <div className="ask-scan__answer" data-testid="ask-answer" ref={answerRef}>
           <div className="ask-scan__short">{answer.shortAnswer}</div>
 
           {answer.explanation && (
