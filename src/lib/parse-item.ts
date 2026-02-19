@@ -19,11 +19,14 @@ export type ParsedItem = {
   strengthPerUnit: number | null;
   strengthUnit: "mg" | "µg" | "g" | "IU" | "mL" | null;
   servingSizeText: string | null;
+  servingSizeG: number | null;
+  nutritionPer: string;
   rawTextHints: string[];
   confidence: number;
   mode: "openai" | "stub";
   labelTranscription: string | null;
   nutrients: NutrientRow[];
+  nutrientsPer100g: NutrientRow[] | null;
   ingredientsDetected: string[];
   ingredientsList: string[];
   ingredientsCount: number;
@@ -38,11 +41,14 @@ function stubItem(kind: "med" | "supp", hint?: string): ParsedItem {
     strengthPerUnit: null,
     strengthUnit: null,
     servingSizeText: null,
+    servingSizeG: null,
+    nutritionPer: "unknown",
     rawTextHints: hint ? [hint] : ["local fallback – API server not reachable"],
     confidence: 0,
     mode: "stub",
     labelTranscription: null,
     nutrients: [],
+    nutrientsPer100g: null,
     ingredientsDetected: [],
     ingredientsList: [],
     ingredientsCount: 0,
@@ -135,11 +141,30 @@ export async function parseScannedItem(
         ? entities.length > 0 || ingredientsList.length > 0 ? 0.8 : 0.4
         : 0;
 
-    const nutrients: NutrientRow[] = Array.isArray(json.nutrients)
+    const rawNutrients: NutrientRow[] = Array.isArray(json.nutrients)
       ? json.nutrients.filter(
           (n: any) => n && typeof n.nutrientId === "string" && typeof n.amountToday === "number",
         )
       : [];
+
+    const servingSizeG = typeof json.servingSizeG === "number" && json.servingSizeG > 0
+      ? json.servingSizeG : null;
+    const nutritionPer = typeof json.nutritionPer === "string" ? json.nutritionPer.toLowerCase() : "unknown";
+
+    const isPer100g = nutritionPer === "100g";
+    let nutrients: NutrientRow[];
+    let nutrientsPer100g: NutrientRow[] | null = null;
+
+    if (isPer100g && servingSizeG && servingSizeG < 100) {
+      nutrientsPer100g = rawNutrients;
+      const scale = servingSizeG / 100;
+      nutrients = rawNutrients.map(n => ({
+        ...n,
+        amountToday: Math.round(n.amountToday * scale * 100) / 100,
+      }));
+    } else {
+      nutrients = rawNutrients;
+    }
 
     const labelTranscription =
       typeof json.transcription === "string" && json.transcription.trim()
@@ -151,18 +176,27 @@ export async function parseScannedItem(
       rawTextHints.unshift(json.meta.reason);
     }
 
+    const servingText = isPer100g && servingSizeG
+      ? `${servingSizeG}g (per 100g on label)`
+      : servingSizeG
+        ? `${servingSizeG}g`
+        : null;
+
     return {
       displayName: productName || (kind === "med" ? "New medication" : "New supplement"),
       brand: null,
       form: null,
       strengthPerUnit: null,
       strengthUnit: null,
-      servingSizeText: null,
+      servingSizeText: servingText,
+      servingSizeG,
+      nutritionPer,
       rawTextHints,
       confidence,
       mode,
       labelTranscription,
       nutrients,
+      nutrientsPer100g,
       ingredientsDetected: entities,
       ingredientsList,
       ingredientsCount: ingredientsList.length,

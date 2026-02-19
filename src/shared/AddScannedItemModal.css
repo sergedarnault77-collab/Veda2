@@ -228,6 +228,75 @@
   font-family: monospace;
 }
 
+/* ── Serving size block ── */
+
+.serving-size-block {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 183, 77, 0.06);
+  border: 1px solid rgba(255, 183, 77, 0.18);
+}
+
+.serving-size-block__label {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--veda-text);
+  margin-bottom: 10px;
+}
+
+.serving-size-block__input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.serving-size-block__input {
+  width: 90px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--veda-text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.serving-size-block__input::-webkit-inner-spin-button,
+.serving-size-block__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.serving-size-block__input:focus {
+  border-color: var(--veda-accent);
+}
+
+.serving-size-block__unit {
+  font-size: 0.82rem;
+  opacity: 0.65;
+}
+
+.serving-size-block__hint {
+  margin-top: 8px;
+  font-size: 0.72rem;
+  opacity: 0.6;
+  color: var(--veda-text);
+}
+
+[data-theme="light"] .serving-size-block {
+  background: rgba(255, 152, 0, 0.06);
+  border-color: rgba(255, 152, 0, 0.2);
+}
+
+[data-theme="light"] .serving-size-block__input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--veda-text);
+}
+
 /* ── Manual medication entry ── */
 .modal-manual-entry {
   text-align: center;

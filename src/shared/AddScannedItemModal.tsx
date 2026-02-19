@@ -14,6 +14,8 @@ export type ScannedItem = {
   strengthPerUnit: number | null;
   strengthUnit: "mg" | "µg" | "g" | "IU" | "mL" | null;
   servingSizeText: string | null;
+  servingSizeG?: number | null;
+  nutritionPer?: string;
   rawTextHints: string[];
   confidence: number;
   mode: "openai" | "stub";
@@ -22,6 +24,7 @@ export type ScannedItem = {
   ingredientsImages?: string[];
   labelTranscription?: string | null;
   nutrients?: NutrientRow[];
+  nutrientsPer100g?: NutrientRow[] | null;
   ingredientsDetected?: string[];
   ingredientsList?: string[];
   ingredientsCount?: number;
@@ -93,10 +96,14 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     });
   }, [initialItem]);
 
+  const [servingG, setServingG] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const hasIngredients = ingredientsImages.length > 0;
   const canScanIngredients = !!frontImage;
   const canConfirm = !!name.trim() && (!!frontImage || kind === "med") && parseStatus !== "parsing" && !submitting;
+
+  const isPer100g = parsedItem?.nutritionPer === "100g";
+  const nutrientsPer100g = parsedItem?.nutrientsPer100g as NutrientRow[] | null;
 
   const title = isEdit
     ? (kind === "med" ? "Edit medication" : "Edit supplement")
@@ -138,6 +145,10 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
       setParseStatus("parsed");
       if (!userEditedName.current && item?.displayName) setName(item.displayName);
 
+      if (item?.servingSizeG && item?.nutritionPer === "100g") {
+        setServingG(item.servingSizeG);
+      }
+
       if (item?.meta?.needsRescan) {
         setParseWarning(item.meta.rescanHint || "Photo is hard to read. Take a closer photo of the ingredients label.");
       } else if (item?.mode === "stub") {
@@ -161,16 +172,26 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frontImage, kind]);
 
+  const activeNutrients = useMemo((): NutrientRow[] => {
+    if (!isPer100g || !nutrientsPer100g || !servingG) {
+      return (parsedItem?.nutrients || []) as NutrientRow[];
+    }
+    const scale = servingG / 100;
+    return nutrientsPer100g.map(n => ({
+      ...n,
+      amountToday: Math.round(n.amountToday * scale * 100) / 100,
+    }));
+  }, [parsedItem, isPer100g, nutrientsPer100g, servingG]);
+
   const detectedNutrientsPreview = useMemo(() => {
-    const ns = (parsedItem?.nutrients || []) as any[];
-    if (!Array.isArray(ns) || ns.length === 0) return [];
-    return ns.slice(0, 8).map((n: any) => {
+    if (!Array.isArray(activeNutrients) || activeNutrients.length === 0) return [];
+    return activeNutrients.slice(0, 8).map((n) => {
       const pct = n.dailyReference != null && n.dailyReference > 0
         ? ` (${Math.round((n.amountToday / n.dailyReference) * 100)}%)`
         : "";
       return `${n.name} — ${n.amountToday}${n.unit}${pct}`;
     });
-  }, [parsedItem]);
+  }, [activeNutrients]);
 
   const needsRescan = parsedItem?.meta?.needsRescan === true;
 
@@ -178,13 +199,20 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     if (!canConfirm || submitting) return;
     setSubmitting(true);
     const nowISO = new Date().toISOString();
+
+    const servingText = isPer100g && servingG
+      ? `${servingG}g`
+      : parsedItem?.servingSizeText ?? initialItem?.servingSizeText ?? null;
+
     const item: ScannedItem = {
       displayName: name.trim(),
       brand: parsedItem?.brand ?? initialItem?.brand ?? null,
       form: parsedItem?.form ?? initialItem?.form ?? null,
       strengthPerUnit: parsedItem?.strengthPerUnit ?? initialItem?.strengthPerUnit ?? null,
       strengthUnit: parsedItem?.strengthUnit ?? initialItem?.strengthUnit ?? null,
-      servingSizeText: parsedItem?.servingSizeText ?? initialItem?.servingSizeText ?? null,
+      servingSizeText: servingText,
+      servingSizeG: servingG ?? parsedItem?.servingSizeG ?? null,
+      nutritionPer: parsedItem?.nutritionPer ?? "unknown",
       rawTextHints: parsedItem?.rawTextHints ?? initialItem?.rawTextHints ?? [],
       confidence: parsedItem?.confidence ?? initialItem?.confidence ?? 0,
       mode: parsedItem?.mode ?? initialItem?.mode ?? "stub",
@@ -192,7 +220,8 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
       ingredientsImage: ingredientsImages[0] ?? null,
       ingredientsImages,
       labelTranscription: parsedItem?.labelTranscription ?? initialItem?.labelTranscription ?? null,
-      nutrients: parsedItem?.nutrients ?? initialItem?.nutrients ?? [],
+      nutrients: activeNutrients,
+      nutrientsPer100g: nutrientsPer100g ?? initialItem?.nutrientsPer100g ?? null,
       ingredientsDetected: parsedItem?.ingredientsDetected ?? initialItem?.ingredientsDetected ?? [],
       ingredientsList: parsedItem?.ingredientsList ?? initialItem?.ingredientsList ?? [],
       ingredientsCount: parsedItem?.ingredientsCount ?? initialItem?.ingredientsCount ?? 0,
@@ -379,9 +408,38 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
           />
         )}
 
+        {isPer100g && parseStatus === "parsed" && (
+          <div className="serving-size-block">
+            <div className="serving-size-block__label">
+              Label shows values <strong>per 100g</strong> — how much do you take per serving?
+            </div>
+            <div className="serving-size-block__input-row">
+              <input
+                type="number"
+                className="serving-size-block__input"
+                min={1}
+                max={500}
+                step={1}
+                value={servingG ?? ""}
+                placeholder="e.g. 20"
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setServingG(v ? Math.max(1, Math.min(500, Number(v))) : null);
+                }}
+              />
+              <span className="serving-size-block__unit">grams</span>
+            </div>
+            {servingG && (
+              <div className="serving-size-block__hint">
+                Nutrients scaled to {servingG}g serving ({Math.round(servingG / 100 * 100)}% of label values)
+              </div>
+            )}
+          </div>
+        )}
+
         {detectedNutrientsPreview.length > 0 && (
           <div className="parse-hint">
-            <strong>Detected nutrients:</strong>
+            <strong>Detected nutrients{isPer100g && servingG ? ` (per ${servingG}g)` : ""}:</strong>
             <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9 }}>
               {detectedNutrientsPreview.map((t) => (
                 <div key={t}>• {t}</div>

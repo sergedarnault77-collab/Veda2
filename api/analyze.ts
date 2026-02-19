@@ -43,6 +43,8 @@ type AnalyzeResponse = {
   ok: true;
   productName: string | null;
   transcription: string | null;
+  servingSizeG: number | null;
+  nutritionPer: string;
   nutrients: NutrientRow[];
   ingredientsList: string[];
   ingredientsCount: number;
@@ -132,6 +134,8 @@ async function tryProductDbLookup(productName: string): Promise<AnalyzeResponse 
       ok: true,
       productName: product.product_name,
       transcription: null,
+      servingSizeG: null,
+      nutritionPer: "serving",
       nutrients: nutrientRows,
       ingredientsList: entities,
       ingredientsCount: entities.length,
@@ -181,6 +185,8 @@ function stub(reason: string): AnalyzeResponse {
     ok: true,
     productName: null,
     transcription: null,
+    servingSizeG: null,
+    nutritionPer: "unknown",
     nutrients: [],
     ingredientsList: [],
     ingredientsCount: 0,
@@ -614,11 +620,13 @@ function buildJsonSchema() {
     schema: {
       type: "object",
       additionalProperties: false,
-      required: ["productName", "transcription", "transcriptionConfidence", "nutrients", "ingredientsList", "categories", "detectedEntities", "signals"],
+      required: ["productName", "transcription", "transcriptionConfidence", "servingSizeG", "nutritionPer", "nutrients", "ingredientsList", "categories", "detectedEntities", "signals"],
       properties: {
         productName: { type: ["string", "null"] },
         transcription: { type: ["string", "null"] },
         transcriptionConfidence: { type: "number" },
+        servingSizeG: { type: ["number", "null"] },
+        nutritionPer: { type: "string" },
         nutrients: {
           type: "array",
           items: {
@@ -786,7 +794,7 @@ async function innerHandler(method: string, body: any): Promise<Response> {
             messages: [
               { role: "system", content: frontOnlySystem },
               { role: "user", content: [
-                { type: "text", text: "Identify this product from the front photo. Return JSON with: productName, transcription (null), transcriptionConfidence (0.3), nutrients [{nutrientId, name, unit, amountToday, dailyReference}], ingredientsList [strings], categories {Sweeteners,Stimulants,Sugars,Calories,Vitamins,Minerals,Supplements,Other}, detectedEntities [strings], signals [{type,severity,confidence,headline,explanation,relatedEntities}]." },
+                { type: "text", text: "Identify this product from the front photo. Return JSON with: productName, transcription (null), transcriptionConfidence (0.3), servingSizeG (number|null), nutritionPer ('serving' or 'unknown'), nutrients [{nutrientId, name, unit, amountToday, dailyReference}], ingredientsList [strings], categories {Sweeteners,Stimulants,Sugars,Calories,Vitamins,Minerals,Supplements,Other}, detectedEntities [strings], signals [{type,severity,confidence,headline,explanation,relatedEntities}]." },
                 { type: "image_url", image_url: { url: frontImageDataUrl, detail: "low" } },
               ]},
             ],
@@ -854,6 +862,8 @@ async function innerHandler(method: string, body: any): Promise<Response> {
         ok: true,
         productName: fpName,
         transcription: null,
+        servingSizeG: typeof frontParsed?.servingSizeG === "number" && frontParsed.servingSizeG > 0 ? frontParsed.servingSizeG : null,
+        nutritionPer: typeof frontParsed?.nutritionPer === "string" ? frontParsed.nutritionPer : "unknown",
         nutrients: fpNutrients,
         ingredientsList: fpIngredients,
         ingredientsCount: fpIngredients.length,
@@ -959,6 +969,12 @@ async function innerHandler(method: string, body: any): Promise<Response> {
       "Set the 'transcription' field to the transcription text provided.",
       "Set 'transcriptionConfidence' based on how complete/coherent the transcription looks (0..1).",
       "",
+      "Serving size guidance:",
+      "• Look for serving/portion info in the transcription (e.g. 'Eine Portion entspricht 20g', 'Serving size: 1 tablet', 'Per serving (30ml)').",
+      "• Set 'servingSizeG' to the serving size in grams (number or null if unknown).",
+      "• Set 'nutritionPer' to describe what the nutrition values refer to: '100g', 'serving', 'tablet', 'capsule', or 'unknown'.",
+      "• CRITICAL: If the nutrition table header says 'per 100g' / 'pro 100g' / 'per 100 ml', set nutritionPer to '100g'. Many European labels list nutrients per 100g, not per serving.",
+      "",
       "Nutrients guidance (populate 'nutrients' array):",
       "• CRITICAL: Extract EVERY nutrient row from the transcription. Multivitamins may have 20-30+ nutrients — include ALL of them.",
       "• Only include a nutrient if the transcription explicitly states BOTH the nutrient name AND a numeric amount.",
@@ -981,6 +997,7 @@ async function innerHandler(method: string, body: any): Promise<Response> {
       "  severity: low, medium, high",
       "",
       "Return JSON with these exact fields: productName (string|null), transcription (string|null), transcriptionConfidence (number 0-1),",
+      "servingSizeG (number|null — grams per serving), nutritionPer (string — '100g', 'serving', 'tablet', 'capsule', or 'unknown'),",
       "nutrients (array of {nutrientId, name, unit, amountToday, dailyReference, percentLabel}),",
       "ingredientsList (string array), categories ({Sweeteners,Stimulants,Sugars,Calories,Vitamins,Minerals,Supplements,Other} each string array),",
       "detectedEntities (string array), signals (array of {type,severity,confidence,headline,explanation,relatedEntities}).",
@@ -1083,10 +1100,17 @@ async function innerHandler(method: string, body: any): Promise<Response> {
 
     const signals = coerceSignals(parsed?.signals);
 
+    const servingSizeG = typeof parsed?.servingSizeG === "number" && parsed.servingSizeG > 0
+      ? parsed.servingSizeG : null;
+    const nutritionPer = typeof parsed?.nutritionPer === "string" && parsed.nutritionPer.trim()
+      ? parsed.nutritionPer.trim().toLowerCase() : "unknown";
+
     const okResp: AnalyzeResponse = {
       ok: true,
       productName,
       transcription,
+      servingSizeG,
+      nutritionPer,
       nutrients,
       ingredientsList,
       ingredientsCount: ingredientsList.length,
