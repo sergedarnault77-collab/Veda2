@@ -7,3 +7,7 @@ tsconfig.tsbuildinfo
 artifacts/
 playwright-report/
 test-results/
+
+# Capacitor native projects (generated, open in Xcode/Android Studio)
+ios/
+android/

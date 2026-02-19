@@ -152,8 +152,21 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
+  // ── DELETE: remove all data for a user ──
+  if (action === "delete_account") {
+    try {
+      await sql`DELETE FROM user_data WHERE email = ${email}`;
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    } catch (e: any) {
+      return new Response(
+        JSON.stringify({ ok: false, error: String(e?.message || e) }),
+        { status: 500, headers },
+      );
+    }
+  }
+
   return new Response(
-    JSON.stringify({ ok: false, error: "action must be 'load', 'save', or 'save_batch'" }),
+    JSON.stringify({ ok: false, error: "action must be 'load', 'save', 'save_batch', or 'delete_account'" }),
     { status: 400, headers },
   );
 }

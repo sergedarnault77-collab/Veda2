@@ -7,6 +7,8 @@ import HomePage from "./home/HomePage";
 import DashboardPage from "./dashboard/DashboardPage";
 import MedicationsPage from "./meds/MedicationsPage";
 import SupplementsPage from "./supps/SupplementsPage";
+import PrivacyPolicy from "./legal/PrivacyPolicy";
+import TermsOfService from "./legal/TermsOfService";
 import { loadUser, saveUser, setPlan as persistPlan, setProfile as persistProfile } from "./lib/auth";
 import type { VedaUser, Plan, BiologicalSex, AgeRange } from "./lib/auth";
 import { setSyncEmail, pullAll, pushAll } from "./lib/sync";
@@ -14,6 +16,7 @@ import "./App.css";
 
 type AuthView = "register" | "login";
 type Tab = "home" | "dashboard" | "meds" | "supps";
+type LegalView = "privacy" | "terms" | null;
 type Theme = "dark" | "light";
 
 const THEME_KEY = "veda.theme";
@@ -31,6 +34,12 @@ export default function App() {
   const [user, setUser] = useState<VedaUser | null>(() => loadUser());
   const [authView, setAuthView] = useState<AuthView>("register");
   const [tab, setTab] = useState<Tab>("home");
+  const [legalView, setLegalView] = useState<LegalView>(() => {
+    const h = window.location.hash.replace("#", "");
+    if (h === "privacy") return "privacy";
+    if (h === "terms") return "terms";
+    return null;
+  });
   const [syncing, setSyncing] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => {
     const t = loadTheme();
@@ -106,20 +115,48 @@ export default function App() {
     setUser((prev) => prev ? { ...prev, plan } : prev);
   }, []);
 
+  const clearLocalData = useCallback(() => {
+    localStorage.removeItem("veda.user.v1");
+    localStorage.removeItem("veda.supps.v1");
+    localStorage.removeItem("veda.meds.v1");
+    localStorage.removeItem("veda.exposure.today.v1");
+    localStorage.removeItem("veda.scans.today.v1");
+    localStorage.removeItem("veda.supps.taken.v1");
+    localStorage.removeItem("veda.exposure.history.v1");
+  }, []);
+
   const handleLogout = useCallback(() => {
     setSyncEmail(null);
     setUser(null);
     setAuthView("login");
-    // Clear all persisted data so the session truly ends
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("veda.user.v1");
-      localStorage.removeItem("veda.supps.v1");
-      localStorage.removeItem("veda.meds.v1");
-      localStorage.removeItem("veda.exposure.today.v1");
-      localStorage.removeItem("veda.scans.today.v1");
-      localStorage.removeItem("veda.supps.taken.v1");
-    }
-  }, []);
+    clearLocalData();
+  }, [clearLocalData]);
+
+  const handleDeleteAccount = useCallback(async () => {
+    const email = user?.email;
+    if (!email) return;
+
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, action: "delete_account" }),
+      });
+    } catch { /* proceed with local cleanup even if server fails */ }
+
+    setSyncEmail(null);
+    setUser(null);
+    setAuthView("register");
+    clearLocalData();
+  }, [user?.email, clearLocalData]);
+
+  // 0. Legal pages — accessible without login (for store review links)
+  if (legalView === "privacy") {
+    return <PrivacyPolicy onBack={() => { setLegalView(null); window.location.hash = ""; }} />;
+  }
+  if (legalView === "terms") {
+    return <TermsOfService onBack={() => { setLegalView(null); window.location.hash = ""; }} />;
+  }
 
   // 1. Not registered → show auth screen
   if (!isRegistered) {
@@ -180,6 +217,8 @@ export default function App() {
         onChangePlan={handleChangePlan}
         onUpdateUser={(updated) => { saveUser(updated); setUser(updated); }}
         onLogout={handleLogout}
+        onDeleteAccount={handleDeleteAccount}
+        onShowLegal={(view) => { setLegalView(view); window.location.hash = view; }}
       />
     </div>
   );
@@ -194,6 +233,8 @@ function AccountBar({
   onChangePlan,
   onUpdateUser,
   onLogout,
+  onDeleteAccount,
+  onShowLegal,
 }: {
   user: VedaUser;
   theme: Theme;
@@ -201,6 +242,8 @@ function AccountBar({
   onChangePlan: (plan: Plan) => void;
   onUpdateUser: (u: VedaUser) => void;
   onLogout: () => void;
+  onDeleteAccount: () => void;
+  onShowLegal: (view: "privacy" | "terms") => void;
 }) {
   const [open, setOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -302,6 +345,21 @@ function AccountBar({
                 Switch to {otherLabel}
               </button>
 
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <button
+                  onClick={() => { onShowLegal("privacy"); setOpen(false); }}
+                  style={{ ...btnStyle, fontSize: "0.72rem", padding: "8px 10px", flex: 1, marginBottom: 0 }}
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  onClick={() => { onShowLegal("terms"); setOpen(false); }}
+                  style={{ ...btnStyle, fontSize: "0.72rem", padding: "8px 10px", flex: 1, marginBottom: 0 }}
+                >
+                  Terms of Service
+                </button>
+              </div>
+
               <button
                 onClick={() => { onLogout(); setOpen(false); }}
                 style={{
@@ -309,10 +367,28 @@ function AccountBar({
                   border: "1px solid rgba(240,98,146,0.2)",
                   background: "rgba(240,98,146,0.06)",
                   color: "var(--veda-red)",
-                  marginBottom: 0,
                 }}
               >
                 Log out
+              </button>
+
+              <button
+                onClick={() => {
+                  if (window.confirm("Delete your account and all data? This cannot be undone.")) {
+                    onDeleteAccount();
+                    setOpen(false);
+                  }
+                }}
+                style={{
+                  ...btnStyle,
+                  border: "1px solid rgba(240,98,146,0.3)",
+                  background: "rgba(240,98,146,0.08)",
+                  color: "var(--veda-red)",
+                  fontSize: "0.72rem",
+                  marginBottom: 0,
+                }}
+              >
+                Delete Account
               </button>
             </>
           )}

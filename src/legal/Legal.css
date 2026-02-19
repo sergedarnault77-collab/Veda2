@@ -1,0 +1,70 @@
+.legal {
+  padding: 20px 0 100px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.legal__back {
+  background: none;
+  border: none;
+  color: var(--veda-accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 20px;
+  font-family: inherit;
+}
+
+.legal h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.legal__updated {
+  font-size: 0.78rem;
+  color: var(--veda-text-muted);
+  margin: 0 0 28px;
+}
+
+.legal section {
+  margin-bottom: 24px;
+}
+
+.legal h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.legal p {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--veda-text);
+  margin: 0 0 10px;
+  opacity: 0.9;
+}
+
+.legal ul {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+
+.legal li {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--veda-text);
+  margin-bottom: 6px;
+  opacity: 0.88;
+}
+
+.legal a {
+  color: var(--veda-accent);
+  text-decoration: none;
+}
+
+.legal a:hover {
+  text-decoration: underline;
+}
