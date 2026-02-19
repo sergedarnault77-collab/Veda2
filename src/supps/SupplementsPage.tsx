@@ -169,17 +169,22 @@ async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
   }
 }
 
-class SuppsErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
+class SuppsErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; errorMsg: string }> {
+  state = { hasError: false, errorMsg: "" };
+  static getDerivedStateFromError(error: Error) { return { hasError: true, errorMsg: String(error?.message || error) }; }
+  componentDidCatch(error: Error, info: any) {
+    console.error("[SuppsPage] render crash:", error, info?.componentStack);
+  }
   render() {
     if (this.state.hasError) {
       return (
         <div style={{ padding: 24, textAlign: "center", color: "var(--veda-text-muted)" }}>
           <p>Something went wrong loading supplements.</p>
+          <p style={{ fontSize: "0.7rem", opacity: 0.5, marginTop: 8 }}>{this.state.errorMsg}</p>
           <button
             className="btn btn--secondary"
-            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            style={{ marginTop: 12 }}
+            onClick={() => { this.setState({ hasError: false, errorMsg: "" }); window.location.reload(); }}
           >
             Reload
           </button>
@@ -187,6 +192,207 @@ class SuppsErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
       );
     }
     return this.props.children;
+  }
+}
+
+class CardErrorBoundary extends Component<{ children: ReactNode; name: string; onRemove: () => void }, { hasError: boolean; errorMsg: string }> {
+  state = { hasError: false, errorMsg: "" };
+  static getDerivedStateFromError(error: Error) { return { hasError: true, errorMsg: String(error?.message || error) }; }
+  componentDidCatch(error: Error, info: any) {
+    console.error("[SupplementCard] child crash:", this.props.name, error, info?.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="supp-card" style={{ opacity: 0.6 }}>
+          <div className="supp-card__top">
+            <div className="supp-card__titleWrap">
+              <div className="supp-card__title">{this.props.name || "Supplement"}</div>
+            </div>
+            <button className="supp-card__remove" onClick={this.props.onRemove}>Remove from daily use</button>
+          </div>
+          <p style={{ color: "var(--veda-text-muted)", fontSize: "0.8rem", padding: "8px 0" }}>
+            Unable to display this card ({this.state.errorMsg})
+          </p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function SupplementCard({
+  s,
+  removeSupp,
+  setBuyId,
+  setEditId,
+}: {
+  s: Supp;
+  removeSupp: (id: string) => void;
+  setBuyId: (id: string) => void;
+  setEditId: (id: string) => void;
+}) {
+  try {
+    const nutrients: NutrientRow[] = Array.isArray(s.nutrients) ? (s.nutrients as NutrientRow[]) : [];
+    const ingList: string[] = Array.isArray(s.ingredientsList) ? s.ingredientsList : [];
+    const ingDetected: string[] = Array.isArray(s.ingredientsDetected) ? s.ingredientsDetected : [];
+    const ingToShow = ingList.length > 0 ? ingList : ingDetected;
+    const ingCount = ingToShow.length;
+    const insights: any = s.insights && typeof s.insights === "object" ? s.insights : null;
+
+    return (
+      <div className="supp-card">
+        <div className="supp-card__top">
+          <div className="supp-card__titleWrap">
+            <div className="supp-card__title">{s.displayName || "Unnamed supplement"}</div>
+            {s.brand && <div className="supp-card__subtitle">{s.brand}</div>}
+          </div>
+          <button className="supp-card__remove" onClick={() => removeSupp(s.id)} aria-label="Remove from daily use">
+            Remove from daily use
+          </button>
+        </div>
+
+        <div className="supp-card__grid">
+          <div>
+            <div className="supp-card__label">Form</div>
+            <div className="supp-card__value">{s.form || "—"}</div>
+          </div>
+          <div>
+            <div className="supp-card__label">Serving</div>
+            <div className="supp-card__value">{s.servingSizeText || "—"}</div>
+          </div>
+          <div>
+            <div className="supp-card__label">Confidence</div>
+            <div className={`supp-card__badge supp-card__badge--${confLabel(s.confidence).toLowerCase()}`}>
+              {confLabel(s.confidence)}
+            </div>
+          </div>
+        </div>
+
+        {nutrients.length > 0 && (
+          <div className="supp-nutrients">
+            <div className="supp-nutrients__hdr">
+              <div>Detected nutrients</div>
+              <div className="supp-nutrients__sub">{nutrients.length} total</div>
+            </div>
+            <div className="supp-nutrients__grid">
+              {nutrients
+                .slice()
+                .sort((a, b) => {
+                  const pa = pctOfTarget(a);
+                  const pb = pctOfTarget(b);
+                  return (pb?.pct ?? -1) - (pa?.pct ?? -1);
+                })
+                .slice(0, 6)
+                .map((n) => {
+                  const ref = pctOfTarget(n);
+                  const ul = ulFlag(n);
+                  return (
+                    <div className="supp-nutrients__row" key={`${n?.nutrientId ?? ""}-${n?.name ?? ""}`}>
+                      <div className="supp-nutrients__name" title={n?.name ?? ""}>
+                        {n?.name ?? "—"}
+                        {ul && (
+                          <span
+                            className="supp-nutrients__ul-flag"
+                            style={{ color: ul === "exceeds" ? "var(--veda-red, #e74c3c)" : "var(--veda-orange, #FF8C1A)" }}
+                          >
+                            {ul === "exceeds" ? " ⚠ exceeds UL" : " ↑ near UL"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="supp-nutrients__amt">{n?.amountToday ?? 0}{n?.unit ?? ""}</div>
+                      <div
+                        className="supp-nutrients__pct"
+                        style={ref ? { color: pctColor(ref.pct, ul) } : undefined}
+                      >
+                        {ref ? `${ref.pct}%` : ""}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+            <div className="supp-nutrients__source">From supplements</div>
+            {nutrients.length > 6 && (
+              <div className="supp-nutrients__more">+{nutrients.length - 6} more</div>
+            )}
+          </div>
+        )}
+
+        {ingCount > 0 && (
+          <details className="item-ingredients">
+            <summary className="item-ingredients__summary">
+              Detected ingredients: {ingCount}{ingList.length === 0 ? " (from categories)" : ""}
+            </summary>
+            <div className="item-ingredients__list">
+              {ingToShow.map((ing, i) => (
+                <span className="item-ingredients__chip" key={`${ing}-${i}`}>{ing}</span>
+              ))}
+            </div>
+          </details>
+        )}
+
+        {Array.isArray(s.interactions) && s.interactions.length > 0 && (
+          <InteractionWarnings interactions={s.interactions} />
+        )}
+
+        {insights && (insights.summary || (Array.isArray(insights.overlaps) && insights.overlaps.length > 0) || (Array.isArray(insights.notes) && insights.notes.length > 0)) && (
+          <div className="item-insights">
+            <div className="item-insights__title">Insights</div>
+            {insights.summary && (
+              <div className="item-insights__summary">{insights.summary}</div>
+            )}
+            {(Array.isArray(insights.overlaps) ? insights.overlaps : []).slice(0, 2).map((o: any, i: number) => (
+              <div className="item-insights__overlap" key={`${o?.key ?? ""}-${i}`}>
+                <span
+                  className="item-insights__badge"
+                  style={{ background: riskColor(o?.risk), opacity: 0.85 }}
+                >
+                  {o?.risk ?? ""}
+                </span>
+                <span className="item-insights__what">{o?.what ?? ""}</span>
+              </div>
+            ))}
+            {(Array.isArray(insights.notes) ? insights.notes : []).slice(0, 2).map((note: string, i: number) => (
+              <div className="item-insights__note" key={i}>{note}</div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+          <button className="btn btn--primary supp-card__buy" onClick={() => setBuyId(s.id)}>
+            🛒 Buy / Refill
+          </button>
+          <button className="btn btn--secondary" onClick={() => setEditId(s.id)}>
+            Re-read / replace label
+          </button>
+        </div>
+
+        <details className="supp-card__photos">
+          <summary>Tap to view photos</summary>
+          <div className="supp-card__thumbs">
+            {s.frontImage && <img src={s.frontImage} alt="Front" />}
+            {s.ingredientsImage && <img src={s.ingredientsImage} alt="Label" />}
+          </div>
+        </details>
+      </div>
+    );
+  } catch (err: any) {
+    console.error("[SupplementCard] render crash for", s?.displayName, err);
+    return (
+      <div className="supp-card" style={{ opacity: 0.6 }}>
+        <div className="supp-card__top">
+          <div className="supp-card__titleWrap">
+            <div className="supp-card__title">{s?.displayName || "Supplement"}</div>
+          </div>
+          <button className="supp-card__remove" onClick={() => removeSupp(s.id)} aria-label="Remove">
+            Remove from daily use
+          </button>
+        </div>
+        <p style={{ color: "var(--veda-text-muted)", fontSize: "0.8rem", padding: "8px 0" }}>
+          Unable to display this card ({String(err?.message || "unknown error")})
+        </p>
+      </div>
+    );
   }
 }
 
@@ -346,155 +552,11 @@ function SupplementsPageInner() {
         </div>
       ) : (
         <div className="supps-page__list">
-          {items.map((s) => {
-            const nutrients: NutrientRow[] = Array.isArray(s.nutrients) ? (s.nutrients as NutrientRow[]) : [];
-            const ingList: string[] = Array.isArray(s.ingredientsList) ? s.ingredientsList : [];
-            const ingDetected: string[] = Array.isArray(s.ingredientsDetected) ? s.ingredientsDetected : [];
-            const ingToShow = ingList.length > 0 ? ingList : ingDetected;
-            const ingCount = ingToShow.length;
-            const insights = s.insights;
-
-            return (
-              <div className="supp-card" key={s.id}>
-                <div className="supp-card__top">
-                  <div className="supp-card__titleWrap">
-                    <div className="supp-card__title">{s.displayName}</div>
-                    {s.brand && <div className="supp-card__subtitle">{s.brand}</div>}
-                  </div>
-                  <button className="supp-card__remove" onClick={() => removeSupp(s.id)} aria-label="Remove from daily use">
-                    Remove from daily use
-                  </button>
-                </div>
-
-                <div className="supp-card__grid">
-                  <div>
-                    <div className="supp-card__label">Form</div>
-                    <div className="supp-card__value">{s.form || "—"}</div>
-                  </div>
-                  <div>
-                    <div className="supp-card__label">Serving</div>
-                    <div className="supp-card__value">{s.servingSizeText || "—"}</div>
-                  </div>
-                  <div>
-                    <div className="supp-card__label">Confidence</div>
-                    <div className={`supp-card__badge supp-card__badge--${confLabel(s.confidence).toLowerCase()}`}>
-                      {confLabel(s.confidence)}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Nutrients table */}
-                {nutrients.length > 0 && (
-                  <div className="supp-nutrients">
-                    <div className="supp-nutrients__hdr">
-                      <div>Detected nutrients</div>
-                      <div className="supp-nutrients__sub">{nutrients.length} total</div>
-                    </div>
-                    <div className="supp-nutrients__grid">
-                      {nutrients
-                        .slice()
-                        .sort((a, b) => {
-                          const pa = pctOfTarget(a);
-                          const pb = pctOfTarget(b);
-                          return (pb?.pct ?? -1) - (pa?.pct ?? -1);
-                        })
-                        .slice(0, 6)
-                        .map((n) => {
-                          const ref = pctOfTarget(n);
-                          const ul = ulFlag(n);
-                          return (
-                            <div className="supp-nutrients__row" key={`${n.nutrientId}-${n.name}`}>
-                              <div className="supp-nutrients__name" title={n.name}>
-                                {n.name}
-                                {ul && (
-                                  <span
-                                    className="supp-nutrients__ul-flag"
-                                    style={{ color: ul === "exceeds" ? "var(--veda-red, #e74c3c)" : "var(--veda-orange, #FF8C1A)" }}
-                                  >
-                                    {ul === "exceeds" ? " ⚠ exceeds UL" : " ↑ near UL"}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="supp-nutrients__amt">{n.amountToday}{n.unit}</div>
-                              <div
-                                className="supp-nutrients__pct"
-                                style={ref ? { color: pctColor(ref.pct, ul) } : undefined}
-                              >
-                                {ref ? `${ref.pct}%` : ""}
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                    <div className="supp-nutrients__source">From supplements</div>
-                    {nutrients.length > 6 && (
-                      <div className="supp-nutrients__more">+{nutrients.length - 6} more</div>
-                    )}
-                  </div>
-                )}
-
-                {/* Ingredients list */}
-                {ingCount > 0 && (
-                  <details className="item-ingredients">
-                    <summary className="item-ingredients__summary">
-                      Detected ingredients: {ingCount}{ingList.length === 0 ? " (from categories)" : ""}
-                    </summary>
-                    <div className="item-ingredients__list">
-                      {ingToShow.map((ing, i) => (
-                        <span className="item-ingredients__chip" key={`${ing}-${i}`}>{ing}</span>
-                      ))}
-                    </div>
-                  </details>
-                )}
-
-                {/* Interaction warnings */}
-                {Array.isArray(s.interactions) && s.interactions.length > 0 && (
-                  <InteractionWarnings interactions={s.interactions} />
-                )}
-
-                {/* Insights */}
-                {insights && (insights.summary || insights.overlaps.length > 0 || insights.notes.length > 0) && (
-                  <div className="item-insights">
-                    <div className="item-insights__title">Insights</div>
-                    {insights.summary && (
-                      <div className="item-insights__summary">{insights.summary}</div>
-                    )}
-                    {insights.overlaps.slice(0, 2).map((o, i) => (
-                      <div className="item-insights__overlap" key={`${o.key}-${i}`}>
-                        <span
-                          className="item-insights__badge"
-                          style={{ background: riskColor(o.risk), opacity: 0.85 }}
-                        >
-                          {o.risk}
-                        </span>
-                        <span className="item-insights__what">{o.what}</span>
-                      </div>
-                    ))}
-                    {insights.notes.slice(0, 2).map((note, i) => (
-                      <div className="item-insights__note" key={i}>{note}</div>
-                    ))}
-                  </div>
-                )}
-
-                <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
-                  <button className="btn btn--primary supp-card__buy" onClick={() => setBuyId(s.id)}>
-                    🛒 Buy / Refill
-                  </button>
-                  <button className="btn btn--secondary" onClick={() => setEditId(s.id)}>
-                    Re-read / replace label
-                  </button>
-                </div>
-
-                <details className="supp-card__photos">
-                  <summary>Tap to view photos</summary>
-                  <div className="supp-card__thumbs">
-                    {s.frontImage && <img src={s.frontImage} alt="Front" />}
-                    {s.ingredientsImage && <img src={s.ingredientsImage} alt="Label" />}
-                  </div>
-                </details>
-              </div>
-            );
-          })}
+          {items.map((s) => (
+            <CardErrorBoundary key={s.id} name={s?.displayName ?? ""} onRemove={() => removeSupp(s.id)}>
+              <SupplementCard s={s} removeSupp={removeSupp} setBuyId={setBuyId} setEditId={setEditId} />
+            </CardErrorBoundary>
+          ))}
         </div>
       )}
 
