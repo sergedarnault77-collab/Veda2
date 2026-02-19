@@ -8,6 +8,7 @@ import InteractionWarnings from "../shared/InteractionWarnings";
 import type { Interaction } from "../shared/InteractionWarnings";
 import DrinkBuilder from "./DrinkBuilder";
 import type { DrinkEstimate } from "./DrinkBuilder";
+import AskScanQuestion from "../shared/AskScanQuestion";
 import "./ScanSection.css";
 
 export type ScanResult = {
@@ -690,6 +691,13 @@ export default function ScanSection({ onScanComplete }: Props) {
 
           {/* Interaction warnings */}
           <InteractionWarnings interactions={interactions} loading={ixLoading} />
+
+          {/* Ask about this scan */}
+          <AskScanQuestion
+            productName={productName}
+            nutrients={result?.nutrients ?? []}
+            interactions={interactions}
+          />
 
           {/* Caffeine follow-up question */}
           {needsCaffeineQ && !added && (
