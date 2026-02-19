@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 120 };
 
 type CategoryKey =
   | "Sweeteners"
@@ -1000,11 +1000,11 @@ async function innerHandler(method: string, body: any): Promise<Response> {
       ],
       response_format: { type: "json_object" as const },
       temperature: 0.15,
-      max_tokens: 5000,
+      max_tokens: 4500,
     };
 
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 50_000);
+    const timer = setTimeout(() => ac.abort(), 45_000);
     let r: Response;
     try {
       r = await fetch("https://api.openai.com/v1/chat/completions", {

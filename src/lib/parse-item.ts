@@ -89,7 +89,14 @@ export async function parseScannedItem(
       return stubItem(kind, hint);
     }
 
-    const json = await res.json();
+    let json: any;
+    try {
+      json = await res.json();
+    } catch (parseErr) {
+      console.warn("[parse-item] response JSON parse failed", parseErr);
+      return stubItem(kind, "Server returned an unreadable response. Try again.");
+    }
+
     if (!json?.ok) {
       console.warn("[parse-item] analyze returned ok=false", json);
       return stubItem(kind, json?.error || "analyze returned error");
