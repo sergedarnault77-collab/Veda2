@@ -62,6 +62,13 @@ function persistScan(name: string, summary: string, exposure?: ScanExposure, nut
   return day;
 }
 
+function removeScanByTs(ts: number): StoredScansDay {
+  const day = loadScans();
+  day.scans = day.scans.filter((s) => s.ts !== ts);
+  saveLS(SCANS_KEY, day);
+  return day;
+}
+
 export { type StoredScan, type StoredScansDay, type ScanExposure };
 
 /* ── Caffeine detection helpers ── */
@@ -747,10 +754,23 @@ export default function ScanSection({ onScanComplete }: Props) {
         <div className="scan-status__history">
           {todayScans.slice().reverse().slice(0, 5).map((s, i) => (
             <div className="scan-status__historyRow" key={`${s.ts}-${i}`}>
-              <span className="scan-status__historyName">{s.productName}</span>
-              {s.detectedSummary && (
-                <span className="scan-status__historyDetail">{s.detectedSummary}</span>
-              )}
+              <div className="scan-status__historyInfo">
+                <span className="scan-status__historyName">{s.productName || "(unnamed item)"}</span>
+                {s.detectedSummary && (
+                  <span className="scan-status__historyDetail">{s.detectedSummary}</span>
+                )}
+              </div>
+              <button
+                className="scan-status__historyRemove"
+                onClick={() => {
+                  const updated = removeScanByTs(s.ts);
+                  setTodayScans(updated.scans);
+                  window.dispatchEvent(new Event("veda:supps-updated"));
+                }}
+                aria-label="Remove"
+              >
+                Remove
+              </button>
             </div>
           ))}
         </div>
