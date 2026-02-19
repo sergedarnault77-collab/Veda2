@@ -152,14 +152,28 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
   };
 
   // Auto-parse: for meds, parse immediately from front photo.
-  // For supps, wait until ingredients photos are added.
+  // For supps, debounce after ingredient photos to let the user add multiple photos.
+  const parseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!frontImage) return;
+
     if (kind === "med") {
       doParseNow();
-    } else if (hasIngredients) {
-      doParseNow();
+      return;
     }
+
+    // Supplements: debounce ingredient-photo additions (2s wait)
+    if (hasIngredients) {
+      if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
+      parseTimerRef.current = setTimeout(() => {
+        doParseNow();
+      }, 2000);
+    }
+
+    return () => {
+      if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frontImage, ingredientsImages, kind]);
 
@@ -322,6 +336,20 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
           <div className="parse-hint">
             Multi-column label? Add more photos for better accuracy.
           </div>
+        )}
+
+        {/* Manual "Read now" button — visible while debounce is pending */}
+        {kind !== "med" && hasIngredients && parseStatus !== "parsing" && parseStatus !== "parsed" && (
+          <button
+            className="btn btn--primary"
+            style={{ marginTop: 8 }}
+            onClick={() => {
+              if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
+              doParseNow();
+            }}
+          >
+            Read label now ({ingredientsImages.length} photo{ingredientsImages.length > 1 ? "s" : ""})
+          </button>
         )}
 
         {(frontImage || hasIngredients) && (
