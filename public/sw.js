@@ -1,6 +1,5 @@
-const CACHE_NAME = "veda-v1";
+const CACHE_NAME = "veda-v2";
 const STATIC_ASSETS = [
-  "/",
   "/favicon.svg",
   "/favicon.png",
   "/icons/icon-192x192.png",
@@ -26,11 +25,27 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
-  // Skip non-GET and API/analytics requests
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.pathname.startsWith("/api/")) return;
 
+  // HTML navigation: always network-first so new deploys are picked up immediately
+  if (request.mode === "navigate" || request.destination === "document") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || new Response("Offline", { status: 503 })))
+    );
+    return;
+  }
+
+  // Static assets: stale-while-revalidate
   event.respondWith(
     caches.match(request).then((cached) => {
       const networkFetch = fetch(request)

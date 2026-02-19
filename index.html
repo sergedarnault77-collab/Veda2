@@ -36,5 +36,29 @@
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.addEventListener('error', function(e) {
+        var root = document.getElementById('root');
+        if (root && (!root.children.length || root.children.length === 1 && root.querySelector('#app-loading'))) {
+          root.innerHTML = '<div style="padding:40px;font-family:system-ui;color:#fff;background:#0a0a1a;min-height:100vh">' +
+            '<h1 style="font-size:20px;color:#6c5ce7">Veda</h1>' +
+            '<p style="opacity:0.7;font-size:14px;margin:12px 0">Failed to load: ' + (e.message || 'unknown error') + '</p>' +
+            '<button onclick="caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})}).then(function(){location.reload()})" ' +
+            'style="padding:10px 20px;border-radius:8px;border:none;background:#6c5ce7;color:#fff;cursor:pointer;font-size:14px">' +
+            'Clear cache &amp; reload</button></div>';
+        }
+      });
+      setTimeout(function() {
+        var loading = document.getElementById('app-loading');
+        if (loading) {
+          loading.innerHTML = '<div style="text-align:center">' +
+            '<div style="font-size:24px;font-weight:700;color:#6c5ce7;margin-bottom:8px">Veda</div>' +
+            '<div style="font-size:13px;opacity:0.5;margin-bottom:16px">Taking longer than expected…</div>' +
+            '<button onclick="caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})}).then(function(){location.reload()})" ' +
+            'style="padding:10px 20px;border-radius:8px;border:none;background:#6c5ce7;color:#fff;cursor:pointer;font-size:14px">' +
+            'Clear cache &amp; reload</button></div>';
+        }
+      }, 8000);
+    </script>
   </body>
 </html>
