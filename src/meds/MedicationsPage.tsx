@@ -38,6 +38,10 @@ function riskColor(risk: string) {
 
 async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
   try {
+    const nutrients = Array.isArray(item.nutrients) ? item.nutrients : [];
+    const ingredients = Array.isArray(item.ingredientsList) ? item.ingredientsList : [];
+    if (nutrients.length === 0 && ingredients.length === 0) return [];
+
     const supps = loadLS<any[]>("veda.supps.v1", []);
     const meds = loadLS<any[]>("veda.meds.v1", []);
     const existing = [
@@ -49,8 +53,8 @@ async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
     const newItem = {
       displayName: item.displayName,
       type: "medication",
-      nutrients: item.nutrients ?? [],
-      ingredientsList: item.ingredientsList ?? [],
+      nutrients,
+      ingredientsList: ingredients,
     };
 
     const res = await fetch("/api/interactions", {
@@ -60,7 +64,17 @@ async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return data?.ok && Array.isArray(data.interactions) ? data.interactions : [];
+    if (!data?.ok || !Array.isArray(data.interactions)) return [];
+
+    const nameLower = (item.displayName || "").toLowerCase();
+    return data.interactions.filter((ix: Interaction) => {
+      if (!Array.isArray(ix.items) || ix.items.length === 0) return false;
+      return ix.items.some((s) => {
+        const lower = (s || "").toLowerCase();
+        return lower.includes("medication") || lower.includes("new") ||
+          (nameLower && (lower.includes(nameLower) || nameLower.includes(lower)));
+      });
+    });
   } catch {
     return [];
   }

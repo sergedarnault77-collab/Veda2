@@ -7,6 +7,8 @@ import LoadingBanner from "./LoadingBanner";
 import type { NutrientRow } from "../home/stubs";
 import "./AddScannedItemModal.css";
 
+const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
 export type ScannedItem = {
   displayName: string;
   brand: string | null;
@@ -241,8 +243,8 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
   };
 
   const ingButtonLabel = hasIngredients
-    ? `Add another label photo (${ingredientsImages.length} taken)`
-    : "Scan ingredients label";
+    ? `Add another label photo (${ingredientsImages.length} added)`
+    : (isMobile ? "Scan ingredients label" : "Upload ingredients / nutrition label");
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
@@ -254,8 +256,8 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
         <h2>{title}</h2>
         <p className="modal-sub">
           {kind === "med"
-            ? "Take a photo of the front of the box — or type the name below."
-            : "Take a photo of the front, then the ingredients label if available."}
+            ? (isMobile ? "Take a photo of the front of the box — or type the name below." : "Upload a photo of the front of the box — or type the name below.")
+            : (isMobile ? "Take a photo of the front, then the ingredients label if available." : "Upload a photo of the front, then the ingredients/nutrition label.")}
         </p>
 
         <label className="modal-label">Name</label>
@@ -284,7 +286,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
             id="front-file"
             type="file"
             accept="image/*"
-            capture="environment"
+            capture={isMobile ? "environment" : undefined}
             style={{ display: "none" }}
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -297,7 +299,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
             ref={ingredientsInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
+            capture={isMobile ? "environment" : undefined}
             style={{ display: "none" }}
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -307,7 +309,11 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
           />
 
           <label className="btn btn--primary" htmlFor="front-file">
-            {frontImage ? "Re-scan product front" : kind === "med" ? "📷 Take photo of box" : "Scan product front"}
+            {frontImage
+              ? (isMobile ? "Re-scan product front" : "Replace front photo")
+              : kind === "med"
+                ? (isMobile ? "📷 Take photo of box" : "📷 Upload photo of box")
+                : (isMobile ? "Scan product front" : "Upload front photo")}
           </label>
 
           {kind === "med" ? (
@@ -318,7 +324,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
                 htmlFor="ing-file"
                 style={{ opacity: 0.8 }}
               >
-                {hasIngredients ? `Add another label photo (${ingredientsImages.length} taken)` : "Optional: scan ingredients label"}
+                {hasIngredients ? `Add another label photo (${ingredientsImages.length} added)` : (isMobile ? "Optional: scan ingredients label" : "Optional: upload ingredients label")}
               </label>
             )
           ) : (
