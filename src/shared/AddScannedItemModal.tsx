@@ -126,7 +126,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
 
   const onPickFront = async (file: File) => {
     const dataUrl = await fileToDataUrl(file);
-    const compressed = await compressImageDataUrl(dataUrl, { maxW: 900, maxH: 900, quality: 0.72, mimeType: "image/jpeg" });
+    const compressed = await compressImageDataUrl(dataUrl, { maxW: 1024, maxH: 1024, quality: 0.8, mimeType: "image/jpeg" });
     setFrontImage(compressed);
     setParseStatus("idle");
     setParsedItem(null);
@@ -135,7 +135,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
 
   const onPickIngredients = async (file: File) => {
     const dataUrl = await fileToDataUrl(file);
-    const compressed = await compressImageDataUrl(dataUrl, { maxW: 1200, maxH: 1200, quality: 0.78, mimeType: "image/jpeg" });
+    const compressed = await compressImageDataUrl(dataUrl, { maxW: 1600, maxH: 2000, quality: 0.85, mimeType: "image/jpeg" });
     setIngredientsImages((prev) => [...prev, compressed].slice(-MAX_ING_PHOTOS));
     setParseStatus("idle");
     setParsedItem(null);

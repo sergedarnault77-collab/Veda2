@@ -237,9 +237,9 @@ export default function ScanSection({ onScanComplete }: Props) {
     });
 
     const compressed = await compressImageDataUrl(dataUrl, {
-      maxW: kind === "front" ? 900 : 1200,
-      maxH: kind === "front" ? 900 : 1400,
-      quality: kind === "front" ? 0.72 : 0.78,
+      maxW: kind === "front" ? 1024 : 1600,
+      maxH: kind === "front" ? 1024 : 2000,
+      quality: kind === "front" ? 0.8 : 0.85,
       mimeType: "image/jpeg",
     });
 
