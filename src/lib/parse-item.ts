@@ -71,14 +71,28 @@ export async function parseScannedItem(
       : [ingredientsDataUrl];
 
   try {
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        frontImageDataUrl: frontDataUrl,
-        ingredientsImageDataUrls: ingredientsArray,
-      }),
-    });
+    const ac = new AbortController();
+    const timeout = setTimeout(() => ac.abort(), 55_000);
+
+    let res: Response;
+    try {
+      res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          frontImageDataUrl: frontDataUrl,
+          ingredientsImageDataUrls: ingredientsArray,
+        }),
+        signal: ac.signal,
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeout);
+      const msg = fetchErr?.name === "AbortError"
+        ? "Request timed out — try fewer or clearer label photos."
+        : `Connection failed: ${fetchErr?.message || "check your network and try again."}`;
+      return stubItem(kind, msg);
+    }
+    clearTimeout(timeout);
 
     if (!res.ok) {
       console.warn(`[parse-item] /api/analyze HTTP ${res.status}`);
