@@ -86,14 +86,21 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
       strengthPerUnit: initialItem.strengthPerUnit ?? null,
       strengthUnit: initialItem.strengthUnit ?? null,
       servingSizeText: initialItem.servingSizeText ?? null,
+      servingSizeG: initialItem.servingSizeG ?? null,
+      nutritionPer: initialItem.nutritionPer ?? "unknown",
       confidence: initialItem.confidence ?? 0,
       mode: initialItem.mode ?? "stub",
       rawTextHints: initialItem.rawTextHints ?? [],
       labelTranscription: initialItem.labelTranscription ?? null,
       nutrients: initialItem.nutrients ?? [],
+      nutrientsPer100g: initialItem.nutrientsPer100g ?? null,
       ingredientsDetected: initialItem.ingredientsDetected ?? [],
+      ingredientsList: initialItem.ingredientsList ?? [],
       meta: initialItem.meta ?? null,
     });
+    if (initialItem.servingSizeG && (initialItem.nutritionPer === "100g" || initialItem.nutrientsPer100g)) {
+      setServingG(initialItem.servingSizeG);
+    }
   }, [initialItem]);
 
   const [servingG, setServingG] = useState<number | null>(null);

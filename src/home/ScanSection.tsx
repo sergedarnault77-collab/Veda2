@@ -10,6 +10,7 @@ import DrinkBuilder from "./DrinkBuilder";
 import type { DrinkEstimate } from "./DrinkBuilder";
 import AskScanQuestion from "../shared/AskScanQuestion";
 import "./ScanSection.css";
+import "../shared/AddScannedItemModal.css";
 
 export type ScanResult = {
   productName: string;
@@ -139,6 +140,7 @@ export default function ScanSection({ onScanComplete }: Props) {
   const [urlError, setUrlError] = useState<string | null>(null);
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [ixLoading, setIxLoading] = useState(false);
+  const [servingG, setServingG] = useState<number | null>(null);
 
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
@@ -154,6 +156,15 @@ export default function ScanSection({ onScanComplete }: Props) {
   const needsRescan = result?.meta?.needsRescan === true;
   const rescanHint =
     result?.meta?.rescanHint || "Take a closer photo of the ingredients label.";
+
+  const isPer100g = result?.nutritionPer === "100g";
+  const resultServingG = typeof result?.servingSizeG === "number" && result.servingSizeG > 0
+    ? result.servingSizeG : null;
+
+  useEffect(() => {
+    if (isPer100g && resultServingG) setServingG(resultServingG);
+    else if (!isPer100g) setServingG(null);
+  }, [isPer100g, resultServingG]);
 
   /* -- Detect if we need to ask the caffeine question -- */
   const caffeineBevKey = useMemo(() => {
@@ -287,7 +298,16 @@ export default function ScanSection({ onScanComplete }: Props) {
   function buildScanResult(): ScanResult {
     const cats = { ...(result?.normalized?.categories || {}) };
     const ents: string[] = [...(result?.normalized?.detectedEntities || [])];
-    const nutrients: any[] = [...(Array.isArray(result?.nutrients) ? result.nutrients : [])];
+    const rawNutrients: any[] = [...(Array.isArray(result?.nutrients) ? result.nutrients : [])];
+
+    const nutrients: any[] = isPer100g && servingG && servingG < 100
+      ? rawNutrients.map((n: any) => ({
+          ...n,
+          amountToday: typeof n.amountToday === "number"
+            ? Math.round(n.amountToday * (servingG / 100) * 100) / 100
+            : n.amountToday,
+        }))
+      : rawNutrients;
 
     if (caffeineBevKey && caffeineQ === "regular") {
       const bev = CAFFEINE_BEVERAGES[caffeineBevKey];
@@ -339,7 +359,8 @@ export default function ScanSection({ onScanComplete }: Props) {
     })();
     if (realNutrients.length > 0 && !isMedication) {
       const suppId = Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
-      const newSupp = {
+      const rawNuts = Array.isArray(result?.nutrients) ? result.nutrients : [];
+      const newSupp: any = {
         id: suppId,
         displayName: scanResult.productName,
         brand: result?.normalized?.brand ?? null,
@@ -348,7 +369,15 @@ export default function ScanSection({ onScanComplete }: Props) {
         detectedEntities: ents,
         form: result?.normalized?.form ?? null,
         createdAtISO: new Date().toISOString(),
+        servingSizeG: servingG ?? null,
+        nutritionPer: result?.nutritionPer ?? "unknown",
+        servingSizeText: isPer100g && servingG ? `${servingG}g` : null,
       };
+      if (isPer100g) {
+        newSupp.nutrientsPer100g = rawNuts.filter(
+          (n: any) => n?.nutrientId && n?.name && typeof n?.amountToday === "number",
+        );
+      }
       const supps = loadLS<any[]>("veda.supps.v1", []);
       supps.push(newSupp);
       saveLS("veda.supps.v1", supps);
@@ -478,6 +507,7 @@ export default function ScanSection({ onScanComplete }: Props) {
     setProductName("");
     setAdded(false);
     setCaffeineQ(null);
+    setServingG(null);
     setMode("idle");
     setUrlValue("");
     setUrlError(null);
@@ -494,6 +524,7 @@ export default function ScanSection({ onScanComplete }: Props) {
     setProductName("");
     setAdded(false);
     setCaffeineQ(null);
+    setServingG(null);
     setMode("idle");
     setUrlValue("");
     setUrlError(null);
@@ -698,6 +729,36 @@ export default function ScanSection({ onScanComplete }: Props) {
             nutrients={result?.nutrients ?? []}
             interactions={interactions}
           />
+
+          {/* Serving size for per-100g labels */}
+          {isPer100g && !added && (
+            <div className="serving-size-block">
+              <div className="serving-size-block__label">
+                Label shows values <strong>per 100g</strong> — how much did you consume?
+              </div>
+              <div className="serving-size-block__input-row">
+                <input
+                  type="number"
+                  className="serving-size-block__input"
+                  min={1}
+                  max={500}
+                  step={1}
+                  value={servingG ?? ""}
+                  placeholder="e.g. 20"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setServingG(v ? Math.max(1, Math.min(500, Number(v))) : null);
+                  }}
+                />
+                <span className="serving-size-block__unit">grams</span>
+              </div>
+              {servingG && (
+                <div className="serving-size-block__hint">
+                  Nutrients scaled to {servingG}g ({Math.round(servingG / 100 * 100)}% of label values)
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Caffeine follow-up question */}
           {needsCaffeineQ && !added && (

@@ -464,3 +464,51 @@
 @keyframes supps-url-spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Inline serving editor ── */
+
+.supp-card__value--editable {
+  cursor: pointer;
+  color: var(--veda-accent);
+  font-size: 0.82rem;
+}
+
+.supp-card__value--editable:hover {
+  text-decoration: underline;
+}
+
+.supp-card__serving-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.supp-card__serving-input {
+  width: 56px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm, 4px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--veda-accent);
+  color: var(--veda-text);
+  font-family: inherit;
+  font-size: 0.82rem;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.supp-card__serving-input::-webkit-inner-spin-button,
+.supp-card__serving-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.supp-card__serving-unit {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+[data-theme="light"] .supp-card__serving-input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: var(--veda-accent);
+  color: var(--veda-text);
+}

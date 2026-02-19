@@ -226,12 +226,21 @@ function SupplementCard({
   removeSupp,
   setBuyId,
   setEditId,
+  onUpdateServing,
 }: {
   s: Supp;
   removeSupp: (id: string) => void;
   setBuyId: (id: string) => void;
   setEditId: (id: string) => void;
+  onUpdateServing: (id: string, servingG: number) => void;
 }) {
+  const [editingServing, setEditingServing] = useState(false);
+  const [servingInput, setServingInput] = useState<string>("");
+
+  const isPer100g = (s as any).nutritionPer === "100g";
+  const per100g: NutrientRow[] | null = Array.isArray((s as any).nutrientsPer100g) ? (s as any).nutrientsPer100g : null;
+  const currentServingG: number | null = typeof (s as any).servingSizeG === "number" ? (s as any).servingSizeG : null;
+
   try {
     const nutrients: NutrientRow[] = Array.isArray(s.nutrients) ? (s.nutrients as NutrientRow[]) : [];
     const ingList: string[] = Array.isArray(s.ingredientsList) ? s.ingredientsList : [];
@@ -259,7 +268,48 @@ function SupplementCard({
           </div>
           <div>
             <div className="supp-card__label">Serving</div>
-            <div className="supp-card__value">{s.servingSizeText || "—"}</div>
+            {isPer100g && !editingServing ? (
+              <div className="supp-card__value supp-card__value--editable" onClick={() => {
+                setServingInput(String(currentServingG ?? ""));
+                setEditingServing(true);
+              }}>
+                {currentServingG ? `${currentServingG}g` : "Set serving"} ✎
+              </div>
+            ) : isPer100g && editingServing ? (
+              <div className="supp-card__serving-edit">
+                <input
+                  type="number"
+                  className="supp-card__serving-input"
+                  value={servingInput}
+                  min={1}
+                  max={500}
+                  placeholder="g"
+                  autoFocus
+                  onChange={(e) => setServingInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const v = Number(servingInput);
+                      if (v > 0 && v <= 500) {
+                        onUpdateServing(s.id, v);
+                        setEditingServing(false);
+                      }
+                    } else if (e.key === "Escape") {
+                      setEditingServing(false);
+                    }
+                  }}
+                  onBlur={() => {
+                    const v = Number(servingInput);
+                    if (v > 0 && v <= 500) {
+                      onUpdateServing(s.id, v);
+                    }
+                    setEditingServing(false);
+                  }}
+                />
+                <span className="supp-card__serving-unit">g</span>
+              </div>
+            ) : (
+              <div className="supp-card__value">{s.servingSizeText || "—"}</div>
+            )}
           </div>
           <div>
             <div className="supp-card__label">Confidence</div>
@@ -453,6 +503,43 @@ function SupplementsPageInner() {
     persistUpdate((prev) => prev.filter((x) => x.id !== rid));
   };
 
+  const updateServing = (id: string, newServingG: number) => {
+    persistUpdate((prev) =>
+      prev.map((it) => {
+        if (it.id !== id) return it;
+        const s = it as any;
+        const per100g: NutrientRow[] | null = Array.isArray(s.nutrientsPer100g) ? s.nutrientsPer100g : null;
+        const baseNutrients: NutrientRow[] = per100g ?? (Array.isArray(s.nutrients) ? s.nutrients : []);
+        const oldServingG: number | null = typeof s.servingSizeG === "number" ? s.servingSizeG : null;
+
+        let scaled: NutrientRow[];
+        if (per100g) {
+          const scale = newServingG / 100;
+          scaled = per100g.map((n: NutrientRow) => ({
+            ...n,
+            amountToday: Math.round(n.amountToday * scale * 100) / 100,
+          }));
+        } else if (oldServingG && oldServingG > 0) {
+          const ratio = newServingG / oldServingG;
+          scaled = baseNutrients.map((n: NutrientRow) => ({
+            ...n,
+            amountToday: Math.round(n.amountToday * ratio * 100) / 100,
+          }));
+        } else {
+          scaled = baseNutrients;
+        }
+
+        return {
+          ...it,
+          servingSizeG: newServingG,
+          servingSizeText: `${newServingG}g`,
+          nutrients: scaled,
+          nutrientsPer100g: per100g ?? baseNutrients,
+        };
+      }),
+    );
+  };
+
   const submitUrl = useCallback(async () => {
     const trimmed = urlValue.trim();
     if (!trimmed) return;
@@ -554,7 +641,7 @@ function SupplementsPageInner() {
         <div className="supps-page__list">
           {items.map((s) => (
             <CardErrorBoundary key={s.id} name={s?.displayName ?? ""} onRemove={() => removeSupp(s.id)}>
-              <SupplementCard s={s} removeSupp={removeSupp} setBuyId={setBuyId} setEditId={setEditId} />
+              <SupplementCard s={s} removeSupp={removeSupp} setBuyId={setBuyId} setEditId={setEditId} onUpdateServing={updateServing} />
             </CardErrorBoundary>
           ))}
         </div>
