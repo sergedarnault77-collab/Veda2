@@ -13,11 +13,13 @@ type DrinkType =
   | "green_tea"
   | "chai"
   | "energy_drink"
+  | "milk"
   | "other";
 
 type Size = "S" | "M" | "L";
 type Milk = "none" | "dairy" | "oat";
 type Sweetener = "none" | "sugar" | "syrup" | "artificial";
+type MilkFat = "skim" | "semi" | "whole";
 
 const DRINK_DATA: Record<
   DrinkType,
@@ -34,7 +36,21 @@ const DRINK_DATA: Record<
   green_tea:    { label: "Green Tea",     caffeine: [20, 28, 40],   calories: [2, 2, 3] },
   chai:         { label: "Chai Latte",    caffeine: [25, 50, 75],   calories: [100, 150, 230] },
   energy_drink: { label: "Energy Drink",  caffeine: [80, 160, 240], calories: [45, 110, 160] },
+  milk:         { label: "Milk",          caffeine: [0, 0, 0],      calories: [69, 115, 161] },
   other:        { label: "Other",         caffeine: [0, 40, 80],    calories: [0, 20, 40] },
+};
+
+// Per-100ml data scaled to S(150ml) / M(250ml) / L(350ml)
+const MILK_FAT_CALORIES: Record<MilkFat, [number, number, number]> = {
+  skim:  [51, 85, 119],
+  semi:  [69, 115, 161],
+  whole: [96, 160, 224],
+};
+
+const MILK_FAT_LABELS: Record<MilkFat, string> = {
+  skim: "Skim / Non-fat",
+  semi: "Semi-skim",
+  whole: "Whole",
 };
 
 const SIZE_INDEX: Record<Size, number> = { S: 0, M: 1, L: 2 };
@@ -62,6 +78,7 @@ export default function DrinkBuilder({ onAdd, onCancel }: Props) {
   const [drink, setDrink] = useState<DrinkType | null>(null);
   const [size, setSize] = useState<Size>("M");
   const [milk, setMilk] = useState<Milk>("none");
+  const [milkFat, setMilkFat] = useState<MilkFat>("semi");
   const [sweetener, setSweetener] = useState<Sweetener>("none");
   const [decaf, setDecaf] = useState(false);
 
@@ -70,11 +87,26 @@ export default function DrinkBuilder({ onAdd, onCancel }: Props) {
     const d = DRINK_DATA[drink];
     const idx = SIZE_INDEX[size];
     const baseCaffeine = decaf ? 2 : d.caffeine[idx];
+    const sweetCal = SWEETENER_CALORIES[sweetener];
+
+    if (drink === "milk") {
+      const cal = MILK_FAT_CALORIES[milkFat][idx];
+      return {
+        drinkLabel: `Milk (${MILK_FAT_LABELS[milkFat]})`,
+        size,
+        milk: "dairy",
+        sweetener,
+        caffeineMg: 0,
+        caloriesKcal: cal + sweetCal,
+        isDecaf: false,
+        sweetenerType: sweetener === "artificial" ? "artificial sweetener" : sweetener === "none" ? null : sweetener,
+      };
+    }
+
     const baseCal = d.calories[idx];
     const milkCal = milk !== "none" && !["cappuccino", "latte", "flat_white", "chai"].includes(drink)
       ? MILK_CALORIES[milk]
       : 0;
-    const sweetCal = SWEETENER_CALORIES[sweetener];
 
     return {
       drinkLabel: d.label,
@@ -86,7 +118,7 @@ export default function DrinkBuilder({ onAdd, onCancel }: Props) {
       isDecaf: decaf,
       sweetenerType: sweetener === "artificial" ? "artificial sweetener" : sweetener === "none" ? null : sweetener,
     };
-  }, [drink, size, milk, sweetener, decaf]);
+  }, [drink, size, milk, milkFat, sweetener, decaf]);
 
   const hasCaffeineOption = drink !== null && drink !== "other";
 
@@ -125,8 +157,8 @@ export default function DrinkBuilder({ onAdd, onCancel }: Props) {
             </div>
           </div>
 
-          {/* Step 3: Decaf */}
-          {hasCaffeineOption && (
+          {/* Step 3: Decaf (not shown for milk) */}
+          {hasCaffeineOption && drink !== "milk" && (
             <div className="drink-builder__section">
               <span className="drink-builder__label">Caffeine</span>
               <div className="drink-builder__toggles">
@@ -146,21 +178,41 @@ export default function DrinkBuilder({ onAdd, onCancel }: Props) {
             </div>
           )}
 
-          {/* Step 4: Milk */}
-          <div className="drink-builder__section">
-            <span className="drink-builder__label">Milk</span>
-            <div className="drink-builder__toggles">
-              {(["none", "dairy", "oat"] as Milk[]).map((m) => (
-                <button
-                  key={m}
-                  className={`drink-builder__toggle ${milk === m ? "drink-builder__toggle--active" : ""}`}
-                  onClick={() => setMilk(m)}
-                >
-                  {m === "none" ? "None" : m.charAt(0).toUpperCase() + m.slice(1)}
-                </button>
-              ))}
+          {/* Step 3b: Fat level (milk only) */}
+          {drink === "milk" && (
+            <div className="drink-builder__section">
+              <span className="drink-builder__label">Fat level</span>
+              <div className="drink-builder__toggles">
+                {(["skim", "semi", "whole"] as MilkFat[]).map((f) => (
+                  <button
+                    key={f}
+                    className={`drink-builder__toggle ${milkFat === f ? "drink-builder__toggle--active" : ""}`}
+                    onClick={() => setMilkFat(f)}
+                  >
+                    {MILK_FAT_LABELS[f]}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Step 4: Milk add-on (not shown for milk drink) */}
+          {drink !== "milk" && (
+            <div className="drink-builder__section">
+              <span className="drink-builder__label">Milk</span>
+              <div className="drink-builder__toggles">
+                {(["none", "dairy", "oat"] as Milk[]).map((m) => (
+                  <button
+                    key={m}
+                    className={`drink-builder__toggle ${milk === m ? "drink-builder__toggle--active" : ""}`}
+                    onClick={() => setMilk(m)}
+                  >
+                    {m === "none" ? "None" : m.charAt(0).toUpperCase() + m.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Step 5: Sweetener */}
           <div className="drink-builder__section">
@@ -182,10 +234,14 @@ export default function DrinkBuilder({ onAdd, onCancel }: Props) {
           {estimate && (
             <div className="drink-builder__estimate">
               <span className="drink-builder__estimateBadge">Estimate</span>
-              <span className="drink-builder__estimateVal">
-                ~{estimate.caffeineMg} mg caffeine
-              </span>
-              <span className="drink-builder__estimateSep">·</span>
+              {estimate.caffeineMg > 0 && (
+                <>
+                  <span className="drink-builder__estimateVal">
+                    ~{estimate.caffeineMg} mg caffeine
+                  </span>
+                  <span className="drink-builder__estimateSep">·</span>
+                </>
+              )}
               <span className="drink-builder__estimateVal">
                 ~{estimate.caloriesKcal} kcal
               </span>

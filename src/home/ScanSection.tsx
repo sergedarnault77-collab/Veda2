@@ -510,7 +510,7 @@ export default function ScanSection({ onScanComplete }: Props) {
           >
             <span className="scan-status__tileIcon">☕</span>
             <span className="scan-status__tileLabel">Log drink</span>
-            <span className="scan-status__tileSub">Coffee, tea, matcha, energy</span>
+            <span className="scan-status__tileSub">Coffee, tea, matcha, milk, energy</span>
           </button>
 
           <button
