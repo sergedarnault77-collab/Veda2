@@ -151,31 +151,15 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
     }
   };
 
-  // Auto-parse: for meds, parse immediately from front photo.
-  // For supps, debounce after ingredient photos to let the user add multiple photos.
-  const parseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  // Auto-parse: only for medications (front photo triggers immediately).
+  // Supplements wait for the user to tap "Read label now".
   useEffect(() => {
     if (!frontImage) return;
-
     if (kind === "med") {
       doParseNow();
-      return;
     }
-
-    // Supplements: debounce ingredient-photo additions (2s wait)
-    if (hasIngredients) {
-      if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
-      parseTimerRef.current = setTimeout(() => {
-        doParseNow();
-      }, 2000);
-    }
-
-    return () => {
-      if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frontImage, ingredientsImages, kind]);
+  }, [frontImage, kind]);
 
   const detectedNutrientsPreview = useMemo(() => {
     const ns = (parsedItem?.nutrients || []) as any[];
@@ -338,17 +322,16 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
           </div>
         )}
 
-        {/* Manual "Read now" button — visible while debounce is pending */}
-        {kind !== "med" && hasIngredients && parseStatus !== "parsing" && parseStatus !== "parsed" && (
+        {/* Read label button — user triggers when all ingredient photos are taken */}
+        {kind !== "med" && hasIngredients && parseStatus !== "parsing" && (
           <button
             className="btn btn--primary"
             style={{ marginTop: 8 }}
-            onClick={() => {
-              if (parseTimerRef.current) clearTimeout(parseTimerRef.current);
-              doParseNow();
-            }}
+            onClick={doParseNow}
           >
-            Read label now ({ingredientsImages.length} photo{ingredientsImages.length > 1 ? "s" : ""})
+            {parseStatus === "parsed"
+              ? `Re-read label (${ingredientsImages.length} photo${ingredientsImages.length > 1 ? "s" : ""})`
+              : `Read label (${ingredientsImages.length} photo${ingredientsImages.length > 1 ? "s" : ""})`}
           </button>
         )}
 
