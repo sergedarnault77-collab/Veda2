@@ -307,3 +307,127 @@ button {
 [data-theme="light"] .stack-signal__badge--excessive {
   background: rgba(216, 67, 116, 0.1);
 }
+
+/* ── Supplement & Medication cards: nutrient rows, ingredients, insights ── */
+
+[data-theme="light"] .supp-card:hover,
+[data-theme="light"] .med-card:hover {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .supp-nutrients,
+[data-theme="light"] .med-nutrients {
+  background: rgba(31, 58, 95, 0.05);
+  border-color: rgba(31, 58, 95, 0.12);
+}
+
+[data-theme="light"] .supp-nutrients__row,
+[data-theme="light"] .med-nutrients__row {
+  background: rgba(31, 58, 95, 0.08);
+  border-color: rgba(31, 58, 95, 0.12);
+  color: var(--veda-text);
+}
+
+[data-theme="light"] .supp-nutrients__name,
+[data-theme="light"] .med-nutrients__name,
+[data-theme="light"] .supp-nutrients__amt,
+[data-theme="light"] .med-nutrients__amt,
+[data-theme="light"] .supp-nutrients__pct,
+[data-theme="light"] .med-nutrients__pct {
+  color: var(--veda-text);
+  opacity: 1;
+}
+
+[data-theme="light"] .supp-nutrients__hdr,
+[data-theme="light"] .med-nutrients__hdr {
+  color: var(--veda-text);
+}
+
+[data-theme="light"] .supp-nutrients__sub,
+[data-theme="light"] .med-nutrients__sub {
+  color: var(--veda-text-muted);
+}
+
+[data-theme="light"] .item-ingredients__chip {
+  background: rgba(31, 58, 95, 0.06);
+  border-color: rgba(31, 58, 95, 0.14);
+  color: var(--veda-text);
+}
+
+[data-theme="light"] .item-insights {
+  background: rgba(31, 58, 95, 0.04);
+  border-color: rgba(31, 58, 95, 0.12);
+}
+
+[data-theme="light"] .item-insights__title,
+[data-theme="light"] .item-insights__summary,
+[data-theme="light"] .item-insights__what,
+[data-theme="light"] .item-insights__note {
+  color: var(--veda-text);
+  opacity: 1;
+}
+
+/* Interaction warning cards in light mode */
+[data-theme="light"] .interaction-warnings__card {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .ix-warnings--loading {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--veda-text-muted);
+}
+
+[data-theme="light"] .ix-warnings__spinner {
+  border-color: rgba(0, 0, 0, 0.1);
+  border-top-color: var(--veda-accent);
+}
+
+[data-theme="light"] .ix-card--info {
+  background: rgba(31, 58, 95, 0.04);
+  border-left-color: rgba(31, 58, 95, 0.2);
+}
+
+[data-theme="light"] .ix-card--warning {
+  background: rgba(231, 76, 60, 0.06);
+}
+
+[data-theme="light"] .ix-card--caution {
+  background: rgba(230, 126, 34, 0.06);
+}
+
+[data-theme="light"] .ix-card__headline {
+  color: var(--veda-text);
+}
+
+[data-theme="light"] .ix-card__detail {
+  color: var(--veda-text-muted);
+}
+
+[data-theme="light"] .ix-card__chip {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--veda-text-muted);
+}
+
+/* Exposure chart (dashboard) in light mode */
+[data-theme="light"] .expo-range-toggle {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .expo-range-toggle__btn {
+  color: var(--veda-text-muted);
+}
+
+[data-theme="light"] .expo-range-toggle__btn--active {
+  background: rgba(46, 91, 255, 0.12);
+  color: var(--veda-accent);
+}
+
+[data-theme="light"] .sweetener-list {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .sweetener-list__chip {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.18);
+  color: #b45309;
+}
