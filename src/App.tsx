@@ -59,21 +59,28 @@ export default function App() {
 
   // Restore Supabase session on app load / OAuth redirect
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !user) {
-        restoreFromSupabaseUser(session.user);
-      }
-    });
+    let subscription: { unsubscribe: () => void } | null = null;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+    try {
+      supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user && !user) {
           restoreFromSupabaseUser(session.user);
         }
-      },
-    );
+      }).catch(() => {});
 
-    return () => subscription.unsubscribe();
+      const resp = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          if (session?.user && !user) {
+            restoreFromSupabaseUser(session.user);
+          }
+        },
+      );
+      subscription = resp.data.subscription;
+    } catch (err) {
+      console.warn("[Supabase] Auth listener failed:", err);
+    }
+
+    return () => subscription?.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
