@@ -783,6 +783,15 @@ export default function ScanSection({ onScanComplete }: Props) {
           ))}
         </div>
       )}
+
+      {/* Ask a question — always visible in idle mode */}
+      {mode === "idle" && step !== "done" && (
+        <AskScanQuestion
+          productName=""
+          nutrients={[]}
+          interactions={[]}
+        />
+      )}
     </section>
   );
 }

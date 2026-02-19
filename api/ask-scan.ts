@@ -35,34 +35,40 @@ function buildUserPrompt(
   scanContext: any,
 ): string {
   const parts: string[] = [];
+  const hasScan = Boolean(scanContext.productName);
 
-  parts.push("=== SCANNED PRODUCT ===");
-  if (scanContext.productName) parts.push(`Product: ${scanContext.productName}`);
+  if (hasScan) {
+    parts.push("=== SCANNED PRODUCT ===");
+    parts.push(`Product: ${scanContext.productName}`);
 
-  if (Array.isArray(scanContext.ingredients) && scanContext.ingredients.length > 0) {
-    parts.push("\nIngredients/nutrients detected:");
-    for (const ing of scanContext.ingredients.slice(0, 30)) {
-      const line = `- ${ing.name}: ${ing.amount}${ing.unit}${ing.percentDailyValue ? ` (${ing.percentDailyValue}% DV)` : ""}`;
-      parts.push(line);
+    if (Array.isArray(scanContext.ingredients) && scanContext.ingredients.length > 0) {
+      parts.push("\nIngredients/nutrients detected:");
+      for (const ing of scanContext.ingredients.slice(0, 30)) {
+        const line = `- ${ing.name}: ${ing.amount}${ing.unit}${ing.percentDailyValue ? ` (${ing.percentDailyValue}% DV)` : ""}`;
+        parts.push(line);
+      }
     }
-  }
 
-  if (Array.isArray(scanContext.flags) && scanContext.flags.length > 0) {
-    parts.push(`\nFlags: ${scanContext.flags.join(", ")}`);
+    if (Array.isArray(scanContext.flags) && scanContext.flags.length > 0) {
+      parts.push(`\nFlags: ${scanContext.flags.join(", ")}`);
+    }
   }
 
   if (scanContext.userContext) {
     const uc = scanContext.userContext;
     if (Array.isArray(uc.activeMedications) && uc.activeMedications.length > 0) {
-      parts.push(`\nUser's current medications: ${uc.activeMedications.join(", ")}`);
+      parts.push(`\n=== USER'S CURRENT MEDICATIONS ===\n${uc.activeMedications.join(", ")}`);
     }
     if (Array.isArray(uc.recentSupplements) && uc.recentSupplements.length > 0) {
-      parts.push(`User's current supplements: ${uc.recentSupplements.join(", ")}`);
+      parts.push(`\n=== USER'S CURRENT SUPPLEMENTS ===\n${uc.recentSupplements.join(", ")}`);
     }
   }
 
   parts.push(`\n=== USER QUESTION ===\n"${question}"`);
-  parts.push("\nAnswer the question clearly and concisely using only the scan context above.");
+  parts.push(hasScan
+    ? "\nAnswer the question clearly and concisely using the scan context and user profile above."
+    : "\nAnswer the question clearly and concisely using the user's supplement and medication context above."
+  );
 
   return parts.join("\n");
 }

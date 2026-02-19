@@ -31,7 +31,7 @@ interface Props {
   interactions: Array<{ headline: string; severity: string }>;
 }
 
-const PLACEHOLDER_EXAMPLES = [
+const SCAN_PLACEHOLDERS = [
   "Can I take this with my medication?",
   "Is this too much magnesium?",
   "Why is this flagged here?",
@@ -40,7 +40,17 @@ const PLACEHOLDER_EXAMPLES = [
   "Is this safe to take daily?",
 ];
 
+const GENERAL_PLACEHOLDERS = [
+  "Can I take magnesium with my ADHD meds?",
+  "How much vitamin D is too much?",
+  "Should I take iron on an empty stomach?",
+  "Do my supplements interact with each other?",
+  "When is the best time to take B12?",
+  "Is it okay to take calcium and zinc together?",
+];
+
 export default function AskScanQuestion({ productName, nutrients, interactions }: Props) {
+  const hasScanContext = Boolean(productName);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<ScanAnswer | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,8 +59,14 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
   const inputRef = useRef<HTMLInputElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
 
-  const placeholderIdx = useRef(Math.floor(Math.random() * PLACEHOLDER_EXAMPLES.length));
-  const placeholder = PLACEHOLDER_EXAMPLES[placeholderIdx.current];
+  const examples = hasScanContext ? SCAN_PLACEHOLDERS : GENERAL_PLACEHOLDERS;
+  const placeholderIdx = useRef(Math.floor(Math.random() * examples.length));
+  const placeholder = examples[placeholderIdx.current % examples.length];
+
+  const triggerLabel = hasScanContext ? "Ask about this scan" : "Have a question?";
+  const helperText = hasScanContext
+    ? "Ask anything about ingredients, overlaps, timing, or why something is flagged."
+    : "Ask about your supplements, medications, timing, or interactions.";
 
   useEffect(() => {
     if (answer && answerRef.current) {
@@ -144,10 +160,10 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
           setTimeout(() => inputRef.current?.focus(), 100);
         }}>
           <span className="ask-scan__triggerIcon">💬</span>
-          <span className="ask-scan__triggerText">Ask about this scan</span>
+          <span className="ask-scan__triggerText">{triggerLabel}</span>
         </button>
         <div className="ask-scan__helper">
-          Ask anything about ingredients, overlaps, timing, or why something is flagged.
+          {helperText}
         </div>
       </div>
     );
@@ -157,7 +173,7 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
     <div className="ask-scan ask-scan--expanded">
       <div className="ask-scan__header">
         <span className="ask-scan__headerIcon">💬</span>
-        <span className="ask-scan__headerTitle">Ask about this scan</span>
+        <span className="ask-scan__headerTitle">{triggerLabel}</span>
       </div>
 
       <div className="ask-scan__inputRow">
