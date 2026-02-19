@@ -27,7 +27,14 @@
     <meta name="application-name" content="Veda" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="app-loading" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0a0a1a;color:#fff;font-family:system-ui">
+        <div style="text-align:center">
+          <div style="font-size:24px;font-weight:700;color:#6c5ce7;margin-bottom:8px">Veda</div>
+          <div style="font-size:13px;opacity:0.5">Loading…</div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
