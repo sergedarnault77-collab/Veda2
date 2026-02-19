@@ -6,6 +6,7 @@ import type { ScanResult } from "./ScanSection";
 import { StackCoverage } from "./StackCoverage";
 import type { ExposureEntry } from "./stubs";
 import { loadLS } from "../lib/persist";
+import { snapshotToday } from "../lib/exposureHistory";
 import type { StoredScansDay, ScanExposure } from "./ScanSection";
 import "./HomePage.css";
 
@@ -239,16 +240,26 @@ export function extractExposureFromScan(result: ScanResult): {
 }
 
 export default function HomePage({ isAI = false, userName }: Props) {
-  const [exposure, setExposure] = useState<AggregatedExposure>(() => deriveExposureFromScans());
+  const [exposure, setExposure] = useState<AggregatedExposure>(() => {
+    const initial = deriveExposureFromScans();
+    snapshotToday(initial);
+    return initial;
+  });
 
   useEffect(() => {
-    const onSync = () => setExposure(deriveExposureFromScans());
+    const onSync = () => {
+      const exp = deriveExposureFromScans();
+      setExposure(exp);
+      snapshotToday(exp);
+    };
     window.addEventListener("veda:synced", onSync);
     return () => window.removeEventListener("veda:synced", onSync);
   }, []);
 
   const handleScanComplete = useCallback(() => {
-    setExposure(deriveExposureFromScans());
+    const exp = deriveExposureFromScans();
+    setExposure(exp);
+    snapshotToday(exp);
   }, []);
 
   const entries = exposureToEntries(exposure);

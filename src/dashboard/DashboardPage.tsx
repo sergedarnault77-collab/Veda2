@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadLS } from "../lib/persist";
+import { getLast7Days, getLast30Days, formatDayLabel } from "../lib/exposureHistory";
+import type { DailyExposureSummary } from "../lib/exposureHistory";
 import type { NutrientRow } from "../home/stubs";
 import "./DashboardPage.css";
 
@@ -287,8 +289,90 @@ function buildTimingPatterns(
 
 /* ── Component ── */
 
+type ExposureRange = "7d" | "30d";
+
+function ExposureBarChart({ days, getValue, unit, color, range }: {
+  days: DailyExposureSummary[];
+  getValue: (d: DailyExposureSummary) => number;
+  unit: string;
+  color: string;
+  range: ExposureRange;
+}) {
+  const values = days.map(getValue);
+  const maxVal = Math.max(...values, 1);
+  const total = values.reduce((a, b) => a + b, 0);
+  const daysWithData = values.filter((v) => v > 0).length;
+  const avg = daysWithData > 0 ? Math.round(total / daysWithData) : 0;
+
+  return (
+    <div className="expo-chart">
+      <div className="expo-chart__summary">
+        <span className="expo-chart__avg">
+          {avg > 0 ? `${avg} ${unit}` : `No data`}
+        </span>
+        <span className="expo-chart__avg-label">
+          {avg > 0 ? "daily avg" : ""}
+        </span>
+      </div>
+      <div className="expo-chart__bars">
+        {days.map((d, i) => {
+          const val = values[i];
+          const pct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+          return (
+            <div className="expo-chart__col" key={d.date}>
+              <div className="expo-chart__bar-wrap">
+                <div
+                  className="expo-chart__bar"
+                  style={{
+                    height: `${Math.max(pct, val > 0 ? 4 : 0)}%`,
+                    background: val > 0 ? color : "rgba(255,255,255,0.04)",
+                  }}
+                />
+              </div>
+              <span className="expo-chart__label">
+                {range === "7d"
+                  ? formatDayLabel(d.date, true)
+                  : (i % 5 === 0 || i === days.length - 1)
+                    ? String(new Date(d.date + "T12:00:00").getDate())
+                    : ""}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SweetenerList({ days }: { days: DailyExposureSummary[] }) {
+  const allNames = new Map<string, number>();
+  for (const d of days) {
+    for (const name of d.sweetenerNames) {
+      const lower = name.toLowerCase();
+      allNames.set(lower, (allNames.get(lower) ?? 0) + 1);
+    }
+  }
+  const sorted = [...allNames.entries()].sort((a, b) => b[1] - a[1]);
+  if (sorted.length === 0) return null;
+
+  return (
+    <div className="sweetener-list">
+      <div className="sweetener-list__title">Types detected</div>
+      <div className="sweetener-list__chips">
+        {sorted.slice(0, 6).map(([name, count]) => (
+          <span className="sweetener-list__chip" key={name}>
+            {name} <span className="sweetener-list__chip-count">{count}d</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [syncVer, setSyncVer] = useState(0);
+  const [caffeineRange, setCaffeineRange] = useState<ExposureRange>("7d");
+  const [sweetenerRange, setSweetenerRange] = useState<ExposureRange>("7d");
 
   useEffect(() => {
     const onSync = () => setSyncVer((v) => v + 1);
@@ -309,6 +393,21 @@ export default function DashboardPage() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncVer]);
+
+  const caffeineDays = useMemo(
+    () => (caffeineRange === "7d" ? getLast7Days() : getLast30Days()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [caffeineRange, syncVer],
+  );
+
+  const sweetenerDays = useMemo(
+    () => (sweetenerRange === "7d" ? getLast7Days() : getLast30Days()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sweetenerRange, syncVer],
+  );
+
+  const hasCaffeineHistory = caffeineDays.some((d) => d.caffeine > 0);
+  const hasSweetenerHistory = sweetenerDays.some((d) => d.sweetenerCount > 0);
 
   const morningChips = data.chips.filter((c) => c.slot === "morning");
   const middayChips = data.chips.filter((c) => c.slot === "midday");
@@ -335,7 +434,74 @@ export default function DashboardPage() {
         <p className="dashboard__sub">Your patterns and signals at a glance</p>
       </header>
 
-      {/* Section 1 — Your typical day */}
+      {/* Section: Caffeine intake */}
+      <section className="dashboard__section">
+        <div className="dashboard__section-row">
+          <h2 className="dashboard__section-title dashboard__section-title--nogap">Caffeine intake</h2>
+          <div className="expo-range-toggle">
+            {(["7d", "30d"] as ExposureRange[]).map((r) => (
+              <button
+                key={r}
+                className={`expo-range-toggle__btn ${caffeineRange === r ? "expo-range-toggle__btn--active" : ""}`}
+                onClick={() => setCaffeineRange(r)}
+              >
+                {r === "7d" ? "7 days" : "30 days"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {hasCaffeineHistory ? (
+          <ExposureBarChart
+            days={caffeineDays}
+            getValue={(d) => d.caffeine}
+            unit="mg"
+            color="linear-gradient(180deg, #2E5BFF 0%, rgba(46,91,255,0.4) 100%)"
+            range={caffeineRange}
+          />
+        ) : (
+          <p className="dashboard__section-empty">
+            Scan caffeine-containing items to see your intake trend
+          </p>
+        )}
+      </section>
+
+      {/* Section: Artificial sweetener intake */}
+      <section className="dashboard__section">
+        <div className="dashboard__section-row">
+          <h2 className="dashboard__section-title dashboard__section-title--nogap">Artificial sweeteners</h2>
+          <div className="expo-range-toggle">
+            {(["7d", "30d"] as ExposureRange[]).map((r) => (
+              <button
+                key={r}
+                className={`expo-range-toggle__btn ${sweetenerRange === r ? "expo-range-toggle__btn--active" : ""}`}
+                onClick={() => setSweetenerRange(r)}
+              >
+                {r === "7d" ? "7 days" : "30 days"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {hasSweetenerHistory ? (
+          <>
+            <ExposureBarChart
+              days={sweetenerDays}
+              getValue={(d) => d.sweetenerCount}
+              unit="types"
+              color="linear-gradient(180deg, #f59e0b 0%, rgba(245,158,11,0.4) 100%)"
+              range={sweetenerRange}
+            />
+            <SweetenerList days={sweetenerDays} />
+          </>
+        ) : (
+          <p className="dashboard__section-empty">
+            No artificial sweeteners detected in your scans yet
+          </p>
+        )}
+      </section>
+
+      {/* Section — Your typical day */}
       <section className="dashboard__section">
         <h2 className="dashboard__section-title">Your typical day</h2>
 
