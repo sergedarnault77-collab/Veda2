@@ -272,33 +272,40 @@ const NUTRIENT_SYNONYMS: Record<string, string> = (() => {
   const add = (id: string, ...names: string[]) => {
     for (const n of names) map[n.toLowerCase()] = id;
   };
-  add("vitamin_a", "vitamin a", "vitamine a", "retinol");
-  add("vitamin_b1", "vitamin b1", "vitamine b1", "thiamin", "thiamine");
-  add("vitamin_b2", "vitamin b2", "vitamine b2", "riboflavin", "riboflavine");
-  add("vitamin_b3", "vitamin b3", "vitamine b3", "niacin", "niacine");
-  add("vitamin_b5", "vitamin b5", "vitamine b5", "pantothenic acid", "pantotheenzuur");
-  add("vitamin_b6", "vitamin b6", "vitamine b6", "pyridoxine", "pyridoxin");
-  add("vitamin_b12", "vitamin b12", "vitamine b12", "b12", "cobalamin", "cobalamine", "methylcobalamin", "methylcobalamine", "cyanocobalamin", "cyanocobalamine");
-  add("vitamin_c", "vitamin c", "vitamine c", "ascorbic acid", "ascorbinezuur");
-  add("vitamin_d", "vitamin d", "vitamine d", "vitamin d3", "vitamine d3", "cholecalciferol");
-  add("vitamin_e", "vitamin e", "vitamine e", "tocopherol");
-  add("vitamin_k", "vitamin k", "vitamine k", "vitamin k1", "vitamin k2", "vitamine k1", "vitamine k2", "phylloquinone");
-  add("folate", "folate", "folic acid", "foliumzuur", "folsäure");
-  add("biotin", "biotin", "biotine");
-  add("iron", "iron", "ijzer", "eisen", "fer");
-  add("magnesium", "magnesium");
-  add("zinc", "zinc", "zink");
-  add("calcium", "calcium", "kalzium");
-  add("selenium", "selenium", "selen");
-  add("iodine", "iodine", "jodium", "jod");
-  add("chromium", "chromium", "chroom");
+  add("vitamin_a", "vitamin a", "vitamine a", "retinol", "bèta-caroteen", "beta-carotene", "beta caroteen", "beta-carotin");
+  add("vitamin_b1", "vitamin b1", "vitamine b1", "thiamin", "thiamine", "thiamine hcl", "thiamine hydrochloride");
+  add("vitamin_b2", "vitamin b2", "vitamine b2", "riboflavin", "riboflavine", "riboflavin-5-fosfaat");
+  add("vitamin_b3", "vitamin b3", "vitamine b3", "niacin", "niacine", "niacinamide", "nicotinamide");
+  add("vitamin_b5", "vitamin b5", "vitamine b5", "pantothenic acid", "pantotheenzuur", "pantothenate", "calcium pantothenate", "calcium pantothenaat", "d-calcium pantothenaat");
+  add("vitamin_b6", "vitamin b6", "vitamine b6", "pyridoxine", "pyridoxin", "pyridoxine hcl", "pyridoxal-5-fosfaat", "pyridoxal-5-phosphate", "p-5-p");
+  add("vitamin_b12", "vitamin b12", "vitamine b12", "b12", "cobalamin", "cobalamine", "methylcobalamin", "methylcobalamine", "cyanocobalamin", "cyanocobalamine", "adenosylcobalamine");
+  add("vitamin_c", "vitamin c", "vitamine c", "ascorbic acid", "ascorbinezuur", "ascorbinsäure", "l-ascorbinezuur", "calcium ascorbaat");
+  add("vitamin_d", "vitamin d", "vitamine d", "vitamin d3", "vitamine d3", "cholecalciferol", "colecalciferol");
+  add("vitamin_e", "vitamin e", "vitamine e", "tocopherol", "d-alpha-tocoferol", "d-alpha-tocopherol", "tocoferolen", "tocopheryl");
+  add("vitamin_k", "vitamin k", "vitamine k", "vitamin k1", "vitamin k2", "vitamine k1", "vitamine k2", "phylloquinone", "menaquinone", "menachinon", "fytomenadion", "phytomenadione");
+  add("folate", "folate", "folic acid", "foliumzuur", "folsäure", "methylfolaat", "methylfolate", "5-methyltetrahydrofolate", "5-mthf", "quatrefolic");
+  add("biotin", "biotin", "biotine", "d-biotine");
+  add("iron", "iron", "ijzer", "eisen", "fer", "ferrochloride", "fumaraat", "fumarate", "bisglycinaat", "bisglycinate", "ijzer(ii)fumaraat", "ferro fumaraat");
+  add("magnesium", "magnesium", "magnesiumoxide", "magnesiumcitraat", "magnesium citrate", "magnesium oxide", "magnesiumbisglycinaat", "magnesium bisglycinate");
+  add("zinc", "zinc", "zink", "zinkcitraat", "zinkbisglycinaat", "zinc citrate", "zinc bisglycinate", "zinc picolinate", "zinkpicolinaat");
+  add("calcium", "calcium", "kalzium", "calciumcarbonaat", "calciumcitraat", "calcium carbonate", "calcium citrate");
+  add("selenium", "selenium", "selen", "selenomethionine", "selenomethionine", "natriumseleniet", "sodium selenite", "l-selenomethionine");
+  add("iodine", "iodine", "jodium", "jod", "kaliumjodide", "potassium iodide");
+  add("chromium", "chromium", "chroom", "chroompicolinaat", "chromium picolinate");
   add("potassium", "potassium", "kalium");
   add("phosphorus", "phosphorus", "fosfor", "phosphor");
+  add("molybdenum", "molybdenum", "molybdeen", "natriummolybdaat", "sodium molybdate");
   add("caffeine", "caffeine", "caféine", "cafeïne", "koffein", "koffeine");
   add("omega_3_epa", "omega-3 epa", "epa");
   add("omega_3_dha", "omega-3 dha", "dha");
-  add("manganese", "manganese", "mangaan");
-  add("copper", "copper", "koper", "kupfer");
+  add("manganese", "manganese", "mangaan", "mangaanbisglycinaat", "manganese bisglycinate");
+  add("copper", "copper", "koper", "kupfer", "koperbisglycinaat", "copper bisglycinate");
+  add("choline", "choline", "choline", "choline bitartraat", "choline bitartrate");
+  add("inositol", "inositol", "inositol", "myo-inositol");
+  add("paba", "paba", "paba", "para-aminobenzoëzuur", "para-aminobenzoic acid");
+  add("lutein", "lutein", "luteïne");
+  add("lycopene", "lycopene", "lycopeen", "lycopin");
+  add("coq10", "coenzyme q10", "co-enzym q10", "coq10", "ubiquinol", "ubiquinon");
   return map;
 })();
 
@@ -548,16 +555,24 @@ function computeTranscriptionConfidence(
 
   let base = clamp01(typeof openaiConfidence === "number" ? openaiConfidence : 0.7);
 
-  if (len < 60) base -= 0.3;
-  else if (len < 120) base -= 0.15;
-  if (lineCount < 3 && tokenCount < 15) base -= 0.15;
-  if (badMarks >= 3) base -= 0.25;
-  if (entityCount <= 1 && nutrientCount <= 1) base -= 0.15;
+  if (len < 60) base -= 0.25;
+  else if (len < 120) base -= 0.1;
+  if (lineCount < 3 && tokenCount < 15) base -= 0.1;
+  if (badMarks >= 3) base -= 0.2;
+  if (entityCount <= 1 && nutrientCount <= 1) base -= 0.1;
+
+  // Positive signals — dense labels that successfully extracted data
   if (len >= 350 && lineCount >= 8) base += 0.1;
   if (nutrientCount >= 3) base += 0.15;
+  if (nutrientCount >= 8) base += 0.15;  // multivitamin bonus
+  if (nutrientCount >= 15) base += 0.1;  // dense multivitamin bonus
+  if (entityCount >= 10) base += 0.1;
+  if (ingredientPhotosUsed >= 2 && nutrientCount >= 5) base += 0.1;
 
   const confidence = clamp01(base);
-  const needsRescan = confidence < 0.4;
+
+  // If we successfully extracted 5+ nutrients, never flag as needing rescan
+  const needsRescan = nutrientCount >= 5 ? false : confidence < 0.4;
 
   let rescanHint: string | null = null;
   if (needsRescan) {
@@ -876,9 +891,17 @@ async function innerHandler(method: string, body: any): Promise<Response> {
     const transcribeSystem = [
       "Transcribe ALL text visible in this label/nutrition panel image.",
       "Include every word, number, unit, symbol, and percentage you can read.",
+      "",
+      "CRITICAL for vitamin/mineral/supplement tables:",
+      "- Read EVERY ROW of the nutrition table — vitamins, minerals, and other ingredients.",
+      "- For each row transcribe: ingredient name, amount, unit (mg, µg, mcg, IU), and % value (RI, DV, NRV) if shown.",
+      "- Multivitamins may have 20-30+ rows — transcribe ALL of them, do not skip any.",
+      "- If the table spans multiple columns, read left column top-to-bottom, then right column top-to-bottom.",
+      "- Watch for small print rows at the bottom (e.g. chromium, molybdenum, selenium).",
+      "",
       "Read ALL columns: left, center, right — top to bottom.",
       "Preserve casing, punctuation, symbols (µg, mcg, mg, %, RI, DV, kcal).",
-      "Preserve non-English text exactly as written (Dutch, German, etc.).",
+      "Preserve non-English text exactly as written (Dutch, German, French, etc.).",
       "Output ONLY the transcribed text. No commentary, no JSON.",
     ].join("\n");
 
@@ -895,11 +918,11 @@ async function innerHandler(method: string, body: any): Promise<Response> {
               messages: [
                 { role: "system", content: transcribeSystem },
                 { role: "user", content: [
-                  { type: "text", text: `Label photo ${i + 1} of ${ingredientImages.length}:` },
+                  { type: "text", text: `Label photo ${i + 1} of ${ingredientImages.length}. Transcribe EVERY row of any nutrition/vitamin/mineral table — do not skip any.` },
                   { type: "image_url", image_url: { url: img, detail: "high" } },
                 ]},
               ],
-              max_tokens: 2000,
+              max_tokens: 4000,
             }),
             signal: tAC.signal,
           });
@@ -937,9 +960,10 @@ async function innerHandler(method: string, body: any): Promise<Response> {
       "Set 'transcriptionConfidence' based on how complete/coherent the transcription looks (0..1).",
       "",
       "Nutrients guidance (populate 'nutrients' array):",
+      "• CRITICAL: Extract EVERY nutrient row from the transcription. Multivitamins may have 20-30+ nutrients — include ALL of them.",
       "• Only include a nutrient if the transcription explicitly states BOTH the nutrient name AND a numeric amount.",
       "• nutrientId: snake_case canonical English id (vitamin_d, iron, magnesium, caffeine, omega_3_epa)",
-      "• Map non-English names: IJzer→iron, Zink→zinc, Foliumzuur→folate, Vitamine B12→vitamin_b12, Jodium→iodine, Koper→copper, Chroom→chromium, Kalium→potassium, Eisen→iron, Folsäure→folate, Jod→iodine",
+      "• Map non-English names: IJzer→iron, Zink→zinc, Foliumzuur→folate, Vitamine B12→vitamin_b12, Jodium→iodine, Koper→copper, Chroom→chromium, Kalium→potassium, Mangaan→manganese, Selenium→selenium, Fosfor→phosphorus, Molybdeen→molybdenum, Biotine→biotin, Pantotheenzuur→vitamin_b5, Niacine→vitamin_b3, Riboflavine→vitamin_b2, Thiamine→vitamin_b1, Eisen→iron, Folsäure→folate, Jod→iodine",
       "• unit: use EXACTLY what the label says. µg/mcg→µg, mg→mg, g→g, IU→IU.",
       "• dailyReference: standard adult daily reference IN THE SAME UNIT as amountToday.",
       "• percentLabel: if the transcription shows an explicit % (e.g. '1250%' or '14% RI'), extract that number. Null if none.",
@@ -976,11 +1000,11 @@ async function innerHandler(method: string, body: any): Promise<Response> {
       ],
       response_format: { type: "json_object" as const },
       temperature: 0.15,
-      max_tokens: 3000,
+      max_tokens: 5000,
     };
 
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 40_000);
+    const timer = setTimeout(() => ac.abort(), 50_000);
     let r: Response;
     try {
       r = await fetch("https://api.openai.com/v1/chat/completions", {
