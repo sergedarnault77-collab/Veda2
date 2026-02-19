@@ -189,44 +189,42 @@ export default function DrinkBuilder({ onAdd, onCancel }: Props) {
             </div>
           )}
 
-          {/* Milk type for dairy drinks / milk add-on for others */}
+          {/* Milk */}
           {drink !== "milk" && (
             <div className="drink-builder__section">
-              <span className="drink-builder__label">{drinkHasDairy ? "Milk type" : "Milk"}</span>
+              <span className="drink-builder__label">Milk</span>
               <div className="drink-builder__toggles">
-                {drinkHasDairy ? (
-                  <>
-                    {(["dairy", "oat"] as Milk[]).map((m) => (
-                      <button
-                        key={m}
-                        className={`drink-builder__toggle ${milk === m ? "drink-builder__toggle--active" : ""}`}
-                        onClick={() => setMilk(m)}
-                      >
-                        {m === "dairy" ? "Dairy" : "Oat"}
-                      </button>
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    {(["none", "dairy", "oat"] as Milk[]).map((m) => (
-                      <button
-                        key={m}
-                        className={`drink-builder__toggle ${milk === m ? "drink-builder__toggle--active" : ""}`}
-                        onClick={() => setMilk(m)}
-                      >
-                        {m === "none" ? "None" : m.charAt(0).toUpperCase() + m.slice(1)}
-                      </button>
-                    ))}
-                  </>
+                {!drinkHasDairy && (
+                  <button
+                    className={`drink-builder__toggle ${milk === "none" ? "drink-builder__toggle--active" : ""}`}
+                    onClick={() => setMilk("none")}
+                  >
+                    None
+                  </button>
                 )}
+                {(["skim", "semi", "whole"] as MilkFat[]).map((f) => (
+                  <button
+                    key={f}
+                    className={`drink-builder__toggle ${milk === "dairy" && milkFat === f ? "drink-builder__toggle--active" : ""}`}
+                    onClick={() => { setMilk("dairy"); setMilkFat(f); }}
+                  >
+                    {MILK_FAT_LABELS[f]}
+                  </button>
+                ))}
+                <button
+                  className={`drink-builder__toggle ${milk === "oat" ? "drink-builder__toggle--active" : ""}`}
+                  onClick={() => setMilk("oat")}
+                >
+                  Oat
+                </button>
               </div>
             </div>
           )}
 
-          {/* Fat level (dairy-based drinks, milk drink, or dairy add-on selected) */}
-          {(drink === "milk" || milk === "dairy" || drinkHasDairy) && (
+          {/* Fat level for standalone milk drink */}
+          {drink === "milk" && (
             <div className="drink-builder__section">
-              <span className="drink-builder__label">Fat level</span>
+              <span className="drink-builder__label">Milk</span>
               <div className="drink-builder__toggles">
                 {(["skim", "semi", "whole"] as MilkFat[]).map((f) => (
                   <button
