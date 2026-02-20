@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { requireAuth } from "./lib/auth";
 
 export const config = { maxDuration: 60 };
 
@@ -678,6 +679,12 @@ function buildJsonSchema() {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    const authUser = await requireAuth(req as any);
+    if (!authUser) {
+      res.status(401).json({ ok: false, error: "Authentication required" });
+      return;
+    }
+
     const result = await innerHandler(req.method ?? "GET", req.body);
     const json = await result.json();
     res.status(result.status).json(json);

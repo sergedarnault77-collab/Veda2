@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "../lib/api";
 import "./ContextPanel.css";
 
 export interface ExplainSignal {
@@ -29,7 +30,7 @@ export default function ContextPanel({ signal, onClose }: Props) {
     let cancelled = false;
     setLoading(true);
 
-    fetch("/api/explain", {
+    apiFetch("/api/explain", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ signal }),

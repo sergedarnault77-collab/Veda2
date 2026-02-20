@@ -1,6 +1,7 @@
 export const config = { runtime: "edge" };
 
 import { neon } from "@neondatabase/serverless";
+import { requireAuth, unauthorized } from "./lib/auth";
 
 const VALID_COLLECTIONS = ["user", "supps", "meds", "exposure", "scans", "taken"] as const;
 type Collection = (typeof VALID_COLLECTIONS)[number];
@@ -44,6 +45,9 @@ export default async function handler(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ ok: false, error: "POST only" }), { status: 405, headers });
   }
 
+  const authUser = await requireAuth(req);
+  if (!authUser) return unauthorized();
+
   const sql = getDb();
   if (!sql) {
     return new Response(JSON.stringify({ ok: false, error: "Database not configured" }), { status: 503, headers });
@@ -56,10 +60,8 @@ export default async function handler(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ ok: false, error: "Invalid JSON" }), { status: 400, headers });
   }
 
-  const email = (typeof body?.email === "string" ? body.email : "").trim().toLowerCase();
-  if (!email) {
-    return new Response(JSON.stringify({ ok: false, error: "email required" }), { status: 400, headers });
-  }
+  // Use the verified email from the JWT, not the request body
+  const email = authUser.email;
 
   const action = body?.action;
 

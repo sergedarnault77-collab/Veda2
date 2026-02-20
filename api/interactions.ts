@@ -1,5 +1,7 @@
 export const config = { runtime: "edge" };
 
+import { requireAuth, unauthorized } from "./lib/auth";
+
 type Interaction = {
   severity: "info" | "caution" | "warning";
   headline: string;
@@ -78,6 +80,9 @@ function describeItem(it: any): string {
 export default async function handler(req: Request): Promise<Response> {
   try {
     if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
+
+    const authUser = await requireAuth(req);
+    if (!authUser) return unauthorized();
 
     const apiKey = envOpenAIKey();
     if (!apiKey) return json(stubResponse());

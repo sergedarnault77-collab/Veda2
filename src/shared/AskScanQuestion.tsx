@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { loadLS } from "../lib/persist";
+import { apiFetch } from "../lib/api";
 import "./AskScanQuestion.css";
 
 type ScanAnswer = {
@@ -119,7 +120,7 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 30_000);
 
-      const res = await fetch("/api/ask-scan", {
+      const res = await apiFetch("/api/ask-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q, scanContext }),

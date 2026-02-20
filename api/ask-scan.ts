@@ -1,5 +1,7 @@
 export const config = { runtime: "edge" };
 
+import { requireAuth, unauthorized } from "./lib/auth";
+
 function envOpenAIKey(): string | null {
   const p = (globalThis as any)?.process;
   return (p?.env?.OPENAI_API_KEY as string | undefined) ?? null;
@@ -76,6 +78,9 @@ function buildUserPrompt(
 export default async function handler(req: Request): Promise<Response> {
   try {
     if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
+
+    const authUser = await requireAuth(req);
+    if (!authUser) return unauthorized();
 
     const apiKey = envOpenAIKey();
     if (!apiKey) return json({ ok: false, error: "Service unavailable" }, 503);

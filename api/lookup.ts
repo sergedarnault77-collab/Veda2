@@ -1,6 +1,7 @@
 export const config = { runtime: "edge" };
 
 import { neon } from "@neondatabase/serverless";
+import { requireAuth, unauthorized } from "./lib/auth";
 
 function getDb() {
   const env = (globalThis as any)?.process?.env ?? {};
@@ -23,6 +24,9 @@ export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "GET") {
     return json({ ok: false, error: "GET only" }, 405);
   }
+
+  const authUser = await requireAuth(req);
+  if (!authUser) return unauthorized();
 
   const sql = getDb();
   if (!sql) {

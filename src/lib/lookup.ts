@@ -4,6 +4,7 @@
  */
 
 import type { NutrientRow } from "../home/stubs";
+import { apiFetch } from "./api";
 
 export type LookupMatch = {
   source: string;
@@ -56,7 +57,7 @@ export function matchToNutrients(match: LookupMatch): NutrientRow[] {
 
 export async function lookupByBarcode(barcode: string): Promise<LookupResult> {
   try {
-    const r = await fetch(`/api/lookup?barcode=${encodeURIComponent(barcode)}`);
+    const r = await apiFetch(`/api/lookup?barcode=${encodeURIComponent(barcode)}`);
     if (!r.ok) return { hit: false };
     const data = await r.json();
     if (data?.ok && data.match) {
@@ -71,7 +72,7 @@ export async function lookupByBarcode(barcode: string): Promise<LookupResult> {
 export async function lookupByName(query: string): Promise<LookupResult> {
   if (!query || query.length < 3) return { hit: false };
   try {
-    const r = await fetch(`/api/lookup?q=${encodeURIComponent(query)}`);
+    const r = await apiFetch(`/api/lookup?q=${encodeURIComponent(query)}`);
     if (!r.ok) return { hit: false };
     const data = await r.json();
     if (data?.ok && Array.isArray(data.matches) && data.matches.length > 0) {

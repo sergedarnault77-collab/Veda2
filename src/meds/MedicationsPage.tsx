@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
+import { apiFetch } from "../lib/api";
 import { shrinkImagesForStorage } from "../lib/image";
 import { findExistingIdx } from "../lib/dedup";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
@@ -67,7 +68,7 @@ async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
       ingredientsList: ingredients,
     };
 
-    const res = await fetch("/api/interactions", {
+    const res = await apiFetch("/api/interactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ newItem, existingItems: existing }),
@@ -92,7 +93,7 @@ async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
 
 async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
   try {
-    const res = await fetch("/api/advise", {
+    const res = await apiFetch("/api/advise", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

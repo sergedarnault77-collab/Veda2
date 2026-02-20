@@ -1,5 +1,7 @@
 export const config = { runtime: "edge" };
 
+import { requireAuth, unauthorized } from "./lib/auth";
+
 type OverlapRisk = "low" | "medium" | "high";
 
 type Overlap = {
@@ -74,6 +76,9 @@ export default async function handler(req: Request): Promise<Response> {
     if (req.method !== "POST") {
       return json({ ok: false, error: "POST only" }, 405);
     }
+
+    const authUser = await requireAuth(req);
+    if (!authUser) return unauthorized();
 
     const apiKey = envOpenAIKey();
     if (!apiKey) {

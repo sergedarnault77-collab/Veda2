@@ -13,6 +13,7 @@ import { loadUser, saveUser, setPlan as persistPlan, setProfile as persistProfil
 import type { VedaUser, Plan, BiologicalSex, AgeRange } from "./lib/auth";
 import { supabase } from "./lib/supabase";
 import { setSyncEmail, pullAll, pushAll } from "./lib/sync";
+import { apiFetch } from "./lib/api";
 import { migrateStorageImages } from "./lib/storage-migrate";
 import "./App.css";
 
@@ -201,7 +202,7 @@ export default function App() {
     if (!email) return;
 
     try {
-      await fetch("/api/sync", {
+      await apiFetch("/api/sync", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, action: "delete_account" }),

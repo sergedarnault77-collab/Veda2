@@ -1,6 +1,7 @@
 import { Component, useEffect, useMemo, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import { loadLS, saveLS } from "../lib/persist";
+import { apiFetch } from "../lib/api";
 import { shrinkImagesForStorage } from "../lib/image";
 import { findExistingIdx } from "../lib/dedup";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
@@ -132,7 +133,7 @@ async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
       ingredientsList: ingredients,
     };
 
-    const res = await fetch("/api/interactions", {
+    const res = await apiFetch("/api/interactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ newItem, existingItems: existing }),
@@ -157,7 +158,7 @@ async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
 
 async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
   try {
-    const res = await fetch("/api/advise", {
+    const res = await apiFetch("/api/advise", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -654,7 +655,7 @@ function SupplementsPageInner() {
     setUrlError(null);
     setUrlLoading(true);
     try {
-      const res = await fetch("/api/parse-url", {
+      const res = await apiFetch("/api/parse-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: trimmed }),

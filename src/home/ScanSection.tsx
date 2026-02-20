@@ -3,6 +3,7 @@ import { compressImageDataUrl, shrinkImagesForStorage } from "../lib/image";
 import { findExistingIdx } from "../lib/dedup";
 import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
+import { apiFetch } from "../lib/api";
 import { extractExposureFromScan } from "./HomePage";
 import LoadingBanner from "../shared/LoadingBanner";
 import InteractionWarnings from "../shared/InteractionWarnings";
@@ -215,7 +216,7 @@ export default function ScanSection({ onScanComplete }: Props) {
       ingredientsList: result?.ingredientsList || result?.normalized?.detectedEntities || [],
     };
 
-    fetch("/api/interactions", {
+    apiFetch("/api/interactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ newItem, existingItems: existing }),
@@ -284,7 +285,7 @@ export default function ScanSection({ onScanComplete }: Props) {
         payload.ingredientsImageDataUrls = ingredientsImages;
       }
       const json = await withMinDelay(
-        fetch("/api/analyze", {
+        apiFetch("/api/analyze", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify(payload),
@@ -534,7 +535,7 @@ export default function ScanSection({ onScanComplete }: Props) {
     setUrlError(null);
     setUrlLoading(true);
     try {
-      const res = await fetch("/api/parse-url", {
+      const res = await apiFetch("/api/parse-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: trimmed }),

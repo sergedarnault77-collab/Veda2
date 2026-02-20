@@ -4,6 +4,8 @@
 
 export const config = { runtime: "edge" };
 
+import { requireAuth, unauthorized } from "./lib/auth";
+
 type AnalyzeResponse = {
   ok: boolean;
   productName: string | null;
@@ -50,6 +52,9 @@ export default async function handler(req: Request): Promise<Response> {
     if (req.method !== "POST") {
       return json({ ok: false, error: "POST only" }, 405);
     }
+
+    const authUser = await requireAuth(req);
+    if (!authUser) return unauthorized();
 
     const body = (await req.json().catch(() => null)) as any;
     if (!body) return json({ ok: true, item: stubItem("Invalid JSON") });

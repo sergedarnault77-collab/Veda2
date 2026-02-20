@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { loadLS, saveLS } from "../lib/persist";
+import { apiFetch } from "../lib/api";
 import { loadUser } from "../lib/auth";
 import {
   computeDailyNutrients,
@@ -203,7 +204,7 @@ export function StackCoverage() {
       (ul ? `The tolerable upper intake level (UL) is ${ul} ${unit}. ` : "") +
       `What are the risks of exceeding this level? What symptoms should I watch for? Should I reduce or split my dose?`;
 
-    fetch("/api/ask-scan", {
+    apiFetch("/api/ask-scan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, productName: label, nutrients: [], interactions: [] }),
@@ -284,7 +285,7 @@ export function StackCoverage() {
       labelTranscription: s.labelTranscription ?? null,
     }));
 
-    fetch("/api/advise", {
+    apiFetch("/api/advise", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ items }),

@@ -3,6 +3,7 @@
 // response into a ParsedItem for use by AddScannedItemModal / meds / supps.
 
 import type { NutrientRow } from "../home/stubs";
+import { apiFetch } from "./api";
 
 export type { NutrientRow };
 
@@ -82,7 +83,7 @@ export async function parseScannedItem(
 
     let res: Response;
     try {
-      res = await fetch("/api/analyze", {
+      res = await apiFetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

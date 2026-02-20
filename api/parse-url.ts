@@ -2,6 +2,7 @@ export const config = { maxDuration: 60 };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { neon } from "@neondatabase/serverless";
+import { requireAuth } from "./lib/auth";
 
 function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
@@ -115,6 +116,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ ok: false, error: "POST only" });
+    }
+
+    const authUser = await requireAuth(req as any);
+    if (!authUser) {
+      return res.status(401).json({ ok: false, error: "Authentication required" });
     }
 
     const apiKey = envOpenAIKey();

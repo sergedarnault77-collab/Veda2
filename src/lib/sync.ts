@@ -7,6 +7,8 @@
  *  - Images are stripped server-side to keep payloads small
  */
 
+import { apiFetch } from "./api";
+
 const COLLECTIONS = ["user", "supps", "meds", "exposure", "scans", "taken"] as const;
 type Collection = (typeof COLLECTIONS)[number];
 
@@ -45,7 +47,7 @@ export function pushCollection(collection: Collection, data: any) {
     collection,
     setTimeout(() => {
       pendingSaves.delete(collection);
-      fetch("/api/sync", {
+      apiFetch("/api/sync", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, action: "save", collection, data }),
@@ -73,7 +75,7 @@ export function pushAll() {
 
   if (items.length === 0) return;
 
-  fetch("/api/sync", {
+  apiFetch("/api/sync", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ email, action: "save_batch", items }),
@@ -88,7 +90,7 @@ export async function pullAll(): Promise<boolean> {
   if (typeof window === "undefined") return false;
 
   try {
-    const r = await fetch("/api/sync", {
+    const r = await apiFetch("/api/sync", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, action: "load" }),
