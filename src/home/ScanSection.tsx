@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { compressImageDataUrl, shrinkImagesForStorage } from "../lib/image";
+import { findExistingIdx } from "../lib/dedup";
 import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
 import { extractExposureFromScan } from "./HomePage";
@@ -405,16 +406,7 @@ export default function ScanSection({ onScanComplete }: Props) {
       try {
         const small = await shrinkImagesForStorage(itemData);
         const supps = loadLS<any[]>("veda.supps.v1", []);
-        const pNameLower = (scanResult.productName || "").toLowerCase();
-
-        const existingIdx = supps.findIndex((s: any) => {
-          const sName = (s.displayName || "").toLowerCase();
-          if (sName === "new supplement") return true;
-          if (pNameLower && sName === pNameLower) return true;
-          if (pNameLower && sName.includes(pNameLower)) return true;
-          if (pNameLower && pNameLower.includes(sName) && sName.length > 3) return true;
-          return false;
-        });
+        const existingIdx = findExistingIdx(supps, scanResult.productName || "");
 
         let suppId: string;
         if (existingIdx >= 0) {
@@ -461,8 +453,14 @@ export default function ScanSection({ onScanComplete }: Props) {
       try {
         const small = await shrinkImagesForStorage(itemData);
         const meds = loadLS<any[]>("veda.meds.v1", []);
-        const medId = uid();
-        meds.unshift({ ...small, id: medId });
+        const existingIdx = findExistingIdx(meds, scanResult.productName || "");
+
+        if (existingIdx >= 0) {
+          const medId = meds[existingIdx].id || uid();
+          meds[existingIdx] = { ...small, id: medId, insights: meds[existingIdx].insights ?? null };
+        } else {
+          meds.unshift({ ...small, id: uid() });
+        }
         saveLS("veda.meds.v1", meds);
         window.dispatchEvent(new Event("veda:meds-updated"));
       } catch (err) {

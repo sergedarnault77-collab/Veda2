@@ -2,6 +2,7 @@ import { Component, useEffect, useMemo, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import { shrinkImagesForStorage } from "../lib/image";
+import { findExistingIdx } from "../lib/dedup";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import InteractionWarnings from "../shared/InteractionWarnings";
 import BuySheet from "../shared/BuySheet";
@@ -517,23 +518,35 @@ function SupplementsPageInner() {
   };
 
   const addSupp = (s: ScannedItem) => {
-    const newId = uid();
-    shrinkImagesForStorage(s).then((small) => {
-      persistUpdate((prev) => [{ ...small, id: newId }, ...prev]);
-    }).catch(() => {
-      persistUpdate((prev) => [{ ...s, frontImage: null, ingredientsImage: null, ingredientsImages: undefined, id: newId }, ...prev]);
+    const existingIdx = findExistingIdx(items, s.displayName || "");
+    const itemId = existingIdx >= 0 ? items[existingIdx].id : uid();
+
+    const upsert = (data: any) => {
+      persistUpdate((prev) => {
+        const idx = prev.findIndex((x) => x.id === itemId);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = { ...data, id: itemId, insights: prev[idx].insights ?? null };
+          return updated;
+        }
+        return [{ ...data, id: itemId }, ...prev];
+      });
+    };
+
+    shrinkImagesForStorage(s).then(upsert).catch(() => {
+      upsert({ ...s, frontImage: null, ingredientsImage: null, ingredientsImages: undefined });
     });
     fetchInsights(s).then((ins) => {
       if (ins) {
         persistUpdate((prev) =>
-          prev.map((it) => (it.id === newId ? { ...it, insights: ins } : it))
+          prev.map((it) => (it.id === itemId ? { ...it, insights: ins } : it))
         );
       }
     });
     fetchInteractions(s).then((ix) => {
       if (ix.length > 0) {
         persistUpdate((prev) =>
-          prev.map((it) => (it.id === newId ? { ...it, interactions: ix } : it))
+          prev.map((it) => (it.id === itemId ? { ...it, interactions: ix } : it))
         );
       }
     });

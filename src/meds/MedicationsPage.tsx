@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import { shrinkImagesForStorage } from "../lib/image";
+import { findExistingIdx } from "../lib/dedup";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import InteractionWarnings from "../shared/InteractionWarnings";
 import type { Interaction } from "../shared/InteractionWarnings";
@@ -132,23 +133,35 @@ export default function MedicationsPage() {
   };
 
   const addMed = (m: ScannedItem) => {
-    const newId = uid();
-    shrinkImagesForStorage(m).then((small) => {
-      persistUpdate((prev) => [{ ...small, id: newId }, ...prev]);
-    }).catch(() => {
-      persistUpdate((prev) => [{ ...m, frontImage: null, ingredientsImage: null, ingredientsImages: undefined, id: newId }, ...prev]);
+    const existingIdx = findExistingIdx(items, m.displayName || "");
+    const itemId = existingIdx >= 0 ? items[existingIdx].id : uid();
+
+    const upsert = (data: any) => {
+      persistUpdate((prev) => {
+        const idx = prev.findIndex((x) => x.id === itemId);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = { ...data, id: itemId, insights: prev[idx].insights ?? null };
+          return updated;
+        }
+        return [{ ...data, id: itemId }, ...prev];
+      });
+    };
+
+    shrinkImagesForStorage(m).then(upsert).catch(() => {
+      upsert({ ...m, frontImage: null, ingredientsImage: null, ingredientsImages: undefined });
     });
     fetchInsights(m).then((ins) => {
       if (ins) {
         persistUpdate((prev) =>
-          prev.map((it) => (it.id === newId ? { ...it, insights: ins } : it))
+          prev.map((it) => (it.id === itemId ? { ...it, insights: ins } : it))
         );
       }
     });
     fetchInteractions(m).then((ix) => {
       if (ix.length > 0) {
         persistUpdate((prev) =>
-          prev.map((it) => (it.id === newId ? { ...it, interactions: ix } : it))
+          prev.map((it) => (it.id === itemId ? { ...it, interactions: ix } : it))
         );
       }
     });
