@@ -609,6 +609,13 @@ export default function ScanSection({ onScanComplete }: Props) {
 
   return (
     <section className="scan-status" data-testid="scan-page">
+      {/* Veda intro — visible in idle state */}
+      {step === "idle" && !loading && mode === "idle" && (
+        <p className="scan-status__intro">
+          Veda gives you a single overview of your medications and supplements, highlights potential overlaps or overuse, and shows how new additions might affect your routine — all explained clearly with AI-powered insights.
+        </p>
+      )}
+
       {/* Entry tiles — three clear paths */}
       {step === "idle" && !loading && mode === "idle" && (
         <div className="scan-status__tiles scan-status__tiles--3">
