@@ -116,3 +116,49 @@ export function nutrientRowsToIntakeLines(
   }
   return lines;
 }
+
+export type OtherNutrient = {
+  nutrientId: string;
+  name: string;
+  amount: number;
+  unit: string;
+  sources: string[];
+};
+
+/**
+ * Collect nutrients from rows that are NOT in the reference database.
+ * These are active ingredients like EPA, DHA, creatine, urolithin A, etc.
+ */
+export function collectOtherNutrients(
+  items: Array<{ displayName: string; nutrients: Array<{ nutrientId: string; name: string; unit: string; amountToday: number }> }>,
+): OtherNutrient[] {
+  const refIds = new Set(allNutrientIds());
+  const map = new Map<string, OtherNutrient>();
+
+  for (const item of items) {
+    for (const n of item.nutrients) {
+      if (!n.nutrientId || !n.name || n.amountToday <= 0) continue;
+      const inRef = refIds.has(n.nutrientId) && !!UNIT_MAP[n.unit];
+      if (inRef) continue;
+
+      const key = n.nutrientId;
+      const existing = map.get(key);
+      if (existing) {
+        existing.amount += n.amountToday;
+        if (!existing.sources.includes(item.displayName)) {
+          existing.sources.push(item.displayName);
+        }
+      } else {
+        map.set(key, {
+          nutrientId: n.nutrientId,
+          name: n.name,
+          amount: n.amountToday,
+          unit: n.unit,
+          sources: [item.displayName],
+        });
+      }
+    }
+  }
+
+  return Array.from(map.values());
+}

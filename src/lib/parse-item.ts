@@ -156,7 +156,7 @@ export async function parseScannedItem(
     let nutrients: NutrientRow[];
     let nutrientsPer100g: NutrientRow[] | null = null;
 
-    if (isPer100g && servingSizeG && servingSizeG < 100) {
+    if (isPer100g && servingSizeG) {
       nutrientsPer100g = rawNutrients;
       const scale = servingSizeG / 100;
       nutrients = rawNutrients.map(n => ({

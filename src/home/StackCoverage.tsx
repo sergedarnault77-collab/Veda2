@@ -8,6 +8,7 @@ import {
   bioSexToSex,
   nutrientRowsToIntakeLines,
   hasEnoughDietAnswers,
+  collectOtherNutrients,
 } from "../lib/nutrition";
 import type { NutrientComputed, IntakeLine, DietAnswers, FoodCoverage } from "../lib/nutrition";
 import type { ItemInsights } from "../shared/AddScannedItemModal";
@@ -97,6 +98,23 @@ type SavedSupp = {
   schedule?: ScheduleTime;
 };
 
+function getScaledNutrients(item: any): any[] {
+  const per100g = Array.isArray(item.nutrientsPer100g) ? item.nutrientsPer100g : null;
+  const servingG = typeof item.servingSizeG === "number" ? item.servingSizeG : null;
+
+  if (per100g && servingG) {
+    const scale = servingG / 100;
+    return per100g.map((n: any) => ({
+      ...n,
+      amountToday: typeof n.amountToday === "number"
+        ? Math.round(n.amountToday * scale * 100) / 100
+        : n.amountToday,
+    }));
+  }
+
+  return Array.isArray(item.nutrients) ? item.nutrients : [];
+}
+
 function loadSupps(): SavedSupp[] {
   const raw = loadLS<any[]>(SUPPS_KEY, []);
   return raw
@@ -104,7 +122,7 @@ function loadSupps(): SavedSupp[] {
     .map((s) => ({
       id: s.id,
       displayName: s.displayName || "Unnamed",
-      nutrients: Array.isArray(s.nutrients) ? s.nutrients : [],
+      nutrients: getScaledNutrients(s),
       ingredientsList: Array.isArray(s.ingredientsList) ? s.ingredientsList : [],
       labelTranscription: s.labelTranscription ?? null,
       schedule: s.schedule ?? undefined,
@@ -283,6 +301,12 @@ export function StackCoverage() {
   const visibleNutrients = useMemo(
     () => computedNutrients.filter((n) => n.supplementTotal > 0),
     [computedNutrients],
+  );
+
+  /* Active ingredients not in the standard vitamin/mineral reference (e.g. EPA, DHA, creatine) */
+  const otherNutrients = useMemo(
+    () => anyTaken ? collectOtherNutrients(takenSupps) : [],
+    [anyTaken, takenSupps],
   );
 
   /* Check for UL alerts across all nutrients (including zero-supplement ones won't trigger) */
@@ -538,6 +562,29 @@ export function StackCoverage() {
             );
           })}
         </ul>
+      )}
+
+      {/* Other active ingredients not in the standard vitamin/mineral reference */}
+      {anyTaken && otherNutrients.length > 0 && (
+        <div className="coverage__other">
+          <div className="coverage__other-title">Other active ingredients</div>
+          <ul className="coverage__other-list">
+            {otherNutrients.map((n) => (
+              <li key={n.nutrientId} className="coverage__other-row">
+                <span className="coverage__other-name">{n.name}</span>
+                <span className="coverage__other-amount">
+                  {Math.round(n.amount * 10) / 10} {n.unit}
+                </span>
+                {n.sources.length === 1 && (
+                  <span className="coverage__other-source">{n.sources[0]}</span>
+                )}
+                {n.sources.length > 1 && (
+                  <span className="coverage__other-source">{n.sources.length} sources</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* Stack insight */}

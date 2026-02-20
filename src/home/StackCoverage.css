@@ -346,6 +346,58 @@
   max-width: none;
 }
 
+/* ── Other active ingredients ── */
+
+.coverage__other {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--veda-border, rgba(255,255,255,0.08));
+}
+
+.coverage__other-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--veda-text-muted, #8892b0);
+  margin-bottom: 8px;
+}
+
+.coverage__other-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.coverage__other-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--veda-surface, rgba(255,255,255,0.04));
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+}
+
+.coverage__other-name {
+  font-weight: 500;
+  color: var(--veda-text, #ccd6f6);
+}
+
+.coverage__other-amount {
+  color: var(--veda-accent, #2E5BFF);
+  font-weight: 600;
+}
+
+.coverage__other-source {
+  font-size: 0.7rem;
+  color: var(--veda-text-muted, #8892b0);
+  opacity: 0.7;
+}
+
 /* Tablet */
 @media (min-width: 600px) {
   .coverage__list {

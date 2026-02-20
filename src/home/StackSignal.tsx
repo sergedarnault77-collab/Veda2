@@ -65,6 +65,23 @@ type ItemNutrients = {
   nutrients: Array<{ nutrientId: string; name: string; unit: string; amountToday: number }>;
 };
 
+function getScaledNutrients(item: any): any[] {
+  const per100g = Array.isArray(item.nutrientsPer100g) ? item.nutrientsPer100g : null;
+  const servingG = typeof item.servingSizeG === "number" ? item.servingSizeG : null;
+
+  if (per100g && servingG) {
+    const scale = servingG / 100;
+    return per100g.map((n: any) => ({
+      ...n,
+      amountToday: typeof n.amountToday === "number"
+        ? Math.round(n.amountToday * scale * 100) / 100
+        : n.amountToday,
+    }));
+  }
+
+  return Array.isArray(item.nutrients) ? item.nutrients : [];
+}
+
 function collectIntakeLines(): { lines: IntakeLine[]; suppNames: string[]; medNames: string[]; items: ItemNutrients[] } {
   const taken = loadTakenFlags();
   const supps = loadLS<any[]>(SUPPS_KEY, []).filter((s) => s?.id && taken[s.id]);
@@ -78,18 +95,20 @@ function collectIntakeLines(): { lines: IntakeLine[]; suppNames: string[]; medNa
   for (const s of supps) {
     const name = s.displayName || "Supplement";
     suppNames.push(name);
-    if (Array.isArray(s.nutrients)) {
-      lines.push(...nutrientRowsToIntakeLines(s.nutrients, "supplement"));
-      items.push({ name, source: "supplement", nutrients: s.nutrients });
+    const nutrients = getScaledNutrients(s);
+    if (nutrients.length > 0) {
+      lines.push(...nutrientRowsToIntakeLines(nutrients, "supplement"));
+      items.push({ name, source: "supplement", nutrients });
     }
   }
 
   for (const m of meds) {
     const name = m.displayName || "Medication";
     medNames.push(name);
-    if (Array.isArray(m.nutrients)) {
-      lines.push(...nutrientRowsToIntakeLines(m.nutrients, "med"));
-      items.push({ name, source: "med", nutrients: m.nutrients });
+    const mNutrients = getScaledNutrients(m);
+    if (mNutrients.length > 0) {
+      lines.push(...nutrientRowsToIntakeLines(mNutrients, "med"));
+      items.push({ name, source: "med", nutrients: mNutrients });
     }
   }
 

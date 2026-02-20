@@ -317,7 +317,7 @@ export default function ScanSection({ onScanComplete }: Props) {
     const ents: string[] = [...(result?.normalized?.detectedEntities || [])];
     const rawNutrients: any[] = [...(Array.isArray(result?.nutrients) ? result.nutrients : [])];
 
-    const nutrients: any[] = isPer100g && servingG && servingG < 100
+    const nutrients: any[] = isPer100g && servingG
       ? rawNutrients.map((n: any) => ({
           ...n,
           amountToday: typeof n.amountToday === "number"
