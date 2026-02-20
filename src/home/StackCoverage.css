@@ -167,10 +167,22 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  width: 100%;
   padding: 8px 12px;
   border-radius: var(--radius-lg, 12px);
+  font-family: inherit;
   font-size: 0.76rem;
   line-height: 1.4;
+  text-align: left;
+}
+
+.coverage__ul-alert--clickable {
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.coverage__ul-alert--clickable:hover {
+  filter: brightness(1.15);
 }
 
 .coverage__ul-alert--exceed {
@@ -192,6 +204,51 @@
 
 .coverage__ul-alert-text {
   flex: 1;
+}
+
+.coverage__ul-alert-chevron {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  opacity: 0.6;
+  margin-left: 4px;
+  align-self: center;
+}
+
+/* ── UL detail panel ── */
+.coverage__ul-detail {
+  padding: 10px 14px;
+  margin: -2px 0 6px;
+  border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  border-top: none;
+}
+
+.coverage__ul-detail-loading {
+  font-size: 0.76rem;
+  color: var(--veda-text-muted);
+  padding: 6px 0;
+  animation: coverage-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes coverage-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.coverage__ul-detail-text {
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--veda-text);
+  white-space: pre-line;
+}
+
+.coverage__ul-detail-disclaimer {
+  font-size: 0.68rem;
+  color: var(--veda-text-muted);
+  margin-top: 8px;
+  opacity: 0.7;
+  font-style: italic;
 }
 
 /* ── Stack insight ── */

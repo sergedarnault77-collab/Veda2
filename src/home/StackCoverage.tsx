@@ -94,6 +94,9 @@ export function StackCoverage() {
   });
 
   const [stackInsight, setStackInsight] = useState<ItemInsights | null>(null);
+  const [expandedUl, setExpandedUl] = useState<string | null>(null);
+  const [ulExplanation, setUlExplanation] = useState<Record<string, string>>({});
+  const [ulLoading, setUlLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const refresh = () => {
@@ -117,6 +120,36 @@ export function StackCoverage() {
       window.removeEventListener("veda:supps-updated", refresh);
     };
   }, []);
+
+  const explainUl = useCallback((nutrientId: string, label: string, amount: number, unit: string, ul: number | null) => {
+    if (expandedUl === nutrientId) {
+      setExpandedUl(null);
+      return;
+    }
+    setExpandedUl(nutrientId);
+    if (ulExplanation[nutrientId]) return;
+
+    setUlLoading(nutrientId);
+    const suppNames = takenSupps.map((s) => s.displayName).join(", ");
+    const question = `I'm taking ${Math.round(amount)} ${unit} of ${label} daily from these supplements: ${suppNames}. ` +
+      (ul ? `The tolerable upper intake level (UL) is ${ul} ${unit}. ` : "") +
+      `What are the risks of exceeding this level? What symptoms should I watch for? Should I reduce or split my dose?`;
+
+    fetch("/api/ask-scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, productName: label, nutrients: [], interactions: [] }),
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((json) => {
+        const answer = json?.answer || json?.text || "Could not generate an explanation. Try again later.";
+        setUlExplanation((prev) => ({ ...prev, [nutrientId]: answer }));
+      })
+      .catch(() => {
+        setUlExplanation((prev) => ({ ...prev, [nutrientId]: "Request failed — check your connection and try again." }));
+      })
+      .finally(() => setUlLoading(null));
+  }, [expandedUl, ulExplanation, takenSupps]);
 
   const toggle = useCallback((id: string) => {
     setTaken((prev) => {
@@ -236,21 +269,41 @@ export function StackCoverage() {
       {/* UL alert banner */}
       {ulAlerts.length > 0 && (
         <div className="coverage__ul-alerts">
-          {ulAlerts.map((n) => (
-            <div
-              key={n.nutrientId}
-              className={`coverage__ul-alert ${n.flags.exceedsUl ? "coverage__ul-alert--exceed" : "coverage__ul-alert--approaching"}`}
-            >
-              <span className="coverage__ul-alert-icon">
-                {n.flags.exceedsUl ? "⚠" : "↑"}
-              </span>
-              <span className="coverage__ul-alert-text">
-                {n.label}: {Math.round(n.supplementTotal)} {n.unit} from supplements
-                {n.ul ? ` (UL: ${n.ul} ${n.unit})` : ""}
-                {n.flags.exceedsUl ? " — exceeds upper limit" : " — approaching upper limit"}
-              </span>
-            </div>
-          ))}
+          {ulAlerts.map((n) => {
+            const isOpen = expandedUl === n.nutrientId;
+            const explanation = ulExplanation[n.nutrientId];
+            const loading = ulLoading === n.nutrientId;
+            return (
+              <div key={n.nutrientId}>
+                <button
+                  className={`coverage__ul-alert coverage__ul-alert--clickable ${n.flags.exceedsUl ? "coverage__ul-alert--exceed" : "coverage__ul-alert--approaching"}`}
+                  onClick={() => explainUl(n.nutrientId, n.label, n.supplementTotal, n.unit, n.ul ?? null)}
+                >
+                  <span className="coverage__ul-alert-icon">
+                    {n.flags.exceedsUl ? "⚠" : "↑"}
+                  </span>
+                  <span className="coverage__ul-alert-text">
+                    {n.label}: {Math.round(n.supplementTotal)} {n.unit} from supplements
+                    {n.ul ? ` (UL: ${n.ul} ${n.unit})` : ""}
+                    {n.flags.exceedsUl ? " — exceeds upper limit" : " — approaching upper limit"}
+                  </span>
+                  <span className="coverage__ul-alert-chevron">{isOpen ? "▾" : "›"}</span>
+                </button>
+                {isOpen && (
+                  <div className="coverage__ul-detail">
+                    {loading ? (
+                      <div className="coverage__ul-detail-loading">Analyzing risks and recommendations…</div>
+                    ) : explanation ? (
+                      <>
+                        <div className="coverage__ul-detail-text">{explanation}</div>
+                        <div className="coverage__ul-detail-disclaimer">General information — not medical advice.</div>
+                      </>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
