@@ -493,7 +493,8 @@ function SupplementCard({
 
 function SupplementsPageInner() {
   const [items, setItems] = useState<Supp[]>(() => loadLS<Supp[]>(LS_KEY, []));
-  const [showAdd, setShowAdd] = useState(false);
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manualName, setManualName] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlValue, setUrlValue] = useState("");
   const [urlLoading, setUrlLoading] = useState(false);
@@ -676,11 +677,11 @@ function SupplementsPageInner() {
       <div className="supps-page__header">
         <div>
           <h1>Your supplements</h1>
-          <p>Maintain your supplements here. We'll show overlap and interaction flags within this stack.</p>
+          <p>Your daily supplements. Scan products on the Scan tab to add them here.</p>
         </div>
         <div className="supps-page__actions">
-          <button className="supps-page__add" onClick={() => setShowAdd(true)}>
-            + Scan
+          <button className="supps-page__add" onClick={() => { setShowManualAdd(true); setManualName(""); }}>
+            + Manual
           </button>
           <button
             className="supps-page__add supps-page__add--url"
@@ -695,7 +696,7 @@ function SupplementsPageInner() {
         <div className="supps-page__empty">
           <div className="supps-page__emptyCard">
             <div>No supplements added yet.</div>
-            <div className="supps-page__emptySub">Tap "+ Add" to photograph a supplement and its label.</div>
+            <div className="supps-page__emptySub">Go to the Scan tab to photograph a supplement label, then save it here.</div>
           </div>
         </div>
       ) : (
@@ -708,12 +709,60 @@ function SupplementsPageInner() {
         </div>
       )}
 
-      {showAdd && (
-        <AddScannedItemModal
-          kind="supp"
-          onClose={() => setShowAdd(false)}
-          onConfirm={(item) => addSupp(item)}
-        />
+      {showManualAdd && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <button className="modal-close" onClick={() => setShowManualAdd(false)} aria-label="Close">×</button>
+            <h2>Add supplement manually</h2>
+            <p className="modal-sub">Type the supplement name. For full nutrient data, scan the label on the Scan tab.</p>
+            <label className="modal-label">Name</label>
+            <input
+              className="modal-input"
+              value={manualName}
+              onChange={(e) => setManualName(e.target.value)}
+              placeholder="e.g. Vitamin D3"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && manualName.trim()) {
+                  addSupp({
+                    displayName: manualName.trim(),
+                    brand: null, form: null, strengthPerUnit: null, strengthUnit: null,
+                    servingSizeText: null, rawTextHints: [], confidence: 0, mode: "stub",
+                    frontImage: null, ingredientsImage: null, ingredientsImages: [],
+                    labelTranscription: null, nutrients: [], ingredientsDetected: [],
+                    ingredientsList: [], ingredientsCount: 0, insights: null,
+                    meta: { transcriptionConfidence: 0, needsRescan: false, rescanHint: null },
+                    createdAtISO: new Date().toISOString(),
+                  });
+                  setShowManualAdd(false);
+                }
+              }}
+            />
+            <div className="modal-actions">
+              <button className="btn btn--secondary" onClick={() => setShowManualAdd(false)}>Cancel</button>
+              <button
+                className="btn btn--primary"
+                disabled={!manualName.trim()}
+                onClick={() => {
+                  if (!manualName.trim()) return;
+                  addSupp({
+                    displayName: manualName.trim(),
+                    brand: null, form: null, strengthPerUnit: null, strengthUnit: null,
+                    servingSizeText: null, rawTextHints: [], confidence: 0, mode: "stub",
+                    frontImage: null, ingredientsImage: null, ingredientsImages: [],
+                    labelTranscription: null, nutrients: [], ingredientsDetected: [],
+                    ingredientsList: [], ingredientsCount: 0, insights: null,
+                    meta: { transcriptionConfidence: 0, needsRescan: false, rescanHint: null },
+                    createdAtISO: new Date().toISOString(),
+                  });
+                  setShowManualAdd(false);
+                }}
+              >
+                Add supplement
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {editId && editingItem && (

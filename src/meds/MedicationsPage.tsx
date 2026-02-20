@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import { shrinkImagesForStorage } from "../lib/image";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
@@ -113,8 +113,15 @@ async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
 
 export default function MedicationsPage() {
   const [items, setItems] = useState<Med[]>(() => loadLS<Med[]>(LS_KEY, []));
-  const [showAdd, setShowAdd] = useState(false);
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manualName, setManualName] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const refresh = () => setItems(loadLS<Med[]>(LS_KEY, []));
+    window.addEventListener("veda:meds-updated", refresh);
+    return () => window.removeEventListener("veda:meds-updated", refresh);
+  }, []);
 
   const persistUpdate = (updater: (prev: Med[]) => Med[]) => {
     setItems((prev) => {
@@ -184,10 +191,10 @@ export default function MedicationsPage() {
       <div className="meds-page__header">
         <div>
           <h1>Your medications</h1>
-          <p>Maintain your medications here. We'll show interaction flags between items you've added.</p>
+          <p>Your daily medications. Scan products on the Scan tab to add them here.</p>
         </div>
-        <button className="meds-page__add" onClick={() => setShowAdd(true)}>
-          + Add
+        <button className="meds-page__add" onClick={() => { setShowManualAdd(true); setManualName(""); }}>
+          + Manual
         </button>
       </div>
 
@@ -195,7 +202,7 @@ export default function MedicationsPage() {
         <div className="meds-page__empty">
           <div className="meds-page__emptyCard">
             <div>No medications added yet.</div>
-            <div className="meds-page__emptySub">Tap "+ Add" to photograph a medication and its label.</div>
+            <div className="meds-page__emptySub">Go to the Scan tab to photograph a medication, then save it here.</div>
           </div>
         </div>
       ) : (
@@ -328,12 +335,60 @@ export default function MedicationsPage() {
         </div>
       )}
 
-      {showAdd && (
-        <AddScannedItemModal
-          kind="med"
-          onClose={() => setShowAdd(false)}
-          onConfirm={(item) => addMed(item)}
-        />
+      {showManualAdd && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <button className="modal-close" onClick={() => setShowManualAdd(false)} aria-label="Close">×</button>
+            <h2>Add medication manually</h2>
+            <p className="modal-sub">Type the medication name. For full ingredient data, scan the label on the Scan tab.</p>
+            <label className="modal-label">Name</label>
+            <input
+              className="modal-input"
+              value={manualName}
+              onChange={(e) => setManualName(e.target.value)}
+              placeholder="e.g. Ibuprofen"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && manualName.trim()) {
+                  addMed({
+                    displayName: manualName.trim(),
+                    brand: null, form: null, strengthPerUnit: null, strengthUnit: null,
+                    servingSizeText: null, rawTextHints: [], confidence: 0, mode: "stub",
+                    frontImage: null, ingredientsImage: null, ingredientsImages: [],
+                    labelTranscription: null, nutrients: [], ingredientsDetected: [],
+                    ingredientsList: [], ingredientsCount: 0, insights: null,
+                    meta: { transcriptionConfidence: 0, needsRescan: false, rescanHint: null },
+                    createdAtISO: new Date().toISOString(),
+                  });
+                  setShowManualAdd(false);
+                }
+              }}
+            />
+            <div className="modal-actions">
+              <button className="btn btn--secondary" onClick={() => setShowManualAdd(false)}>Cancel</button>
+              <button
+                className="btn btn--primary"
+                disabled={!manualName.trim()}
+                onClick={() => {
+                  if (!manualName.trim()) return;
+                  addMed({
+                    displayName: manualName.trim(),
+                    brand: null, form: null, strengthPerUnit: null, strengthUnit: null,
+                    servingSizeText: null, rawTextHints: [], confidence: 0, mode: "stub",
+                    frontImage: null, ingredientsImage: null, ingredientsImages: [],
+                    labelTranscription: null, nutrients: [], ingredientsDetected: [],
+                    ingredientsList: [], ingredientsCount: 0, insights: null,
+                    meta: { transcriptionConfidence: 0, needsRescan: false, rescanHint: null },
+                    createdAtISO: new Date().toISOString(),
+                  });
+                  setShowManualAdd(false);
+                }}
+              >
+                Add medication
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {editId && editingItem && (

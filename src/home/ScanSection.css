@@ -218,6 +218,48 @@
   margin-top: 12px;
 }
 
+.scan-status__actions--col {
+  flex-direction: column;
+}
+
+.scan-status__saveRow {
+  display: flex;
+  gap: 8px;
+}
+
+.scan-status__saveBtn {
+  flex: 1;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+  border: 1px solid var(--veda-border);
+  background: var(--veda-surface);
+  color: var(--veda-text);
+}
+
+.scan-status__saveBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.scan-status__saveBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.scan-status__saveBtn--supp {
+  border-color: var(--veda-accent);
+  color: var(--veda-accent-light);
+}
+
+.scan-status__saveBtn--med {
+  border-color: var(--veda-orange);
+  color: var(--veda-orange);
+}
+
 .scan-status__addBtn {
   flex: 1;
   padding: 11px 16px;

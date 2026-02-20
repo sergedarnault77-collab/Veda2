@@ -44,6 +44,10 @@ type StoredScansDay = {
   scans: StoredScan[];
 };
 
+function uid() {
+  return Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
+}
+
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -131,7 +135,7 @@ export default function ScanSection({ onScanComplete }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
-  const [added, setAdded] = useState(false);
+  const [added, setAdded] = useState<false | "supp" | "med">(false);
   const [todayScans, setTodayScans] = useState<StoredScan[]>(() => loadScans().scans);
   const [caffeineQ, setCaffeineQ] = useState<CaffeineAnswer>(null);
   const [mode, setMode] = useState<"idle" | "scan" | "drink" | "url">("idle");
@@ -327,9 +331,52 @@ export default function ScanSection({ onScanComplete }: Props) {
     return { productName, categories: cats, nutrients, detectedEntities: ents };
   }
 
+  function buildItemData(scanResult: ScanResult) {
+    const ents = scanResult.detectedEntities;
+    const realNutrients = scanResult.nutrients.filter(
+      (n: any) => n?.nutrientId && n?.name && typeof n?.amountToday === "number"
+    );
+    const ingList: string[] = Array.isArray(result?.ingredientsList) ? result.ingredientsList : [];
+    const rawNuts = Array.isArray(result?.nutrients) ? result.nutrients : [];
+
+    const data: any = {
+      displayName: scanResult.productName,
+      brand: result?.normalized?.brand ?? null,
+      form: result?.normalized?.form ?? null,
+      strengthPerUnit: null,
+      strengthUnit: null,
+      servingSizeText: isPer100g && servingG ? `${servingG}g` : null,
+      servingSizeG: servingG ?? null,
+      nutritionPer: result?.nutritionPer ?? "unknown",
+      rawTextHints: ents.slice(0, 8),
+      confidence: 0.8,
+      mode: "openai",
+      frontImage: frontImage ?? null,
+      ingredientsImage: ingredientsImages[0] ?? null,
+      ingredientsImages: ingredientsImages.length > 0 ? ingredientsImages : undefined,
+      labelTranscription: result?.transcription ?? null,
+      nutrients: realNutrients,
+      ingredientsDetected: ents,
+      ingredientsList: ingList.length > 0 ? ingList : ents,
+      ingredientsCount: ingList.length || ents.length,
+      meta: {
+        transcriptionConfidence: result?.meta?.transcriptionConfidence ?? 0.7,
+        needsRescan: false,
+        rescanHint: null,
+      },
+      createdAtISO: new Date().toISOString(),
+    };
+    if (isPer100g) {
+      data.nutrientsPer100g = rawNuts.filter(
+        (n: any) => n?.nutrientId && n?.name && typeof n?.amountToday === "number",
+      );
+    }
+    return data;
+  }
+
   function addToIntake() {
     if (!result || added) return;
-    setAdded(true);
+    setAdded("supp");
 
     const scanResult = buildScanResult();
     const ents = scanResult.detectedEntities;
@@ -338,104 +385,90 @@ export default function ScanSection({ onScanComplete }: Props) {
     const exposure = extractExposureFromScan(scanResult);
     const day = persistScan(productName, summaryStr, exposure, scanResult.nutrients);
     setTodayScans(day.scans);
+    onScanComplete?.(scanResult);
+  }
 
-    // Save as supplement unless it looks like a medication
-    const realNutrients = scanResult.nutrients.filter(
-      (n: any) => n?.nutrientId && n?.name && typeof n?.amountToday === "number"
-    );
-    const ingList: string[] = Array.isArray(result?.ingredientsList) ? result.ingredientsList : [];
-    const hasUsefulData = realNutrients.length > 0 || ents.length > 0 || ingList.length > 0
-      || (scanResult.productName && scanResult.productName !== "(unnamed item)");
-    const isMedication = (() => {
-      const cats = scanResult.categories || {};
-      const otherCat: string[] = Array.isArray(cats.Other) ? cats.Other : [];
-      const vitsCat: string[] = Array.isArray(cats.Vitamins) ? cats.Vitamins : [];
-      const minsCat: string[] = Array.isArray(cats.Minerals) ? cats.Minerals : [];
-      const suppsCat: string[] = Array.isArray(cats.Supplements) ? cats.Supplements : [];
-      const hasVitaminsOrMinerals = vitsCat.length > 0 || minsCat.length > 0 || suppsCat.length > 0;
-      if (hasVitaminsOrMinerals && otherCat.length <= 1) return false;
-      const meds = loadLS<any[]>("veda.meds.v1", []);
-      const name = (scanResult.productName || "").toLowerCase();
-      if (meds.some((m: any) => name && (m.displayName || "").toLowerCase().includes(name))) return true;
-      if (otherCat.length > 0 && !hasVitaminsOrMinerals) return true;
-      return false;
-    })();
-    if (hasUsefulData && !isMedication) {
-      const rawNuts = Array.isArray(result?.nutrients) ? result.nutrients : [];
-      const suppData: any = {
-        displayName: scanResult.productName,
-        brand: result?.normalized?.brand ?? null,
-        form: result?.normalized?.form ?? null,
-        strengthPerUnit: null,
-        strengthUnit: null,
-        servingSizeText: isPer100g && servingG ? `${servingG}g` : null,
-        servingSizeG: servingG ?? null,
-        nutritionPer: result?.nutritionPer ?? "unknown",
-        rawTextHints: ents.slice(0, 8),
-        confidence: 0.8,
-        mode: "openai",
-        frontImage: frontImage ?? null,
-        ingredientsImage: ingredientsImages[0] ?? null,
-        ingredientsImages: ingredientsImages.length > 0 ? ingredientsImages : undefined,
-        labelTranscription: result?.transcription ?? null,
-        nutrients: realNutrients,
-        ingredientsDetected: ents,
-        ingredientsList: ingList.length > 0 ? ingList : ents,
-        ingredientsCount: ingList.length || ents.length,
-        meta: {
-          transcriptionConfidence: result?.meta?.transcriptionConfidence ?? 0.7,
-          needsRescan: false,
-          rescanHint: null,
-        },
-        createdAtISO: new Date().toISOString(),
-      };
-      if (isPer100g) {
-        suppData.nutrientsPer100g = rawNuts.filter(
-          (n: any) => n?.nutrientId && n?.name && typeof n?.amountToday === "number",
-        );
-      }
+  function saveAsSupp() {
+    if (!result || !productName) return;
+    setAdded("supp");
 
-      // Shrink images to thumbnails for localStorage, then save
-      (async () => {
-        try {
-          const smallSupp = await shrinkImagesForStorage(suppData);
-          const supps = loadLS<any[]>("veda.supps.v1", []);
-          const pNameLower = (scanResult.productName || "").toLowerCase();
+    const scanResult = buildScanResult();
+    const ents = scanResult.detectedEntities;
+    const summaryStr = ents.slice(0, 4).join(", ") + (ents.length > 4 ? ` +${ents.length - 4} more` : "");
+    const exposure = extractExposureFromScan(scanResult);
+    const day = persistScan(productName, summaryStr, exposure, scanResult.nutrients);
+    setTodayScans(day.scans);
 
-          const existingIdx = supps.findIndex((s: any) => {
-            const sName = (s.displayName || "").toLowerCase();
-            if (sName === "new supplement") return true;
-            if (pNameLower && sName === pNameLower) return true;
-            if (pNameLower && sName.includes(pNameLower)) return true;
-            if (pNameLower && pNameLower.includes(sName) && sName.length > 3) return true;
-            return false;
-          });
+    const itemData = buildItemData(scanResult);
 
-          let suppId: string;
-          if (existingIdx >= 0) {
-            suppId = supps[existingIdx].id || (Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36));
-            supps[existingIdx] = { ...smallSupp, id: suppId, insights: supps[existingIdx].insights ?? null };
-          } else {
-            suppId = Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
-            supps.unshift({ ...smallSupp, id: suppId });
-          }
-          saveLS("veda.supps.v1", supps);
+    (async () => {
+      try {
+        const small = await shrinkImagesForStorage(itemData);
+        const supps = loadLS<any[]>("veda.supps.v1", []);
+        const pNameLower = (scanResult.productName || "").toLowerCase();
 
-          const takenRaw = loadLS<any>("veda.supps.taken.v1", null);
-          const todayDate = todayStr();
-          let flags: Record<string, boolean> = {};
-          if (takenRaw && typeof takenRaw === "object") {
-            if (takenRaw.date === todayDate) flags = takenRaw.flags || {};
-          }
-          flags[suppId] = true;
-          saveLS("veda.supps.taken.v1", { date: todayDate, flags });
+        const existingIdx = supps.findIndex((s: any) => {
+          const sName = (s.displayName || "").toLowerCase();
+          if (sName === "new supplement") return true;
+          if (pNameLower && sName === pNameLower) return true;
+          if (pNameLower && sName.includes(pNameLower)) return true;
+          if (pNameLower && pNameLower.includes(sName) && sName.length > 3) return true;
+          return false;
+        });
 
-          window.dispatchEvent(new Event("veda:supps-updated"));
-        } catch (err) {
-          console.error("[ScanSection] Failed to save supplement:", err);
+        let suppId: string;
+        if (existingIdx >= 0) {
+          suppId = supps[existingIdx].id || uid();
+          supps[existingIdx] = { ...small, id: suppId, insights: supps[existingIdx].insights ?? null };
+        } else {
+          suppId = uid();
+          supps.unshift({ ...small, id: suppId });
         }
-      })();
-    }
+        saveLS("veda.supps.v1", supps);
+
+        const takenRaw = loadLS<any>("veda.supps.taken.v1", null);
+        const todayDate = todayStr();
+        let flags: Record<string, boolean> = {};
+        if (takenRaw && typeof takenRaw === "object") {
+          if (takenRaw.date === todayDate) flags = takenRaw.flags || {};
+        }
+        flags[suppId] = true;
+        saveLS("veda.supps.taken.v1", { date: todayDate, flags });
+
+        window.dispatchEvent(new Event("veda:supps-updated"));
+      } catch (err) {
+        console.error("[ScanSection] Failed to save supplement:", err);
+      }
+    })();
+
+    onScanComplete?.(scanResult);
+  }
+
+  function saveAsMed() {
+    if (!result || !productName) return;
+    setAdded("med");
+
+    const scanResult = buildScanResult();
+    const ents = scanResult.detectedEntities;
+    const summaryStr = ents.slice(0, 4).join(", ") + (ents.length > 4 ? ` +${ents.length - 4} more` : "");
+    const exposure = extractExposureFromScan(scanResult);
+    const day = persistScan(productName, summaryStr, exposure, scanResult.nutrients);
+    setTodayScans(day.scans);
+
+    const itemData = buildItemData(scanResult);
+
+    (async () => {
+      try {
+        const small = await shrinkImagesForStorage(itemData);
+        const meds = loadLS<any[]>("veda.meds.v1", []);
+        const medId = uid();
+        meds.unshift({ ...small, id: medId });
+        saveLS("veda.meds.v1", meds);
+        window.dispatchEvent(new Event("veda:meds-updated"));
+      } catch (err) {
+        console.error("[ScanSection] Failed to save medication:", err);
+      }
+    })();
 
     onScanComplete?.(scanResult);
   }
@@ -836,7 +869,7 @@ export default function ScanSection({ onScanComplete }: Props) {
 
           {/* Add / Dismiss actions */}
           {!added ? (
-            <div className="scan-status__actions">
+            <div className="scan-status__actions scan-status__actions--col">
               <button
                 className="scan-status__addBtn"
                 onClick={addToIntake}
@@ -845,13 +878,31 @@ export default function ScanSection({ onScanComplete }: Props) {
               >
                 Add to today's intake
               </button>
+              <div className="scan-status__saveRow">
+                <button
+                  className="scan-status__saveBtn scan-status__saveBtn--supp"
+                  onClick={saveAsSupp}
+                  disabled={needsCaffeineQ}
+                >
+                  + Save to daily supplements
+                </button>
+                <button
+                  className="scan-status__saveBtn scan-status__saveBtn--med"
+                  onClick={saveAsMed}
+                  disabled={needsCaffeineQ}
+                >
+                  + Save to daily medications
+                </button>
+              </div>
               <button className="scan-status__dismissBtn" onClick={dismiss}>
                 Dismiss
               </button>
             </div>
           ) : (
             <div className="scan-status__added">
-              <span className="scan-status__addedBadge">✓ Added</span>
+              <span className="scan-status__addedBadge">
+                ✓ {added === "supp" ? "Saved to supplements" : added === "med" ? "Saved to medications" : "Added"}
+              </span>
               <button className="scan-status__reset" onClick={scanAnother}>
                 Scan another item
               </button>
