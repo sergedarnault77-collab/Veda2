@@ -152,7 +152,22 @@ export function StackCoverage() {
     })
       .then((r) => r.ok ? r.json() : null)
       .then((json) => {
-        const answer = json?.answer || json?.text || "Could not generate an explanation. Try again later.";
+        let answer: string;
+        const raw = json?.answer;
+        if (typeof raw === "string") {
+          answer = raw;
+        } else if (raw && typeof raw === "object") {
+          const parts: string[] = [];
+          if (raw.shortAnswer) parts.push(String(raw.shortAnswer));
+          if (raw.explanation) parts.push(String(raw.explanation));
+          if (raw.whyFlagged) parts.push(String(raw.whyFlagged));
+          if (raw.practicalNotes) parts.push(String(raw.practicalNotes));
+          answer = parts.join("\n\n") || "No details available.";
+        } else if (typeof json?.text === "string") {
+          answer = json.text;
+        } else {
+          answer = "Could not generate an explanation. Try again later.";
+        }
         setUlExplanation((prev) => ({ ...prev, [nutrientId]: answer }));
       })
       .catch(() => {
