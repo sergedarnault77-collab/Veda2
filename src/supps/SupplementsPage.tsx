@@ -4,6 +4,7 @@ import { loadLS, saveLS } from "../lib/persist";
 import { apiFetch } from "../lib/api";
 import { prepareImagesForStorage } from "../lib/image-storage";
 import { findExistingIdx } from "../lib/dedup";
+import { translateName } from "../lib/translate-nutrients";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import InteractionWarnings from "../shared/InteractionWarnings";
 import BuySheet from "../shared/BuySheet";
@@ -425,8 +426,8 @@ function SupplementCard({
                   const ul = ulFlag(n);
                   return (
                     <div className="supp-nutrients__row" key={`${n?.nutrientId ?? ""}-${n?.name ?? ""}`}>
-                      <div className="supp-nutrients__name" title={n?.name ?? ""}>
-                        {n?.name ?? "—"}
+                      <div className="supp-nutrients__name" title={translateName(n?.name ?? "")}>
+                        {translateName(n?.name ?? "") || "—"}
                         {ul && (
                           <span
                             className="supp-nutrients__ul-flag"

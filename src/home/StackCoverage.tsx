@@ -12,6 +12,7 @@ import {
 } from "../lib/nutrition";
 import type { NutrientComputed, IntakeLine, DietAnswers, FoodCoverage } from "../lib/nutrition";
 import type { ItemInsights } from "../shared/AddScannedItemModal";
+import { translateName } from "../lib/translate-nutrients";
 import "./StackCoverage.css";
 
 const SUPPS_KEY = "veda.supps.v1";
@@ -589,7 +590,7 @@ export function StackCoverage() {
           <ul className="coverage__other-list">
             {otherNutrients.map((n) => (
               <li key={n.nutrientId} className="coverage__other-row">
-                <span className="coverage__other-name">{n.name}</span>
+                <span className="coverage__other-name">{translateName(n.name)}</span>
                 <span className="coverage__other-amount">
                   {Math.round(n.amount * 10) / 10} {n.unit}
                 </span>

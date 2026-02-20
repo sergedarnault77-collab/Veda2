@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { NutrientRow } from "./stubs";
 import { loadLS } from "../lib/persist";
+import { translateName } from "../lib/translate-nutrients";
 import { loadUser } from "../lib/auth";
 import {
   computeDailyNutrients,
