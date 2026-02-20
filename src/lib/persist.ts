@@ -58,15 +58,22 @@ function pruneLocalStorage() {
   }
 }
 
+function isDataUrl(v: unknown): boolean {
+  return typeof v === "string" && v.startsWith("data:");
+}
+
 function stripImagesFromValue<T>(value: T): T {
   if (!value || typeof value !== "object") return value;
   if (Array.isArray(value)) {
     return value.map((item) => {
       if (!item || typeof item !== "object") return item;
       const c = { ...item };
-      delete c.frontImage;
-      delete c.ingredientsImage;
-      delete c.ingredientsImages;
+      if (isDataUrl(c.frontImage)) delete c.frontImage;
+      if (isDataUrl(c.ingredientsImage)) delete c.ingredientsImage;
+      if (Array.isArray(c.ingredientsImages)) {
+        c.ingredientsImages = c.ingredientsImages.filter((img: unknown) => !isDataUrl(img));
+        if (c.ingredientsImages.length === 0) delete c.ingredientsImages;
+      }
       return c;
     }) as T;
   }

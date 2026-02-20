@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { compressImageDataUrl, shrinkImagesForStorage } from "../lib/image";
+import { compressImageDataUrl } from "../lib/image";
+import { prepareImagesForStorage } from "../lib/image-storage";
 import { findExistingIdx } from "../lib/dedup";
 import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
@@ -415,7 +416,7 @@ export default function ScanSection({ onScanComplete }: Props) {
 
     (async () => {
       try {
-        const small = await shrinkImagesForStorage(itemData);
+        const small = await prepareImagesForStorage(itemData);
         const supps = loadLS<any[]>("veda.supps.v1", []);
         const existingIdx = findExistingIdx(supps, scanResult.productName || "");
 
@@ -463,7 +464,7 @@ export default function ScanSection({ onScanComplete }: Props) {
 
     (async () => {
       try {
-        const small = await shrinkImagesForStorage(itemData);
+        const small = await prepareImagesForStorage(itemData);
         const meds = loadLS<any[]>("veda.meds.v1", []);
         const existingIdx = findExistingIdx(meds, scanResult.productName || "");
 

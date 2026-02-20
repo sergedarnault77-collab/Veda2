@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
 import { apiFetch } from "../lib/api";
-import { shrinkImagesForStorage } from "../lib/image";
+import { prepareImagesForStorage } from "../lib/image-storage";
 import { findExistingIdx } from "../lib/dedup";
 import AddScannedItemModal from "../shared/AddScannedItemModal";
 import InteractionWarnings from "../shared/InteractionWarnings";
@@ -157,7 +157,7 @@ export default function MedicationsPage() {
       });
     };
 
-    shrinkImagesForStorage(m).then(upsert).catch(() => {
+    prepareImagesForStorage(m).then(upsert).catch(() => {
       upsert({ ...m, frontImage: null, ingredientsImage: null, ingredientsImages: undefined });
     });
     fetchInsights(m).then((ins) => {
@@ -179,7 +179,7 @@ export default function MedicationsPage() {
   const saveEdit = (updated: ScannedItem) => {
     if (!editId) return;
     const savedId = editId;
-    shrinkImagesForStorage(updated).then((small) => {
+    prepareImagesForStorage(updated).then((small) => {
       persistUpdate((prev) =>
         prev.map((it) => (it.id === savedId ? { ...it, ...small } : it))
       );
