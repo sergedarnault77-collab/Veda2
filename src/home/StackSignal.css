@@ -50,6 +50,110 @@
   border-color: rgba(31, 58, 95, 0.35);
 }
 
+.stack-signal__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.stack-signal__actions .stack-signal__explain-btn {
+  margin-top: 0;
+}
+
+/* Breakdown panel */
+.stack-signal__breakdown {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg, 12px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+}
+
+[data-theme="light"] .stack-signal__breakdown {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.stack-signal__breakdown-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--veda-text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stack-signal__breakdown-ul {
+  font-weight: 600;
+  font-size: 0.68rem;
+  color: var(--veda-red, #e74c3c);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.stack-signal__contributor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="light"] .stack-signal__contributor {
+  border-bottom-color: rgba(0, 0, 0, 0.04);
+}
+
+.stack-signal__contributor:last-child {
+  border-bottom: none;
+}
+
+.stack-signal__contributor--total {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: none;
+  margin-top: 4px;
+  padding-top: 8px;
+  font-weight: 700;
+}
+
+[data-theme="light"] .stack-signal__contributor--total {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+.stack-signal__contributor-name {
+  font-size: 0.78rem;
+  color: var(--veda-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stack-signal__contributor-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stack-signal__contributor-dot--supplement {
+  background: var(--veda-accent, #2E5BFF);
+}
+
+.stack-signal__contributor-dot--med {
+  background: var(--veda-orange, #FF8C1A);
+}
+
+.stack-signal__contributor-amount {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--veda-text);
+  white-space: nowrap;
+}
+
 /* Tablet+ */
 @media (min-width: 600px) {
   .stack-signal { padding: 16px 28px; }
