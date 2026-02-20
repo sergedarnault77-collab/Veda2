@@ -96,11 +96,13 @@ type SavedSupp = {
   ingredientsList?: string[];
   labelTranscription?: string | null;
   schedule?: ScheduleTime;
+  needsServing?: boolean;
 };
 
 function getScaledNutrients(item: any): any[] {
   const per100g = Array.isArray(item.nutrientsPer100g) ? item.nutrientsPer100g : null;
   const servingG = typeof item.servingSizeG === "number" ? item.servingSizeG : null;
+  const isPer100g = item.nutritionPer === "100g";
 
   if (per100g && servingG) {
     const scale = servingG / 100;
@@ -111,6 +113,10 @@ function getScaledNutrients(item: any): any[] {
         : n.amountToday,
     }));
   }
+
+  // Per-100g item but no serving size → nutrients are raw per-100g,
+  // don't include them in totals (they'd be misleadingly high)
+  if (isPer100g && !servingG) return [];
 
   return Array.isArray(item.nutrients) ? item.nutrients : [];
 }
@@ -126,6 +132,7 @@ function loadSupps(): SavedSupp[] {
       ingredientsList: Array.isArray(s.ingredientsList) ? s.ingredientsList : [],
       labelTranscription: s.labelTranscription ?? null,
       schedule: s.schedule ?? undefined,
+      needsServing: s.nutritionPer === "100g" && typeof s.servingSizeG !== "number",
     }));
 }
 
@@ -464,6 +471,17 @@ export function StackCoverage() {
         <p className="coverage__empty">
           All supplements unchecked — tap to re-enable
         </p>
+      )}
+
+      {/* Per-100g items missing a serving size */}
+      {takenSupps.filter((s) => s.needsServing).length > 0 && (
+        <div className="coverage__serving-notice">
+          {takenSupps.filter((s) => s.needsServing).map((s) => (
+            <div key={s.id} className="coverage__serving-notice-item">
+              <strong>{s.displayName}</strong> has per-100g nutrition — set a serving size on the Supplements page to include it in your balance.
+            </div>
+          ))}
+        </div>
       )}
 
       {/* UL alert banner */}

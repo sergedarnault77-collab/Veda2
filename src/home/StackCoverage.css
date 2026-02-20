@@ -346,6 +346,22 @@
   max-width: none;
 }
 
+/* ── Serving-size notice ── */
+
+.coverage__serving-notice {
+  margin: 8px 0;
+}
+
+.coverage__serving-notice-item {
+  font-size: 0.82rem;
+  color: var(--veda-orange, #FF8C1A);
+  background: rgba(255, 140, 26, 0.08);
+  border: 1px solid rgba(255, 140, 26, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+}
+
 /* ── Other active ingredients ── */
 
 .coverage__other {

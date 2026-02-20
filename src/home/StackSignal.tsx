@@ -68,6 +68,7 @@ type ItemNutrients = {
 function getScaledNutrients(item: any): any[] {
   const per100g = Array.isArray(item.nutrientsPer100g) ? item.nutrientsPer100g : null;
   const servingG = typeof item.servingSizeG === "number" ? item.servingSizeG : null;
+  const isPer100g = item.nutritionPer === "100g";
 
   if (per100g && servingG) {
     const scale = servingG / 100;
@@ -78,6 +79,8 @@ function getScaledNutrients(item: any): any[] {
         : n.amountToday,
     }));
   }
+
+  if (isPer100g && !servingG) return [];
 
   return Array.isArray(item.nutrients) ? item.nutrients : [];
 }
