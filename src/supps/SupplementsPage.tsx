@@ -267,18 +267,28 @@ class CardErrorBoundary extends Component<{ children: ReactNode; name: string; o
   }
 }
 
+type ScheduleTime = "morning" | "afternoon" | "evening" | "night";
+const SCHEDULE_OPTIONS: { value: ScheduleTime; label: string; icon: string }[] = [
+  { value: "morning", label: "Morning", icon: "🌅" },
+  { value: "afternoon", label: "Afternoon", icon: "☀️" },
+  { value: "evening", label: "Evening", icon: "🌆" },
+  { value: "night", label: "Night", icon: "🌙" },
+];
+
 function SupplementCard({
   s,
   removeSupp,
   setBuyId,
   setEditId,
   onUpdateServing,
+  onUpdateSchedule,
 }: {
   s: Supp;
   removeSupp: (id: string) => void;
   setBuyId: (id: string) => void;
   setEditId: (id: string) => void;
   onUpdateServing: (id: string, servingG: number) => void;
+  onUpdateSchedule: (id: string, schedule: ScheduleTime | undefined) => void;
 }) {
   const [editingServing, setEditingServing] = useState(false);
   const [servingInput, setServingInput] = useState<string>("");
@@ -362,6 +372,23 @@ function SupplementCard({
             <div className={`supp-card__badge supp-card__badge--${confLabel(s.confidence).toLowerCase()}`}>
               {confLabel(s.confidence)}
             </div>
+          </div>
+        </div>
+
+        {/* Schedule picker */}
+        <div className="supp-card__schedule">
+          <div className="supp-card__label">When do you take this?</div>
+          <div className="supp-card__schedule-pills">
+            {SCHEDULE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                className={`supp-card__schedule-pill${s.schedule === opt.value ? " supp-card__schedule-pill--active" : ""}`}
+                onClick={() => onUpdateSchedule(s.id, s.schedule === opt.value ? undefined : opt.value)}
+              >
+                <span className="supp-card__schedule-icon">{opt.icon}</span>
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -578,6 +605,12 @@ function SupplementsPageInner() {
     persistUpdate((prev) => prev.filter((x) => x.id !== rid));
   };
 
+  const updateSchedule = (id: string, schedule: ScheduleTime | undefined) => {
+    persistUpdate((prev) =>
+      prev.map((it) => (it.id !== id ? it : { ...it, schedule }))
+    );
+  };
+
   const updateServing = (id: string, newServingG: number) => {
     persistUpdate((prev) =>
       prev.map((it) => {
@@ -716,7 +749,7 @@ function SupplementsPageInner() {
         <div className="supps-page__list">
           {items.map((s) => (
             <CardErrorBoundary key={s.id} name={s?.displayName ?? ""} onRemove={() => removeSupp(s.id)}>
-              <SupplementCard s={s} removeSupp={removeSupp} setBuyId={setBuyId} setEditId={setEditId} onUpdateServing={updateServing} />
+              <SupplementCard s={s} removeSupp={removeSupp} setBuyId={setBuyId} setEditId={setEditId} onUpdateServing={updateServing} onUpdateSchedule={updateSchedule} />
             </CardErrorBoundary>
           ))}
         </div>

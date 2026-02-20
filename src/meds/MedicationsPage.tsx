@@ -38,6 +38,14 @@ function riskColor(risk: string) {
   return "var(--veda-accent, #2E5BFF)";
 }
 
+type ScheduleTime = "morning" | "afternoon" | "evening" | "night";
+const SCHEDULE_OPTIONS: { value: ScheduleTime; label: string; icon: string }[] = [
+  { value: "morning", label: "Morning", icon: "🌅" },
+  { value: "afternoon", label: "Afternoon", icon: "☀️" },
+  { value: "evening", label: "Evening", icon: "🌆" },
+  { value: "night", label: "Night", icon: "🌙" },
+];
+
 async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
   try {
     const nutrients = Array.isArray(item.nutrients) ? item.nutrients : [];
@@ -193,6 +201,12 @@ export default function MedicationsPage() {
     persistUpdate((prev) => prev.filter((x) => x.id !== rid));
   };
 
+  const updateSchedule = (id: string, schedule: ScheduleTime | undefined) => {
+    persistUpdate((prev) =>
+      prev.map((it) => (it.id !== id ? it : { ...it, schedule }))
+    );
+  };
+
   const editingItem = useMemo(() => {
     if (!editId) return null;
     const found = items.find((x) => x.id === editId);
@@ -254,6 +268,23 @@ export default function MedicationsPage() {
                     <div className={`med-card__badge med-card__badge--${confLabel(m.confidence).toLowerCase()}`}>
                       {confLabel(m.confidence)}
                     </div>
+                  </div>
+                </div>
+
+                {/* Schedule picker */}
+                <div className="med-card__schedule">
+                  <div className="med-card__label">When do you take this?</div>
+                  <div className="med-card__schedule-pills">
+                    {SCHEDULE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        className={`med-card__schedule-pill${m.schedule === opt.value ? " med-card__schedule-pill--active" : ""}`}
+                        onClick={() => updateSchedule(m.id, m.schedule === opt.value ? undefined : opt.value)}
+                      >
+                        <span className="med-card__schedule-icon">{opt.icon}</span>
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

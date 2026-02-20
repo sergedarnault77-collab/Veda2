@@ -36,6 +36,7 @@ export type ScannedItem = {
     needsRescan?: boolean;
     rescanHint?: string | null;
   };
+  schedule?: "morning" | "afternoon" | "evening" | "night";
   createdAtISO?: string;
 };
 

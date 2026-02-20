@@ -120,6 +120,14 @@ function hasCaffeineAmount(result: any): boolean {
   return false;
 }
 
+type ScheduleTime = "morning" | "afternoon" | "evening" | "night";
+const SCHEDULE_OPTIONS: { value: ScheduleTime; label: string; icon: string }[] = [
+  { value: "morning", label: "Morning", icon: "🌅" },
+  { value: "afternoon", label: "Afternoon", icon: "☀️" },
+  { value: "evening", label: "Evening", icon: "🌆" },
+  { value: "night", label: "Night", icon: "🌙" },
+];
+
 type CaffeineAnswer = null | "regular" | "decaf";
 
 interface Props {
@@ -146,6 +154,7 @@ export default function ScanSection({ onScanComplete }: Props) {
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [ixLoading, setIxLoading] = useState(false);
   const [servingG, setServingG] = useState<number | null>(null);
+  const [saveSchedule, setSaveSchedule] = useState<ScheduleTime | undefined>(undefined);
 
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
@@ -401,6 +410,7 @@ export default function ScanSection({ onScanComplete }: Props) {
     setTodayScans(day.scans);
 
     const itemData = buildItemData(scanResult);
+    if (saveSchedule) itemData.schedule = saveSchedule;
 
     (async () => {
       try {
@@ -448,6 +458,7 @@ export default function ScanSection({ onScanComplete }: Props) {
     setTodayScans(day.scans);
 
     const itemData = buildItemData(scanResult);
+    if (saveSchedule) itemData.schedule = saveSchedule;
 
     (async () => {
       try {
@@ -581,6 +592,7 @@ export default function ScanSection({ onScanComplete }: Props) {
     setAdded(false);
     setCaffeineQ(null);
     setServingG(null);
+    setSaveSchedule(undefined);
     setMode("idle");
     setUrlValue("");
     setUrlError(null);
@@ -598,6 +610,7 @@ export default function ScanSection({ onScanComplete }: Props) {
     setAdded(false);
     setCaffeineQ(null);
     setServingG(null);
+    setSaveSchedule(undefined);
     setMode("idle");
     setUrlValue("");
     setUrlError(null);
@@ -876,6 +889,23 @@ export default function ScanSection({ onScanComplete }: Props) {
               >
                 Add to today's intake
               </button>
+
+              {/* Schedule picker for save-to-daily */}
+              <div className="scan-status__schedulePicker">
+                <div className="scan-status__scheduleLabel">When do you normally take this?</div>
+                <div className="scan-status__schedulePills">
+                  {SCHEDULE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      className={`scan-status__schedulePill${saveSchedule === opt.value ? " scan-status__schedulePill--active" : ""}`}
+                      onClick={() => setSaveSchedule(saveSchedule === opt.value ? undefined : opt.value)}
+                    >
+                      {opt.icon} {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="scan-status__saveRow">
                 <button
                   className="scan-status__saveBtn scan-status__saveBtn--supp"

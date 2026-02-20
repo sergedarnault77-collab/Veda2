@@ -390,3 +390,47 @@
   content: "\2022 ";
   opacity: 0.5;
 }
+
+/* ── Schedule picker ── */
+
+.med-card__schedule {
+  margin-top: 2px;
+}
+
+.med-card__schedule-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.med-card__schedule-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--veda-border);
+  background: transparent;
+  color: var(--veda-text-muted);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.med-card__schedule-pill:hover {
+  border-color: var(--veda-accent);
+  color: var(--veda-text);
+}
+
+.med-card__schedule-pill--active {
+  background: var(--veda-accent);
+  border-color: var(--veda-accent);
+  color: #fff;
+}
+
+.med-card__schedule-icon {
+  font-size: 0.78rem;
+}

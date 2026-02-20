@@ -16,31 +16,54 @@ const SUPPS_KEY = "veda.supps.v1";
 const TAKEN_KEY = "veda.supps.taken.v1";
 const DIET_KEY = "veda.diet.answers.v1";
 
-type TakenStore = { date: string; flags: Record<string, boolean> };
+type ScheduleTime = "morning" | "afternoon" | "evening" | "night";
+type TakenStore = {
+  date: string;
+  flags: Record<string, boolean>;
+  scheduleOverrides?: Record<string, ScheduleTime>;
+};
+
+const SCHEDULE_META: Record<ScheduleTime, { label: string; icon: string }> = {
+  morning:   { label: "Morning",   icon: "🌅" },
+  afternoon: { label: "Afternoon", icon: "☀️" },
+  evening:   { label: "Evening",   icon: "🌆" },
+  night:     { label: "Night",     icon: "🌙" },
+};
+
+const SCHEDULE_ORDER: ScheduleTime[] = ["morning", "afternoon", "evening", "night"];
 
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function loadTakenToday(suppIds?: string[]): Record<string, boolean> {
+function loadTakenStore(suppIds?: string[]): { flags: Record<string, boolean>; scheduleOverrides: Record<string, ScheduleTime> } {
   const raw = loadLS<TakenStore | Record<string, boolean> | null>(TAKEN_KEY, null);
   if (raw && typeof (raw as TakenStore).date === "string") {
     const store = raw as TakenStore;
-    if (store.date === todayStr()) return store.flags;
+    if (store.date === todayStr()) {
+      return { flags: store.flags, scheduleOverrides: store.scheduleOverrides ?? {} };
+    }
   }
-  // New day (or first load): default all supplements to taken
+  const flags: Record<string, boolean> = {};
   if (suppIds && suppIds.length > 0) {
-    const flags: Record<string, boolean> = {};
     for (const id of suppIds) flags[id] = true;
-    return flags;
   }
-  return {};
+  return { flags, scheduleOverrides: {} };
+}
+
+function loadTakenToday(suppIds?: string[]): Record<string, boolean> {
+  return loadTakenStore(suppIds).flags;
+}
+
+function saveTakenStore(flags: Record<string, boolean>, scheduleOverrides: Record<string, ScheduleTime>) {
+  const store: TakenStore = { date: todayStr(), flags, scheduleOverrides };
+  saveLS(TAKEN_KEY, store);
 }
 
 function saveTakenToday(flags: Record<string, boolean>) {
-  const store: TakenStore = { date: todayStr(), flags };
-  saveLS(TAKEN_KEY, store);
+  const existing = loadTakenStore();
+  saveTakenStore(flags, existing.scheduleOverrides);
 }
 
 type SavedSupp = {
@@ -49,6 +72,7 @@ type SavedSupp = {
   nutrients: Array<{ nutrientId: string; name: string; unit: string; amountToday: number; dailyReference: number | null }>;
   ingredientsList?: string[];
   labelTranscription?: string | null;
+  schedule?: ScheduleTime;
 };
 
 function loadSupps(): SavedSupp[] {
@@ -61,6 +85,7 @@ function loadSupps(): SavedSupp[] {
       nutrients: Array.isArray(s.nutrients) ? s.nutrients : [],
       ingredientsList: Array.isArray(s.ingredientsList) ? s.ingredientsList : [],
       labelTranscription: s.labelTranscription ?? null,
+      schedule: s.schedule ?? undefined,
     }));
 }
 
@@ -93,6 +118,10 @@ export function StackCoverage() {
     return loadTakenToday(s.map((x) => x.id));
   });
 
+  const [scheduleOverrides, setScheduleOverrides] = useState<Record<string, ScheduleTime>>(() => {
+    const s = loadSupps();
+    return loadTakenStore(s.map((x) => x.id)).scheduleOverrides;
+  });
   const [stackInsight, setStackInsight] = useState<ItemInsights | null>(null);
   const [expandedUl, setExpandedUl] = useState<string | null>(null);
   const [ulExplanation, setUlExplanation] = useState<Record<string, string>>({});
@@ -124,12 +153,41 @@ export function StackCoverage() {
   const toggle = useCallback((id: string) => {
     setTaken((prev) => {
       const next = { ...prev, [id]: !prev[id] };
-      saveTakenToday(next);
+      saveTakenStore(next, scheduleOverrides);
       return next;
     });
-  }, []);
+  }, [scheduleOverrides]);
+
+  const changeScheduleForToday = useCallback((id: string, time: ScheduleTime | undefined) => {
+    setScheduleOverrides((prev) => {
+      const next = { ...prev };
+      if (time) next[id] = time; else delete next[id];
+      saveTakenStore(taken, next);
+      return next;
+    });
+  }, [taken]);
 
   const takenSupps = useMemo(() => supps.filter((s) => taken[s.id]), [supps, taken]);
+
+  const effectiveSchedule = useCallback((s: SavedSupp): ScheduleTime | null => {
+    return scheduleOverrides[s.id] ?? s.schedule ?? null;
+  }, [scheduleOverrides]);
+
+  const groupedSupps = useMemo(() => {
+    const groups: Record<string, SavedSupp[]> = {
+      morning: [], afternoon: [], evening: [], night: [], unscheduled: [],
+    };
+    for (const s of supps) {
+      const sched = effectiveSchedule(s);
+      groups[sched ?? "unscheduled"].push(s);
+    }
+    return groups;
+  }, [supps, effectiveSchedule]);
+
+  const hasAnySchedule = useMemo(
+    () => supps.some((s) => effectiveSchedule(s) !== null),
+    [supps, effectiveSchedule],
+  );
 
   const explainUl = useCallback((nutrientId: string, label: string, amount: number, unit: string, ul: number | null) => {
     if (expandedUl === nutrientId) {
@@ -255,8 +313,89 @@ export function StackCoverage() {
         </p>
       )}
 
-      {/* Confirmation chips */}
-      {supps.length > 0 && (
+      {/* Confirmation chips — grouped by schedule when schedules exist */}
+      {supps.length > 0 && hasAnySchedule && (
+        <div className="coverage__grouped">
+          {SCHEDULE_ORDER.map((time) => {
+            const items = groupedSupps[time];
+            if (!items || items.length === 0) return null;
+            const meta = SCHEDULE_META[time];
+            return (
+              <div key={time} className="coverage__group">
+                <div className="coverage__group-label">{meta.icon} {meta.label}</div>
+                <div className="coverage__chips">
+                  {items.map((s) => {
+                    const active = !!taken[s.id];
+                    return (
+                      <div key={s.id} className="coverage__chip-wrap">
+                        <button
+                          className={`coverage__chip ${active ? "coverage__chip--active" : ""}`}
+                          onClick={() => toggle(s.id)}
+                          aria-pressed={active}
+                        >
+                          {active ? "✓" : "○"} {s.displayName}
+                        </button>
+                        <select
+                          className="coverage__chip-time"
+                          value={effectiveSchedule(s) ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value as ScheduleTime | "";
+                            changeScheduleForToday(s.id, v || undefined);
+                          }}
+                          aria-label={`Change schedule for ${s.displayName} today`}
+                        >
+                          <option value="">—</option>
+                          {SCHEDULE_ORDER.map((t) => (
+                            <option key={t} value={t}>{SCHEDULE_META[t].icon} {SCHEDULE_META[t].label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          {groupedSupps.unscheduled.length > 0 && (
+            <div className="coverage__group">
+              <div className="coverage__group-label">Unscheduled</div>
+              <div className="coverage__chips">
+                {groupedSupps.unscheduled.map((s) => {
+                  const active = !!taken[s.id];
+                  return (
+                    <div key={s.id} className="coverage__chip-wrap">
+                      <button
+                        className={`coverage__chip ${active ? "coverage__chip--active" : ""}`}
+                        onClick={() => toggle(s.id)}
+                        aria-pressed={active}
+                      >
+                        {active ? "✓" : "○"} {s.displayName}
+                      </button>
+                      <select
+                        className="coverage__chip-time"
+                        value=""
+                        onChange={(e) => {
+                          const v = e.target.value as ScheduleTime | "";
+                          changeScheduleForToday(s.id, v || undefined);
+                        }}
+                        aria-label={`Set schedule for ${s.displayName} today`}
+                      >
+                        <option value="">—</option>
+                        {SCHEDULE_ORDER.map((t) => (
+                          <option key={t} value={t}>{SCHEDULE_META[t].icon} {SCHEDULE_META[t].label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Flat chips when no schedules are set */}
+      {supps.length > 0 && !hasAnySchedule && (
         <div className="coverage__chips">
           {supps.map((s) => {
             const active = !!taken[s.id];

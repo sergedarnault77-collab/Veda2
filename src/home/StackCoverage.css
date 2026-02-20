@@ -300,6 +300,52 @@
   opacity: 0.9;
 }
 
+/* ── Grouped chips by schedule ── */
+
+.coverage__grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.coverage__group-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--veda-text-muted);
+  margin-bottom: 4px;
+}
+
+.coverage__chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.coverage__chip-time {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 3px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--veda-border);
+  background: transparent;
+  color: var(--veda-text-muted);
+  font-family: inherit;
+  font-size: 0.6rem;
+  cursor: pointer;
+  outline: none;
+  max-width: 28px;
+  transition: border-color 0.15s;
+}
+
+.coverage__chip-time:hover,
+.coverage__chip-time:focus {
+  border-color: var(--veda-accent);
+  max-width: none;
+}
+
 /* Tablet */
 @media (min-width: 600px) {
   .coverage__list {
