@@ -62,6 +62,45 @@
   letter-spacing: 0.01em;
 }
 
+.home__intro-link {
+  display: inline;
+  margin-top: 8px;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.72rem;
+  color: var(--veda-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s;
+}
+
+.home__intro-link:hover {
+  color: var(--veda-text);
+}
+
+/* ── "What is Veda?" modal ── */
+.home__veda-modal {
+  max-width: 420px;
+}
+
+.home__veda-modal-text {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--veda-text);
+  margin-top: 8px;
+}
+
+.home__veda-modal-disclaimer {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--veda-text-muted);
+  margin-top: 10px;
+  opacity: 0.8;
+}
+
 /* Two-column layout on wider screens */
 .home__columns {
   display: flex;

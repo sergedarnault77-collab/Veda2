@@ -240,6 +240,7 @@ export function extractExposureFromScan(result: ScanResult): {
 }
 
 export default function HomePage({ isAI = false, userName }: Props) {
+  const [isVedaIntroOpen, setIsVedaIntroOpen] = useState(false);
   const [exposure, setExposure] = useState<AggregatedExposure>(() => {
     const initial = deriveExposureFromScans();
     snapshotToday(initial);
@@ -285,6 +286,14 @@ export default function HomePage({ isAI = false, userName }: Props) {
               <span key={label} className="home__intro-pill">{label}</span>
             ))}
           </div>
+
+          <button
+            type="button"
+            className="home__intro-link"
+            onClick={() => setIsVedaIntroOpen(true)}
+          >
+            What is Veda?
+          </button>
         </div>
       </header>
 
@@ -313,6 +322,23 @@ export default function HomePage({ isAI = false, userName }: Props) {
             <div className="home__freemiumHint">
               You can still manage your supplements and medications from the tabs below.
             </div>
+          </div>
+        </div>
+      )}
+
+      {isVedaIntroOpen && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => setIsVedaIntroOpen(false)}>
+          <div className="modal-card home__veda-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setIsVedaIntroOpen(false)} aria-label="Close">×</button>
+            <h2>What is Veda?</h2>
+            <p className="home__veda-modal-text">
+              Veda gives you a single overview of your medications and supplements,
+              highlights potential overlaps, clashes, or overuse, and lets you preview
+              how a new item might affect the rest of your routine.
+            </p>
+            <p className="home__veda-modal-disclaimer">
+              Veda provides general information — not medical advice.
+            </p>
           </div>
         </div>
       )}
