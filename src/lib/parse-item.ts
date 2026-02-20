@@ -78,7 +78,7 @@ export async function parseScannedItem(
 
   try {
     const ac = new AbortController();
-    const timeout = setTimeout(() => ac.abort(), 55_000);
+    const timeout = setTimeout(() => ac.abort(), 90_000);
 
     let res: Response;
     try {

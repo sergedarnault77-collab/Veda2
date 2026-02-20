@@ -402,7 +402,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
         {parseStatus === "parsing" && (
           <LoadingBanner
             title="Reading label…"
-            subtitle="This can take a few seconds on mobile"
+            subtitle="Dense labels like multivitamins can take up to a minute"
             tone="info"
           />
         )}
@@ -412,7 +412,7 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
           <>
             <LoadingBanner
               tone="warn"
-              title="Photo is hard to read"
+              title="Couldn't read the label"
               subtitle={parseWarning}
             />
             <button
@@ -426,11 +426,18 @@ export default function AddScannedItemModal({ kind, onClose, onConfirm, initialI
 
         {/* Non-rescan warning */}
         {parseStatus !== "parsing" && !needsRescan && !!parseWarning && (
-          <LoadingBanner
-            tone="warn"
-            title="Label read issue"
-            subtitle={parseWarning}
-          />
+          <>
+            <LoadingBanner
+              tone="warn"
+              title="Label read issue"
+              subtitle={parseWarning}
+            />
+            {hasIngredients && (
+              <button className="btn btn--primary" style={{ marginTop: 8 }} onClick={doParseNow}>
+                Try again
+              </button>
+            )}
+          </>
         )}
 
         {isPer100g && parseStatus === "parsed" && (
