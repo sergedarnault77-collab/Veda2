@@ -267,10 +267,14 @@ export default function HomePage({ isAI = false, userName }: Props) {
   return (
     <main className="home">
       <header className="home__header">
-        <h1 className="home__greeting">
-          {userName ? `Hello ${userName},` : "Hello,"}
-        </h1>
-        <p className="home__sub">Based on what you've scanned today</p>
+        <div className="home__header-left">
+          <h1 className="home__greeting">
+            {userName ? `Hello ${userName},` : "Hello,"}
+          </h1>
+        </div>
+        <p className="home__intro">
+          Veda gives you a single overview of your medications and supplements, highlights potential overlaps or overuse, and shows how new additions might affect your routine — all explained clearly with AI-powered insights.
+        </p>
       </header>
 
       {isAI ? (

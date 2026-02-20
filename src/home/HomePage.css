@@ -7,7 +7,15 @@
 }
 
 .home__header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
   padding: 4px 0 8px;
+  flex-wrap: wrap;
+}
+
+.home__header-left {
+  flex-shrink: 0;
 }
 
 .home__greeting {
@@ -18,10 +26,12 @@
   line-height: 1.2;
 }
 
-.home__sub {
-  font-size: 0.85rem;
+.home__intro {
+  font-size: 0.78rem;
+  line-height: 1.5;
   color: var(--veda-text-muted);
-  margin-top: 4px;
+  flex: 1;
+  min-width: 180px;
 }
 
 /* Two-column layout on wider screens */

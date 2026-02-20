@@ -8,14 +8,6 @@
   backdrop-filter: blur(12px);
 }
 
-/* ── Intro blurb ── */
-.scan-status__intro {
-  font-size: 0.82rem;
-  line-height: 1.55;
-  color: var(--veda-text-muted);
-  margin-bottom: 14px;
-}
-
 /* ── Entry tiles ── */
 .scan-status__tiles {
   display: grid;
