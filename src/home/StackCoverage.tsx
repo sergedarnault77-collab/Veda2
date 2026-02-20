@@ -38,13 +38,20 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+const SESSION_INIT_KEY = "veda.taken.session-init";
+
 function loadTakenStore(suppIds?: string[]): { flags: Record<string, boolean>; scheduleOverrides: Record<string, ScheduleTime> } {
   const raw = loadLS<TakenStore | Record<string, boolean> | null>(TAKEN_KEY, null);
   const allIds = suppIds ?? [];
+  const today = todayStr();
 
-  if (raw && typeof (raw as TakenStore).date === "string") {
+  // First load of this browser session → tick everything
+  const sessionInit = sessionStorage.getItem(SESSION_INIT_KEY);
+  const isNewSession = sessionInit !== today;
+
+  if (!isNewSession && raw && typeof (raw as TakenStore).date === "string") {
     const store = raw as TakenStore;
-    if (store.date === todayStr()) {
+    if (store.date === today) {
       const flags = { ...store.flags };
       for (const id of allIds) {
         if (!(id in flags)) flags[id] = true;
@@ -53,9 +60,18 @@ function loadTakenStore(suppIds?: string[]): { flags: Record<string, boolean>; s
     }
   }
 
+  // New session or new day: everything ticked
+  sessionStorage.setItem(SESSION_INIT_KEY, today);
   const flags: Record<string, boolean> = {};
   for (const id of allIds) flags[id] = true;
-  return { flags, scheduleOverrides: {} };
+
+  // Preserve schedule overrides from today if they exist
+  let overrides: Record<string, ScheduleTime> = {};
+  if (raw && typeof (raw as TakenStore).date === "string" && (raw as TakenStore).date === today) {
+    overrides = (raw as TakenStore).scheduleOverrides ?? {};
+  }
+
+  return { flags, scheduleOverrides: overrides };
 }
 
 function loadTakenToday(suppIds?: string[]): Record<string, boolean> {
