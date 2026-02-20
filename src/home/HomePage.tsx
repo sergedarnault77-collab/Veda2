@@ -267,14 +267,25 @@ export default function HomePage({ isAI = false, userName }: Props) {
   return (
     <main className="home">
       <header className="home__header">
-        <div className="home__header-left">
-          <h1 className="home__greeting">
-            {userName ? `Hello ${userName},` : "Hello,"}
-          </h1>
+        <h1 className="home__greeting">
+          {userName ? `Hello ${userName},` : "Hello,"}
+        </h1>
+
+        <div className="home__intro">
+          <p className="home__intro-text">
+            <span className="home__intro-bold">One view of your meds + supplements</span>
+            {" — with AI that flags overlaps, clashes, and overuse."}
+          </p>
+          <p className="home__intro-sub">
+            See what happens if you add something new before it impacts your routine.
+          </p>
+
+          <div className="home__intro-pills">
+            {["Meds overview", "Supplements overview", "Overlaps & clashes", "\u201CWhat-if\u201D preview"].map((label) => (
+              <span key={label} className="home__intro-pill">{label}</span>
+            ))}
+          </div>
         </div>
-        <p className="home__intro">
-          Veda gives you a single overview of your medications and supplements, highlights potential overlaps or overuse, and shows how new additions might affect your routine — all explained clearly with AI-powered insights.
-        </p>
       </header>
 
       {isAI ? (

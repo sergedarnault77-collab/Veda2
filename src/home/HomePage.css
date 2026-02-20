@@ -7,15 +7,7 @@
 }
 
 .home__header {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
   padding: 4px 0 8px;
-  flex-wrap: wrap;
-}
-
-.home__header-left {
-  flex-shrink: 0;
 }
 
 .home__greeting {
@@ -26,12 +18,48 @@
   line-height: 1.2;
 }
 
+/* ── Intro block ── */
 .home__intro {
-  font-size: 0.78rem;
+  margin-top: 6px;
+}
+
+.home__intro-text {
+  font-size: 0.82rem;
   line-height: 1.5;
   color: var(--veda-text-muted);
-  flex: 1;
-  min-width: 180px;
+}
+
+.home__intro-bold {
+  font-weight: 600;
+  color: var(--veda-text);
+}
+
+.home__intro-sub {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--veda-text-muted);
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+.home__intro-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.home__intro-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--veda-text);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  border-radius: 999px;
+  letter-spacing: 0.01em;
 }
 
 /* Two-column layout on wider screens */
