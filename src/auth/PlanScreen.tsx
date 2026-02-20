@@ -1,4 +1,12 @@
+import { useState, useEffect } from "react";
 import type { Plan } from "../lib/auth";
+import {
+  isNativePlatform,
+  getOfferings,
+  purchasePackage,
+  restorePurchases,
+} from "../lib/purchases";
+import type { VedaOffering } from "../lib/purchases";
 import "./PlanScreen.css";
 
 interface Props {
@@ -6,6 +14,49 @@ interface Props {
 }
 
 export default function PlanScreen({ onSelect }: Props) {
+  const [offerings, setOfferings] = useState<VedaOffering[]>([]);
+  const [purchasing, setPurchasing] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const isNative = isNativePlatform();
+
+  useEffect(() => {
+    if (isNative) {
+      getOfferings().then(setOfferings);
+    }
+  }, [isNative]);
+
+  const aiOffering = offerings[0] ?? null;
+
+  async function handlePurchase() {
+    if (!aiOffering) return;
+    setPurchasing(true);
+    setError(null);
+
+    const result = await purchasePackage(aiOffering.identifier);
+    setPurchasing(false);
+
+    if (result.success && result.isActive) {
+      onSelect("ai");
+    } else if (result.error && result.error !== "cancelled") {
+      setError(result.error);
+    }
+  }
+
+  async function handleRestore() {
+    setRestoring(true);
+    setError(null);
+
+    const active = await restorePurchases();
+    setRestoring(false);
+
+    if (active) {
+      onSelect("ai");
+    } else {
+      setError("No active subscription found.");
+    }
+  }
+
   return (
     <div className="plans">
       <div className="plans__logo">Veda</div>
@@ -39,7 +90,9 @@ export default function PlanScreen({ onSelect }: Props) {
         <div className="plans__card plans__card--highlight">
           <div className="plans__cardTag plans__cardTag--accent">Recommended</div>
           <h2 className="plans__cardTitle">Veda AI</h2>
-          <p className="plans__cardDesc">Smart insights</p>
+          <p className="plans__cardDesc">
+            {aiOffering ? aiOffering.priceString + "/mo" : "Smart insights"}
+          </p>
 
           <ul className="plans__features">
             <li className="plans__feature plans__feature--on">Everything in Freemium</li>
@@ -49,14 +102,38 @@ export default function PlanScreen({ onSelect }: Props) {
             <li className="plans__feature plans__feature--on">Stack coverage insights</li>
           </ul>
 
-          <button
-            className="plans__cta plans__cta--primary"
-            onClick={() => onSelect("ai")}
-          >
-            Start with AI
-          </button>
+          {isNative && aiOffering ? (
+            <button
+              className="plans__cta plans__cta--primary"
+              onClick={handlePurchase}
+              disabled={purchasing}
+            >
+              {purchasing ? "Processing…" : `Subscribe ${aiOffering.priceString}/mo`}
+            </button>
+          ) : (
+            <button
+              className="plans__cta plans__cta--primary"
+              onClick={() => onSelect("ai")}
+            >
+              Start with AI
+            </button>
+          )}
         </div>
       </div>
+
+      {error && (
+        <p className="plans__error">{error}</p>
+      )}
+
+      {isNative && (
+        <button
+          className="plans__restore"
+          onClick={handleRestore}
+          disabled={restoring}
+        >
+          {restoring ? "Restoring…" : "Restore purchases"}
+        </button>
+      )}
     </div>
   );
 }

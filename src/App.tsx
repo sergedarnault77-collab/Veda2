@@ -16,6 +16,7 @@ import { setSyncEmail, pullAll, pushAll } from "./lib/sync";
 import { apiFetch } from "./lib/api";
 import { migrateStorageImages } from "./lib/storage-migrate";
 import { identify, track, reset as resetAnalytics } from "./lib/analytics";
+import { initPurchases, loginUser, logoutUser, checkSubscriptionActive } from "./lib/purchases";
 import "./App.css";
 
 type AuthView = "register" | "login";
@@ -122,13 +123,23 @@ export default function App() {
     }).finally(() => setSyncing(false));
   }
 
-  // Set sync email whenever user changes, pull from server
+  // Set sync email whenever user changes, pull from server, init purchases
   useEffect(() => {
     if (user?.email) {
       setSyncEmail(user.email);
       setSyncing(true);
-      pullAll()
-        .finally(() => setSyncing(false));
+      pullAll().finally(() => setSyncing(false));
+
+      initPurchases(user.email).then(() => {
+        loginUser(user.email);
+        checkSubscriptionActive().then((active) => {
+          if (active && user.plan !== "ai") {
+            const updated = { ...user, plan: "ai" as const };
+            saveUser(updated);
+            setUser(updated);
+          }
+        });
+      });
     } else {
       setSyncEmail(null);
     }
@@ -197,6 +208,7 @@ export default function App() {
   const handleLogout = useCallback(async () => {
     track("user_logged_out");
     resetAnalytics();
+    logoutUser();
     await supabase.auth.signOut().catch(() => {});
     setSyncEmail(null);
     setUser(null);
