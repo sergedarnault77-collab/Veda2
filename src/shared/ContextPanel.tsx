@@ -30,6 +30,14 @@ export default function ContextPanel({ signal, onClose }: Props) {
     let cancelled = false;
     setLoading(true);
 
+    const fallbackResult = {
+      whatWasDetected: [signal.detail || `${signal.label} was flagged.`],
+      whyItMatters: ["Context depends on dose, timing, and individual factors."],
+      whatPeopleDo: ["Some people review overlapping sources when flagged."],
+      disclaimer:
+        "This is not medical advice. Veda does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
+    };
+
     apiFetch("/api/explain", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -45,18 +53,12 @@ export default function ContextPanel({ signal, onClose }: Props) {
             whatPeopleDo: json.whatPeopleDo || [],
             disclaimer: json.disclaimer || "",
           });
+        } else {
+          setResult(fallbackResult);
         }
       })
       .catch(() => {
-        if (!cancelled) {
-          setResult({
-            whatWasDetected: [signal.detail || `${signal.label} was flagged.`],
-            whyItMatters: ["Context depends on dose, timing, and individual factors."],
-            whatPeopleDo: ["Some people review overlapping sources when flagged."],
-            disclaimer:
-              "This is not medical advice. Veda does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
-          });
-        }
+        if (!cancelled) setResult(fallbackResult);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
