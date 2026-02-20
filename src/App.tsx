@@ -258,6 +258,18 @@ export default function App() {
   }
 
   // 3. Has plan → main app (with feature gating)
+  // Show brief loading overlay during initial server sync
+  if (syncing) {
+    return (
+      <div className="app-shell" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+        <div style={{ textAlign: "center", color: "var(--veda-text-muted)" }}>
+          <div style={{ fontSize: "1.8rem", marginBottom: 12 }}>Veda</div>
+          <div style={{ fontSize: "0.82rem", opacity: 0.7 }}>Syncing your data…</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <nav className="app-nav">
