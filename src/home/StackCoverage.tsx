@@ -121,6 +121,16 @@ export function StackCoverage() {
     };
   }, []);
 
+  const toggle = useCallback((id: string) => {
+    setTaken((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      saveTakenToday(next);
+      return next;
+    });
+  }, []);
+
+  const takenSupps = useMemo(() => supps.filter((s) => taken[s.id]), [supps, taken]);
+
   const explainUl = useCallback((nutrientId: string, label: string, amount: number, unit: string, ul: number | null) => {
     if (expandedUl === nutrientId) {
       setExpandedUl(null);
@@ -150,16 +160,6 @@ export function StackCoverage() {
       })
       .finally(() => setUlLoading(null));
   }, [expandedUl, ulExplanation, takenSupps]);
-
-  const toggle = useCallback((id: string) => {
-    setTaken((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
-      saveTakenToday(next);
-      return next;
-    });
-  }, []);
-
-  const takenSupps = useMemo(() => supps.filter((s) => taken[s.id]), [supps, taken]);
   const anyTaken = takenSupps.length > 0;
 
   /* Build IntakeLine[] and run the nutrition engine */
