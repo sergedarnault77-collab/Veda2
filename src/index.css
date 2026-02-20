@@ -41,6 +41,11 @@
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
+  /* drink builder */
+  --db-chip-bg: rgba(255, 255, 255, 0.05);
+  --db-chip-hover-bg: rgba(255, 255, 255, 0.1);
+  --db-estimate-bg: rgba(0, 0, 0, 0.2);
+
   /* radii */
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -78,6 +83,10 @@
   --bar-sweetener: #9030a0;
   --bar-calorie: #2088d0;
   --bar-caffeine: #1aa8b8;
+
+  --db-chip-bg: rgba(0, 0, 0, 0.04);
+  --db-chip-hover-bg: rgba(0, 0, 0, 0.08);
+  --db-estimate-bg: rgba(0, 0, 0, 0.04);
 }
 
 html {
