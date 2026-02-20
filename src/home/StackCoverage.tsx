@@ -40,16 +40,21 @@ function todayStr() {
 
 function loadTakenStore(suppIds?: string[]): { flags: Record<string, boolean>; scheduleOverrides: Record<string, ScheduleTime> } {
   const raw = loadLS<TakenStore | Record<string, boolean> | null>(TAKEN_KEY, null);
+  const allIds = suppIds ?? [];
+
   if (raw && typeof (raw as TakenStore).date === "string") {
     const store = raw as TakenStore;
     if (store.date === todayStr()) {
-      return { flags: store.flags, scheduleOverrides: store.scheduleOverrides ?? {} };
+      const flags = { ...store.flags };
+      for (const id of allIds) {
+        if (!(id in flags)) flags[id] = true;
+      }
+      return { flags, scheduleOverrides: store.scheduleOverrides ?? {} };
     }
   }
+
   const flags: Record<string, boolean> = {};
-  if (suppIds && suppIds.length > 0) {
-    for (const id of suppIds) flags[id] = true;
-  }
+  for (const id of allIds) flags[id] = true;
   return { flags, scheduleOverrides: {} };
 }
 
