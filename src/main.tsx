@@ -2,7 +2,12 @@ import React, { Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { initSentry, Sentry } from "./lib/sentry";
+import { initAnalytics } from "./lib/analytics";
 import "./index.css";
+
+initSentry();
+initAnalytics();
 
 class GlobalErrorBoundary extends Component<
   { children: ReactNode },
@@ -16,6 +21,7 @@ class GlobalErrorBoundary extends Component<
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[Veda] Uncaught render error:", error, info?.componentStack);
+    Sentry.captureException(error, { contexts: { react: { componentStack: info?.componentStack ?? "" } } });
   }
 
   render() {

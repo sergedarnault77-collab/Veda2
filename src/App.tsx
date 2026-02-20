@@ -15,6 +15,7 @@ import { supabase } from "./lib/supabase";
 import { setSyncEmail, pullAll, pushAll } from "./lib/sync";
 import { apiFetch } from "./lib/api";
 import { migrateStorageImages } from "./lib/storage-migrate";
+import { identify, track, reset as resetAnalytics } from "./lib/analytics";
 import "./App.css";
 
 type AuthView = "register" | "login";
@@ -143,12 +144,15 @@ export default function App() {
     setUser(u);
     setSyncEmail(u.email);
     pushAll();
+    identify(u.email, { name: `${u.firstName} ${u.lastName}`, country: u.country });
+    track("user_registered");
   }, []);
 
   const handleLogin = useCallback((u: VedaUser) => {
     setUser(u);
     setSyncEmail(u.email);
-    // Pull will happen via the useEffect above
+    identify(u.email, { name: `${u.firstName} ${u.lastName}`, country: u.country });
+    track("user_logged_in");
   }, []);
 
   const handleProfileComplete = useCallback((profile: {
@@ -171,6 +175,7 @@ export default function App() {
   const handleSelectPlan = useCallback((plan: Plan) => {
     persistPlan(plan);
     setUser((prev) => prev ? { ...prev, plan } : prev);
+    track("plan_selected", { plan });
     if (plan === "ai") setTab("home");
   }, []);
 
@@ -190,6 +195,8 @@ export default function App() {
   }, []);
 
   const handleLogout = useCallback(async () => {
+    track("user_logged_out");
+    resetAnalytics();
     await supabase.auth.signOut().catch(() => {});
     setSyncEmail(null);
     setUser(null);

@@ -5,6 +5,7 @@ import { findExistingIdx } from "../lib/dedup";
 import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
 import { apiFetch } from "../lib/api";
+import { track } from "../lib/analytics";
 import { extractExposureFromScan } from "./HomePage";
 import LoadingBanner from "../shared/LoadingBanner";
 import InteractionWarnings from "../shared/InteractionWarnings";
@@ -397,12 +398,14 @@ export default function ScanSection({ onScanComplete }: Props) {
     const exposure = extractExposureFromScan(scanResult);
     const day = persistScan(productName, summaryStr, exposure, scanResult.nutrients);
     setTodayScans(day.scans);
+    track("scan_completed", { product: productName, entities: ents.length });
     onScanComplete?.(scanResult);
   }
 
   function saveAsSupp() {
     if (!result || !productName) return;
     setAdded("supp");
+    track("saved_as_supplement", { product: productName });
 
     const scanResult = buildScanResult();
     const ents = scanResult.detectedEntities;
@@ -451,6 +454,7 @@ export default function ScanSection({ onScanComplete }: Props) {
   function saveAsMed() {
     if (!result || !productName) return;
     setAdded("med");
+    track("saved_as_medication", { product: productName });
 
     const scanResult = buildScanResult();
     const ents = scanResult.detectedEntities;
