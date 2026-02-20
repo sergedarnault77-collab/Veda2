@@ -23,15 +23,19 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function loadTakenToday(): Record<string, boolean> {
+function loadTakenToday(suppIds?: string[]): Record<string, boolean> {
   const raw = loadLS<TakenStore | Record<string, boolean> | null>(TAKEN_KEY, null);
-  if (!raw) return {};
-  if (typeof (raw as TakenStore).date === "string") {
+  if (raw && typeof (raw as TakenStore).date === "string") {
     const store = raw as TakenStore;
     if (store.date === todayStr()) return store.flags;
-    return {};
   }
-  return raw as Record<string, boolean>;
+  // New day (or first load): default all supplements to taken
+  if (suppIds && suppIds.length > 0) {
+    const flags: Record<string, boolean> = {};
+    for (const id of suppIds) flags[id] = true;
+    return flags;
+  }
+  return {};
 }
 
 function saveTakenToday(flags: Record<string, boolean>) {
@@ -84,16 +88,27 @@ const FOOD_COVERAGE_LABELS: Record<FoodCoverage, { text: string; cls: string }> 
 export function StackCoverage() {
   const [supps, setSupps] = useState<SavedSupp[]>(() => loadSupps());
 
-  const [taken, setTaken] = useState<Record<string, boolean>>(() =>
-    loadTakenToday()
-  );
+  const [taken, setTaken] = useState<Record<string, boolean>>(() => {
+    const s = loadSupps();
+    return loadTakenToday(s.map((x) => x.id));
+  });
 
   const [stackInsight, setStackInsight] = useState<ItemInsights | null>(null);
 
   useEffect(() => {
     const refresh = () => {
-      setSupps(loadSupps());
-      setTaken(loadTakenToday());
+      const freshSupps = loadSupps();
+      setSupps(freshSupps);
+      setTaken((prev) => {
+        const freshIds = freshSupps.map((x) => x.id);
+        const stored = loadTakenToday(freshIds);
+        // Merge: keep explicit user choices, default new supps to true
+        const merged: Record<string, boolean> = {};
+        for (const id of freshIds) {
+          merged[id] = id in stored ? stored[id] : (id in prev ? prev[id] : true);
+        }
+        return merged;
+      });
     };
     window.addEventListener("veda:synced", refresh);
     window.addEventListener("veda:supps-updated", refresh);
@@ -204,17 +219,17 @@ export function StackCoverage() {
                 onClick={() => toggle(s.id)}
                 aria-pressed={active}
               >
-                {active ? "✓" : "○"} Taken today — {s.displayName}
+                {active ? "✓" : "○"} {s.displayName}
               </button>
             );
           })}
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — only shows if user unchecked everything */}
       {supps.length > 0 && !anyTaken && (
         <p className="coverage__empty">
-          Tap supplements you've taken to see today's coverage
+          All supplements unchecked — tap to re-enable
         </p>
       )}
 
