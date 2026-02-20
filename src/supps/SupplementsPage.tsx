@@ -293,6 +293,7 @@ function SupplementCard({
 }) {
   const [editingServing, setEditingServing] = useState(false);
   const [servingInput, setServingInput] = useState<string>("");
+  const [servingSaved, setServingSaved] = useState(false);
 
   const isPer100g = (s as any).nutritionPer === "100g";
   const per100g: NutrientRow[] | null = Array.isArray((s as any).nutrientsPer100g) ? (s as any).nutrientsPer100g : null;
@@ -329,8 +330,10 @@ function SupplementCard({
               <div className="supp-card__value supp-card__value--editable" onClick={() => {
                 setServingInput(String(currentServingG ?? ""));
                 setEditingServing(true);
+                setServingSaved(false);
               }}>
                 {currentServingG ? `${currentServingG}g` : "Set serving"} ✎
+                {servingSaved && <span className="supp-card__saved-badge">Saved</span>}
               </div>
             ) : isPer100g && editingServing ? (
               <div className="supp-card__serving-edit">
@@ -349,20 +352,29 @@ function SupplementCard({
                       if (v > 0 && v <= 500) {
                         onUpdateServing(s.id, v);
                         setEditingServing(false);
+                        setServingSaved(true);
+                        setTimeout(() => setServingSaved(false), 3000);
                       }
                     } else if (e.key === "Escape") {
                       setEditingServing(false);
                     }
                   }}
-                  onBlur={() => {
+                />
+                <span className="supp-card__serving-unit">g</span>
+                <button
+                  className="supp-card__serving-save"
+                  onClick={() => {
                     const v = Number(servingInput);
                     if (v > 0 && v <= 500) {
                       onUpdateServing(s.id, v);
+                      setEditingServing(false);
+                      setServingSaved(true);
+                      setTimeout(() => setServingSaved(false), 3000);
                     }
-                    setEditingServing(false);
                   }}
-                />
-                <span className="supp-card__serving-unit">g</span>
+                >
+                  Save
+                </button>
               </div>
             ) : (
               <div className="supp-card__value">{s.servingSizeText || "—"}</div>
@@ -618,23 +630,37 @@ function SupplementsPageInner() {
         if (it.id !== id) return it;
         const s = it as any;
         const per100g: NutrientRow[] | null = Array.isArray(s.nutrientsPer100g) ? s.nutrientsPer100g : null;
+        const isPer100g = s.nutritionPer === "100g";
         const baseNutrients: NutrientRow[] = per100g ?? (Array.isArray(s.nutrients) ? s.nutrients : []);
         const oldServingG: number | null = typeof s.servingSizeG === "number" ? s.servingSizeG : null;
 
         let scaled: NutrientRow[];
+        let savedPer100g: NutrientRow[];
+
         if (per100g) {
+          savedPer100g = per100g;
           const scale = newServingG / 100;
           scaled = per100g.map((n: NutrientRow) => ({
             ...n,
             amountToday: Math.round(n.amountToday * scale * 100) / 100,
           }));
+        } else if (isPer100g && !oldServingG) {
+          // nutrientsPer100g wasn't saved — treat current nutrients as per-100g base
+          savedPer100g = baseNutrients;
+          const scale = newServingG / 100;
+          scaled = baseNutrients.map((n: NutrientRow) => ({
+            ...n,
+            amountToday: Math.round(n.amountToday * scale * 100) / 100,
+          }));
         } else if (oldServingG && oldServingG > 0) {
+          savedPer100g = baseNutrients;
           const ratio = newServingG / oldServingG;
           scaled = baseNutrients.map((n: NutrientRow) => ({
             ...n,
             amountToday: Math.round(n.amountToday * ratio * 100) / 100,
           }));
         } else {
+          savedPer100g = baseNutrients;
           scaled = baseNutrients;
         }
 
@@ -643,7 +669,7 @@ function SupplementsPageInner() {
           servingSizeG: newServingG,
           servingSizeText: `${newServingG}g`,
           nutrients: scaled,
-          nutrientsPer100g: per100g ?? baseNutrients,
+          nutrientsPer100g: savedPer100g,
         };
       }),
     );

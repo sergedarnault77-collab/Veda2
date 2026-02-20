@@ -507,6 +507,39 @@
   opacity: 0.6;
 }
 
+.supp-card__serving-save {
+  padding: 4px 12px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--veda-accent, #2E5BFF);
+  color: #fff;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.supp-card__serving-save:hover {
+  opacity: 0.9;
+}
+
+.supp-card__saved-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+  font-size: 0.7rem;
+  font-weight: 600;
+  animation: supp-saved-fade 3s ease forwards;
+}
+
+@keyframes supp-saved-fade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 [data-theme="light"] .supp-card__serving-input {
   background: rgba(0, 0, 0, 0.04);
   border-color: var(--veda-accent);
