@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:critics": "node scripts/ai-vision-critic.mjs && node scripts/ai-data-sanity-critic.mjs && node scripts/critics-summary.mjs",
@@ -38,6 +40,7 @@
     "@vercel/node": "^5.6.4",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "~5.6.2",
-    "vite": "^6.0.1"
+    "vite": "^6.0.1",
+    "vitest": "^4.0.18"
   }
 }
