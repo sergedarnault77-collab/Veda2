@@ -137,7 +137,12 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
       }
 
       if (!data?.ok) {
-        setError(data?.error || "Something went wrong. Please try again.");
+        const msg = data?.error;
+        if (msg === "Authentication required") {
+          setError("Session expired — please reload the app and try again.");
+        } else {
+          setError(msg || "Something went wrong. Please try again.");
+        }
         return;
       }
 
