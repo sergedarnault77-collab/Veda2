@@ -62,87 +62,289 @@
   opacity: 0.7;
 }
 
-/* ── Section 1: Your typical day ── */
+/* ── My Daily Schedule ── */
 
-.day__slot {
+.sched__slot {
   margin-bottom: 16px;
 }
 
-.day__slot:last-child {
+.sched__slot:last-child {
   margin-bottom: 0;
 }
 
-.day__slot-header {
+.sched__slot-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sched__slot-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.sched__slot-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--veda-text);
+}
+
+.sched__slot-time {
+  font-size: 0.7rem;
+  color: var(--veda-text-muted);
+  opacity: 0.7;
+}
+
+.sched__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 30px;
+}
+
+.sched__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  background: rgba(46, 91, 255, 0.08);
+  border: 1px solid rgba(46, 91, 255, 0.12);
+}
+
+.sched__item--medication {
+  background: rgba(156, 39, 176, 0.08);
+  border-color: rgba(156, 39, 176, 0.15);
+}
+
+.sched__item--faded {
+  opacity: 0.5;
+}
+
+.sched__item-name {
+  color: var(--veda-text);
+  font-weight: 600;
+}
+
+.sched__item-type {
+  font-size: 0.64rem;
+  color: var(--veda-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.7;
+}
+
+.sched__slot--unsched {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* AI schedule assessment */
+
+.sched__ai-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 16px;
+  border-radius: 10px;
+  border: 1px dashed var(--veda-accent, #2E5BFF);
+  background: rgba(46, 91, 255, 0.06);
+  color: var(--veda-accent, #2E5BFF);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sched__ai-btn:hover {
+  background: rgba(46, 91, 255, 0.12);
+}
+
+.sched__ai-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.sched__ai-error {
+  font-size: 0.82rem;
+  color: var(--veda-red, #e74c3c);
+  margin-top: 8px;
+}
+
+.sched__ai-result {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(46, 91, 255, 0.04);
+  border: 1px solid var(--veda-accent, #2E5BFF);
+}
+
+.sched__ai-header {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
 }
 
-.day__slot-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.sched__ai-badge {
+  font-size: 1.2rem;
 }
 
-.day__slot-icon--sunrise {
-  background: linear-gradient(135deg, #f9a825, #ff8f00);
-  box-shadow: 0 0 8px rgba(249, 168, 37, 0.3);
+.sched__ai-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--veda-accent, #2E5BFF);
 }
 
-.day__slot-icon--sun {
-  background: linear-gradient(135deg, #fdd835, #ffb300);
-  box-shadow: 0 0 8px rgba(253, 216, 53, 0.3);
-}
-
-.day__slot-icon--moon {
-  background: linear-gradient(135deg, #2E5BFF, #5a80ff);
-  box-shadow: 0 0 8px rgba(46, 91, 255, 0.3);
-}
-
-.day__slot-label {
-  font-size: 0.85rem;
-  font-weight: 600;
+.sched__ai-advice {
+  font-size: 0.82rem;
   color: var(--veda-text);
+  margin: 0 0 12px;
+  line-height: 1.55;
 }
 
-.day__slot-empty {
-  font-size: 0.78rem;
-  color: var(--veda-text-muted);
-  margin: 0;
-  padding-left: 28px;
-  opacity: 0.6;
-}
-
-.day__chips {
+.sched__ai-recs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-left: 28px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.day__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 0.78rem;
-  white-space: nowrap;
+.sched__ai-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.day__chip-name {
-  color: var(--veda-text);
-  font-weight: 600;
-}
-
-.day__chip-src {
-  color: var(--veda-text-muted);
+.sched__ai-group-label {
   font-size: 0.72rem;
-  opacity: 0.8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--veda-text-muted);
+  margin-bottom: 2px;
+}
+
+.sched__ai-group-time {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+  font-size: 0.68rem;
+}
+
+.sched__ai-rec {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sched__ai-rec--changed {
+  background: rgba(46, 91, 255, 0.06);
+  border-left: 3px solid var(--veda-accent, #2E5BFF);
+}
+
+.sched__ai-rec-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sched__ai-rec-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--veda-text);
+}
+
+.sched__ai-rec-move {
+  font-size: 0.68rem;
+  color: var(--veda-accent);
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.sched__ai-rec-reason {
+  font-size: 0.74rem;
+  color: var(--veda-text-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.sched__ai-disclaimer {
+  font-size: 0.68rem;
+  color: var(--veda-text-muted);
+  opacity: 0.7;
+  margin: 12px 0 4px;
+  font-style: italic;
+}
+
+.sched__ai-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sched__ai-apply {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--veda-accent, #2E5BFF);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sched__ai-apply:hover {
+  opacity: 0.9;
+}
+
+.sched__ai-dismiss {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--veda-border, rgba(255,255,255,0.1));
+  background: transparent;
+  color: var(--veda-text-muted);
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sched__ai-dismiss:hover {
+  border-color: var(--veda-text-muted);
+}
+
+/* Light theme overrides */
+[data-theme="light"] .sched__item {
+  background: rgba(46, 91, 255, 0.06);
+}
+
+[data-theme="light"] .sched__item--medication {
+  background: rgba(156, 39, 176, 0.06);
+}
+
+[data-theme="light"] .sched__ai-result {
+  background: rgba(46, 91, 255, 0.03);
+}
+
+[data-theme="light"] .sched__ai-rec {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .sched__ai-rec--changed {
+  background: rgba(46, 91, 255, 0.04);
+}
+
+[data-theme="light"] .sched__slot--unsched {
+  border-top-color: rgba(0, 0, 0, 0.08);
 }
 
 /* ── Section 2: Overlap signals ── */
@@ -202,48 +404,7 @@
   line-height: 1.3;
 }
 
-/* ── Section 3: Timing patterns ── */
-
-.timing__list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.timing__entry {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.timing__dot {
-  flex-shrink: 0;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-top: 4px;
-}
-
-.timing__dot--morning {
-  background: #f9a825;
-  box-shadow: 0 0 6px rgba(249, 168, 37, 0.35);
-}
-
-.timing__dot--midday {
-  background: #fdd835;
-  box-shadow: 0 0 6px rgba(253, 216, 53, 0.35);
-}
-
-.timing__dot--evening {
-  background: #2E5BFF;
-  box-shadow: 0 0 6px rgba(46, 91, 255, 0.35);
-}
-
-.timing__text {
-  font-size: 0.82rem;
-  color: var(--veda-text);
-  line-height: 1.45;
-}
+/* (timing patterns section removed — replaced by AI schedule assessment) */
 
 /* ── Section header row (title + toggle) ── */
 
@@ -411,7 +572,7 @@
     padding: 24px;
   }
 
-  .day__chip {
+  .sched__item {
     padding: 7px 14px;
     font-size: 0.82rem;
   }

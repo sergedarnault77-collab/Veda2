@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { loadLS } from "../lib/persist";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { loadLS, saveLS } from "../lib/persist";
+import { apiFetch } from "../lib/api";
 import { getLast7Days, getLast30Days, formatDayLabel } from "../lib/exposureHistory";
+import { SCHEDULE_ORDER, SCHEDULE_META } from "../lib/schedule";
+import type { ScheduleTime } from "../lib/schedule";
 import type { DailyExposureSummary } from "../lib/exposureHistory";
 import type { NutrientRow } from "../home/stubs";
 import "./DashboardPage.css";
@@ -17,6 +20,7 @@ type SavedItem = {
   displayName: string;
   nutrients: NutrientRow[];
   ingredientsList?: string[];
+  schedule?: ScheduleTime;
   createdAtISO?: string;
 };
 
@@ -31,13 +35,11 @@ type StoredScansDay = {
   scans: StoredScan[];
 };
 
-type TimeSlot = "morning" | "midday" | "evening";
-
-type DayChip = {
+type ScheduleEntry = {
+  id: string;
   name: string;
-  sourceCount: number;
-  sourceLabel: string;
-  slot: TimeSlot;
+  type: "supplement" | "medication";
+  schedule: ScheduleTime | null;
 };
 
 type OverlapSignal = {
@@ -46,9 +48,11 @@ type OverlapSignal = {
   sourceNames: string[];
 };
 
-type TimingEntry = {
-  text: string;
-  slot: TimeSlot;
+type ScheduleRec = {
+  id: string;
+  name: string;
+  recommended: ScheduleTime;
+  reason: string;
 };
 
 /* ── Helpers ── */
@@ -67,6 +71,7 @@ function loadItems(key: string): SavedItem[] {
       displayName: s.displayName || "Unnamed",
       nutrients: Array.isArray(s.nutrients) ? s.nutrients : [],
       ingredientsList: Array.isArray(s.ingredientsList) ? s.ingredientsList : [],
+      schedule: s.schedule ?? null,
       createdAtISO: s.createdAtISO ?? null,
     }));
 }
@@ -77,118 +82,18 @@ function loadScansToday(): StoredScan[] {
   return [];
 }
 
-function hourToSlot(hour: number): TimeSlot {
-  if (hour < 12) return "morning";
-  if (hour < 17) return "midday";
-  return "evening";
+function buildScheduleEntries(supps: SavedItem[], meds: SavedItem[]): ScheduleEntry[] {
+  const entries: ScheduleEntry[] = [];
+  for (const s of supps) {
+    entries.push({ id: s.id, name: s.displayName, type: "supplement", schedule: s.schedule ?? null });
+  }
+  for (const m of meds) {
+    entries.push({ id: m.id, name: m.displayName, type: "medication", schedule: m.schedule ?? null });
+  }
+  return entries;
 }
 
-function slotLabel(slot: TimeSlot): string {
-  if (slot === "morning") return "Morning";
-  if (slot === "midday") return "Midday";
-  return "Evening";
-}
-
-function slotIcon(slot: TimeSlot): string {
-  if (slot === "morning") return "sunrise";
-  if (slot === "midday") return "sun";
-  return "moon";
-}
-
-/* ── Build Section Data ── */
-
-function buildTypicalDay(
-  supps: SavedItem[],
-  meds: SavedItem[],
-  scans: StoredScan[],
-): DayChip[] {
-  const nutrientSources = new Map<string, { name: string; sources: Set<string>; slots: Set<TimeSlot> }>();
-
-  const addNutrients = (item: SavedItem, sourceType: string, slot: TimeSlot) => {
-    for (const n of item.nutrients) {
-      if (!n.nutrientId || !n.name) continue;
-      const key = n.nutrientId.toLowerCase();
-      const existing = nutrientSources.get(key);
-      if (existing) {
-        existing.sources.add(`${item.displayName} (${sourceType})`);
-        existing.slots.add(slot);
-      } else {
-        nutrientSources.set(key, {
-          name: n.name,
-          sources: new Set([`${item.displayName} (${sourceType})`]),
-          slots: new Set([slot]),
-        });
-      }
-    }
-  };
-
-  for (const supp of supps) {
-    addNutrients(supp, "supplement", "morning");
-  }
-
-  for (const med of meds) {
-    const slot: TimeSlot = med.createdAtISO
-      ? hourToSlot(new Date(med.createdAtISO).getHours())
-      : "morning";
-    addNutrients(med, "medication", slot);
-  }
-
-  for (const scan of scans) {
-    const slot = hourToSlot(new Date(scan.ts).getHours());
-    const key = scan.productName.toLowerCase().replace(/\s+/g, "_");
-    const existing = nutrientSources.get(key);
-    if (existing) {
-      existing.sources.add(scan.productName);
-      existing.slots.add(slot);
-    } else {
-      nutrientSources.set(key, {
-        name: scan.productName,
-        sources: new Set([scan.productName]),
-        slots: new Set([slot]),
-      });
-    }
-  }
-
-  const chips: DayChip[] = [];
-  for (const [, entry] of nutrientSources) {
-    if (entry.sources.size === 0) continue;
-    const primarySlot = entry.slots.values().next().value as TimeSlot;
-    const srcCount = entry.sources.size;
-    let sourceLabel: string;
-    if (srcCount === 1) {
-      sourceLabel = "1x";
-    } else {
-      const srcs = Array.from(entry.sources);
-      const types = srcs.map((s) => {
-        if (s.includes("supplement")) return "supplement";
-        if (s.includes("medication")) return "medication";
-        return "scan";
-      });
-      const uniqueTypes = [...new Set(types)];
-      sourceLabel = uniqueTypes.length > 1
-        ? `${srcCount} sources`
-        : `${srcCount} ${uniqueTypes[0]}s`;
-    }
-    chips.push({
-      name: entry.name,
-      sourceCount: srcCount,
-      sourceLabel,
-      slot: primarySlot,
-    });
-  }
-
-  chips.sort((a, b) => {
-    const order: Record<TimeSlot, number> = { morning: 0, midday: 1, evening: 2 };
-    return order[a.slot] - order[b.slot] || b.sourceCount - a.sourceCount;
-  });
-
-  return chips;
-}
-
-function buildOverlaps(
-  supps: SavedItem[],
-  meds: SavedItem[],
-): OverlapSignal[] {
+function buildOverlaps(supps: SavedItem[], meds: SavedItem[]): OverlapSignal[] {
   const nutrientMap = new Map<string, { name: string; sources: Set<string> }>();
 
   const addNutrients = (item: SavedItem) => {
@@ -199,92 +104,22 @@ function buildOverlaps(
       if (existing) {
         existing.sources.add(item.displayName);
       } else {
-        nutrientMap.set(key, {
-          name: n.name,
-          sources: new Set([item.displayName]),
-        });
+        nutrientMap.set(key, { name: n.name, sources: new Set([item.displayName]) });
       }
     }
   };
 
-  for (const supp of supps) {
-    addNutrients(supp);
-  }
-  for (const med of meds) {
-    addNutrients(med);
-  }
+  for (const supp of supps) addNutrients(supp);
+  for (const med of meds) addNutrients(med);
 
   const overlaps: OverlapSignal[] = [];
   for (const [, entry] of nutrientMap) {
     if (entry.sources.size >= 2) {
-      overlaps.push({
-        nutrientName: entry.name,
-        sourceCount: entry.sources.size,
-        sourceNames: Array.from(entry.sources),
-      });
+      overlaps.push({ nutrientName: entry.name, sourceCount: entry.sources.size, sourceNames: Array.from(entry.sources) });
     }
   }
-
   overlaps.sort((a, b) => b.sourceCount - a.sourceCount);
   return overlaps;
-}
-
-function buildTimingPatterns(
-  supps: SavedItem[],
-  scans: StoredScan[],
-): TimingEntry[] {
-  const entries: TimingEntry[] = [];
-
-  const slotItems: Record<TimeSlot, string[]> = { morning: [], midday: [], evening: [] };
-
-  for (const supp of supps) {
-    slotItems["morning"].push(supp.displayName);
-  }
-
-  for (const scan of scans) {
-    const slot = hourToSlot(new Date(scan.ts).getHours());
-    slotItems[slot].push(scan.productName);
-  }
-
-  for (const slot of ["morning", "midday", "evening"] as TimeSlot[]) {
-    const items = slotItems[slot];
-    if (items.length >= 2) {
-      entries.push({
-        text: `${items.length} items logged in the ${slot}`,
-        slot,
-      });
-    } else if (items.length === 1) {
-      entries.push({
-        text: `${items[0]} is most often logged in the ${slot}`,
-        slot,
-      });
-    }
-  }
-
-  const caffeineScans = scans.filter((s) =>
-    /caffeine|coffee|espresso|americano|latte|cappuccino|tea|matcha|energy/i.test(s.productName),
-  );
-  if (caffeineScans.length > 0) {
-    const hours = caffeineScans.map((s) => new Date(s.ts).getHours());
-    const latest = Math.max(...hours);
-    if (latest >= 14) {
-      entries.push({
-        text: `Caffeine sources today appear after ${latest}:00`,
-        slot: latest >= 17 ? "evening" : "midday",
-      });
-    }
-  }
-
-  const morningItems = slotItems.morning;
-  const eveningItems = slotItems.evening;
-  if (morningItems.length > 0 && eveningItems.length > 0) {
-    entries.push({
-      text: `${morningItems[0]} and ${eveningItems[0]} are logged at different times`,
-      slot: "morning",
-    });
-  }
-
-  return entries;
 }
 
 /* ── Component ── */
@@ -374,10 +209,25 @@ export default function DashboardPage() {
   const [caffeineRange, setCaffeineRange] = useState<ExposureRange>("7d");
   const [sweetenerRange, setSweetenerRange] = useState<ExposureRange>("7d");
 
+  // AI schedule assessment
+  const [scheduleRecs, setScheduleRecs] = useState<ScheduleRec[] | null>(null);
+  const [scheduleAdvice, setScheduleAdvice] = useState("");
+  const [scheduleDisclaimer, setScheduleDisclaimer] = useState("");
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+
   useEffect(() => {
     const onSync = () => setSyncVer((v) => v + 1);
+    const onSupps = () => setSyncVer((v) => v + 1);
+    const onMeds = () => setSyncVer((v) => v + 1);
     window.addEventListener("veda:synced", onSync);
-    return () => window.removeEventListener("veda:synced", onSync);
+    window.addEventListener("veda:supps-updated", onSupps);
+    window.addEventListener("veda:meds-updated", onMeds);
+    return () => {
+      window.removeEventListener("veda:synced", onSync);
+      window.removeEventListener("veda:supps-updated", onSupps);
+      window.removeEventListener("veda:meds-updated", onMeds);
+    };
   }, []);
 
   const data = useMemo(() => {
@@ -386,10 +236,11 @@ export default function DashboardPage() {
     const scans = loadScansToday();
 
     return {
-      chips: buildTypicalDay(supps, meds, scans),
+      schedule: buildScheduleEntries(supps, meds),
       overlaps: buildOverlaps(supps, meds),
-      timing: buildTimingPatterns(supps, scans),
       hasData: supps.length > 0 || meds.length > 0 || scans.length > 0,
+      suppsCount: supps.length,
+      medsCount: meds.length,
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncVer]);
@@ -409,19 +260,82 @@ export default function DashboardPage() {
   const hasCaffeineHistory = caffeineDays.some((d) => d.caffeine > 0);
   const hasSweetenerHistory = sweetenerDays.some((d) => d.sweetenerCount > 0);
 
-  const morningChips = data.chips.filter((c) => c.slot === "morning");
-  const middayChips = data.chips.filter((c) => c.slot === "midday");
-  const eveningChips = data.chips.filter((c) => c.slot === "evening");
+  // Group schedule entries by time slot
+  const grouped = useMemo(() => {
+    const g: Record<ScheduleTime | "unscheduled", ScheduleEntry[]> = {
+      morning: [], afternoon: [], evening: [], night: [], unscheduled: [],
+    };
+    for (const entry of data.schedule) {
+      if (entry.schedule && g[entry.schedule]) {
+        g[entry.schedule].push(entry);
+      } else {
+        g.unscheduled.push(entry);
+      }
+    }
+    return g;
+  }, [data.schedule]);
+
+  const hasScheduledItems = data.schedule.some((e) => e.schedule);
+
+  const askAiSchedule = useCallback(async () => {
+    setScheduleLoading(true);
+    setScheduleError(null);
+    setScheduleRecs(null);
+
+    const rawSupps = loadLS<any[]>(SUPPS_KEY, []);
+    const rawMeds = loadLS<any[]>(MEDS_KEY, []);
+
+    try {
+      const res = await apiFetch("/api/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supplements: rawSupps, medications: rawMeds }),
+      });
+      const json = await res.json();
+      if (!json?.ok) {
+        setScheduleError(json?.error || "Could not generate suggestions.");
+        return;
+      }
+      setScheduleRecs(json.items || []);
+      setScheduleAdvice(json.generalAdvice || "");
+      setScheduleDisclaimer(json.disclaimer || "");
+    } catch {
+      setScheduleError("Connection failed. Please try again.");
+    } finally {
+      setScheduleLoading(false);
+    }
+  }, []);
+
+  const applyScheduleRecs = useCallback(() => {
+    if (!scheduleRecs || scheduleRecs.length === 0) return;
+    const rawSupps = loadLS<any[]>(SUPPS_KEY, []);
+    const rawMeds = loadLS<any[]>(MEDS_KEY, []);
+    let suppsChanged = false;
+    let medsChanged = false;
+
+    for (const rec of scheduleRecs) {
+      const si = rawSupps.findIndex((s: any) => s.id === rec.id);
+      if (si >= 0) { rawSupps[si] = { ...rawSupps[si], schedule: rec.recommended }; suppsChanged = true; continue; }
+      const mi = rawMeds.findIndex((m: any) => m.id === rec.id);
+      if (mi >= 0) { rawMeds[mi] = { ...rawMeds[mi], schedule: rec.recommended }; medsChanged = true; }
+    }
+
+    if (suppsChanged) { saveLS(SUPPS_KEY, rawSupps); window.dispatchEvent(new Event("veda:supps-updated")); }
+    if (medsChanged) { saveLS(MEDS_KEY, rawMeds); window.dispatchEvent(new Event("veda:meds-updated")); }
+    setScheduleRecs(null);
+    setScheduleAdvice("");
+    setSyncVer((v) => v + 1);
+  }, [scheduleRecs]);
 
   if (!data.hasData) {
     return (
       <main className="dashboard">
         <header className="dashboard__header">
           <h1 className="dashboard__title">Dashboard</h1>
-          <p className="dashboard__sub">Your patterns and signals at a glance</p>
+          <p className="dashboard__sub">Your daily schedule and patterns at a glance</p>
         </header>
         <div className="dashboard__empty">
-          <p>Start scanning items and marking supplements as taken to see your daily patterns here.</p>
+          <p>Start scanning items and marking supplements as taken to see your daily schedule here.</p>
         </div>
       </main>
     );
@@ -431,8 +345,140 @@ export default function DashboardPage() {
     <main className="dashboard">
       <header className="dashboard__header">
         <h1 className="dashboard__title">Dashboard</h1>
-        <p className="dashboard__sub">Your patterns and signals at a glance</p>
+        <p className="dashboard__sub">Your daily schedule and patterns at a glance</p>
       </header>
+
+      {/* Section: My Daily Schedule */}
+      <section className="dashboard__section">
+        <h2 className="dashboard__section-title">My Daily Schedule</h2>
+
+        {data.schedule.length === 0 ? (
+          <p className="dashboard__section-empty">
+            Add supplements or medications to see your schedule
+          </p>
+        ) : (
+          <>
+            {SCHEDULE_ORDER.map((time) => {
+              const items = grouped[time];
+              if (items.length === 0) return null;
+              const meta = SCHEDULE_META[time];
+              return (
+                <div className="sched__slot" key={time}>
+                  <div className="sched__slot-header">
+                    <span className="sched__slot-icon">{meta.icon}</span>
+                    <span className="sched__slot-label">{meta.label}</span>
+                    <span className="sched__slot-time">{meta.timeRange}</span>
+                  </div>
+                  <div className="sched__items">
+                    {items.map((item) => (
+                      <div className={`sched__item sched__item--${item.type}`} key={item.id}>
+                        <span className="sched__item-name">{item.name}</span>
+                        <span className="sched__item-type">{item.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {grouped.unscheduled.length > 0 && (
+              <div className="sched__slot sched__slot--unsched">
+                <div className="sched__slot-header">
+                  <span className="sched__slot-icon">📋</span>
+                  <span className="sched__slot-label">No time set</span>
+                  <span className="sched__slot-time">Assign on Supps or Meds page</span>
+                </div>
+                <div className="sched__items">
+                  {grouped.unscheduled.map((item) => (
+                    <div className={`sched__item sched__item--${item.type} sched__item--faded`} key={item.id}>
+                      <span className="sched__item-name">{item.name}</span>
+                      <span className="sched__item-type">{item.type}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* AI schedule assessment */}
+            {!scheduleRecs && (
+              <button
+                className="sched__ai-btn"
+                onClick={askAiSchedule}
+                disabled={scheduleLoading}
+              >
+                {scheduleLoading
+                  ? "Analyzing your schedule…"
+                  : "🤖 Are these the best time slots for me?"}
+              </button>
+            )}
+
+            {scheduleError && (
+              <div className="sched__ai-error">{scheduleError}</div>
+            )}
+
+            {scheduleRecs && scheduleRecs.length > 0 && (
+              <div className="sched__ai-result">
+                <div className="sched__ai-header">
+                  <span className="sched__ai-badge">🤖</span>
+                  <span className="sched__ai-title">AI Schedule Assessment</span>
+                </div>
+
+                {scheduleAdvice && (
+                  <p className="sched__ai-advice">{scheduleAdvice}</p>
+                )}
+
+                <div className="sched__ai-recs">
+                  {SCHEDULE_ORDER.map((time) => {
+                    const items = scheduleRecs.filter((r) => r.recommended === time);
+                    if (items.length === 0) return null;
+                    const meta = SCHEDULE_META[time];
+                    return (
+                      <div key={time} className="sched__ai-group">
+                        <div className="sched__ai-group-label">
+                          {meta.icon} {meta.label} <span className="sched__ai-group-time">{meta.timeRange}</span>
+                        </div>
+                        {items.map((item) => {
+                          const current = data.schedule.find((e) => e.id === item.id);
+                          const changed = current?.schedule !== item.recommended;
+                          return (
+                            <div key={item.id} className={`sched__ai-rec ${changed ? "sched__ai-rec--changed" : ""}`}>
+                              <div className="sched__ai-rec-top">
+                                <span className="sched__ai-rec-name">{item.name}</span>
+                                {changed && current?.schedule && (
+                                  <span className="sched__ai-rec-move">
+                                    was {SCHEDULE_META[current.schedule].label}
+                                  </span>
+                                )}
+                                {changed && !current?.schedule && (
+                                  <span className="sched__ai-rec-move">new</span>
+                                )}
+                              </div>
+                              <div className="sched__ai-rec-reason">{item.reason}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {scheduleDisclaimer && (
+                  <p className="sched__ai-disclaimer">{scheduleDisclaimer}</p>
+                )}
+
+                <div className="sched__ai-actions">
+                  <button className="sched__ai-apply" onClick={applyScheduleRecs}>
+                    Apply suggestions
+                  </button>
+                  <button className="sched__ai-dismiss" onClick={() => { setScheduleRecs(null); setScheduleAdvice(""); }}>
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
       {/* Section: Caffeine intake */}
       <section className="dashboard__section">
@@ -501,43 +547,10 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Section — Your typical day */}
-      <section className="dashboard__section">
-        <h2 className="dashboard__section-title">Your typical day</h2>
-
-        {[
-          { label: "Morning", icon: slotIcon("morning"), chips: morningChips },
-          { label: "Midday", icon: slotIcon("midday"), chips: middayChips },
-          { label: "Evening", icon: slotIcon("evening"), chips: eveningChips },
-        ].map((group) => (
-          <div className="day__slot" key={group.label}>
-            <div className="day__slot-header">
-              <span className={`day__slot-icon day__slot-icon--${group.icon}`} />
-              <span className="day__slot-label">{group.label}</span>
-            </div>
-            {group.chips.length === 0 ? (
-              <p className="day__slot-empty">Nothing logged yet</p>
-            ) : (
-              <div className="day__chips">
-                {group.chips.map((chip, i) => (
-                  <div className="day__chip" key={`${chip.name}-${i}`}>
-                    <span className="day__chip-name">{chip.name}</span>
-                    <span className="day__chip-src">{chip.sourceLabel}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </section>
-
-      {/* Section 2 — Overlap signals */}
-      <section className="dashboard__section">
-        <h2 className="dashboard__section-title">Overlap signals</h2>
-
-        {data.overlaps.length === 0 ? (
-          <p className="dashboard__section-empty">No overlaps detected across your current items</p>
-        ) : (
+      {/* Section: Overlap signals */}
+      {data.overlaps.length > 0 && (
+        <section className="dashboard__section">
+          <h2 className="dashboard__section-title">Overlap signals</h2>
           <div className="overlap__list">
             {data.overlaps.slice(0, 8).map((o, i) => (
               <div className="overlap__card" key={`${o.nutrientName}-${i}`}>
@@ -553,26 +566,8 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-        )}
-      </section>
-
-      {/* Section 3 — Timing patterns (observed) */}
-      <section className="dashboard__section">
-        <h2 className="dashboard__section-title">Timing patterns (observed)</h2>
-
-        {data.timing.length === 0 ? (
-          <p className="dashboard__section-empty">Log a few items to see timing observations</p>
-        ) : (
-          <div className="timing__list">
-            {data.timing.map((t, i) => (
-              <div className="timing__entry" key={i}>
-                <span className={`timing__dot timing__dot--${t.slot}`} />
-                <span className="timing__text">{t.text}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+        </section>
+      )}
     </main>
   );
 }
