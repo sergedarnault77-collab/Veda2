@@ -56,8 +56,17 @@ export async function requireAuth(req: Request | { headers: Record<string, any> 
 }
 
 export function unauthorized(message = "Authentication required") {
-  return new Response(JSON.stringify({ ok: false, error: message }), {
-    status: 401,
-    headers: { "content-type": "application/json" },
-  });
+  const { url, key } = getSupabaseConfig();
+  const hasConfig = Boolean(url && key);
+  return new Response(
+    JSON.stringify({
+      ok: false,
+      error: message,
+      hint: hasConfig ? "token_invalid" : "server_config_missing",
+    }),
+    {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    },
+  );
 }

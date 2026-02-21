@@ -28,20 +28,25 @@ function buildHeaders(init: RequestInit | undefined, token: string | null): Head
 
 /**
  * Wrapper around fetch() that injects the Supabase auth token.
+ * Proactively refreshes if no cached session exists.
  * On 401, refreshes the session and retries once.
  */
 export async function apiFetch(
   input: string | URL | RequestInfo,
   init?: RequestInit,
 ): Promise<Response> {
-  const token = await getToken();
-  const headers = buildHeaders(init, token);
+  let token = await getToken();
 
+  if (!token) {
+    token = await refreshAndGetToken();
+  }
+
+  const headers = buildHeaders(init, token);
   const res = await fetch(input, { ...init, headers });
 
-  if (res.status === 401 && token) {
+  if (res.status === 401) {
     const freshToken = await refreshAndGetToken();
-    if (freshToken && freshToken !== token) {
+    if (freshToken) {
       const retryHeaders = buildHeaders(init, freshToken);
       return fetch(input, { ...init, headers: retryHeaders });
     }

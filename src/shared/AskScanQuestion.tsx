@@ -139,7 +139,11 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
       if (!data?.ok) {
         const msg = data?.error;
         if (msg === "Authentication required") {
-          setError("Session expired — please reload the app and try again.");
+          if (data?.hint === "server_config_missing") {
+            setError("Server configuration issue — please contact support.");
+          } else {
+            setError("Session expired — please log out and sign in again.");
+          }
         } else {
           setError(msg || "Something went wrong. Please try again.");
         }
