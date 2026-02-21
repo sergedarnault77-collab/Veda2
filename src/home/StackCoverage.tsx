@@ -172,6 +172,14 @@ export function StackCoverage() {
   });
   const [stackInsight, setStackInsight] = useState<ItemInsights | null>(null);
   const [expandedUl, setExpandedUl] = useState<string | null>(null);
+
+  // Schedule optimizer
+  type ScheduleRec = { id: string; name: string; recommended: ScheduleTime; reason: string };
+  const [scheduleRecs, setScheduleRecs] = useState<ScheduleRec[] | null>(null);
+  const [scheduleAdvice, setScheduleAdvice] = useState<string>("");
+  const [scheduleDisclaimer, setScheduleDisclaimer] = useState<string>("");
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [ulExplanation, setUlExplanation] = useState<Record<string, string>>({});
   const [ulLoading, setUlLoading] = useState<string | null>(null);
 
@@ -216,6 +224,69 @@ export function StackCoverage() {
   }, [taken]);
 
   const takenSupps = useMemo(() => supps.filter((s) => taken[s.id]), [supps, taken]);
+
+  const optimizeSchedule = useCallback(async () => {
+    setScheduleLoading(true);
+    setScheduleError(null);
+    setScheduleRecs(null);
+
+    const meds = loadLS<any[]>("veda.meds.v1", []);
+    const rawSupps = loadLS<any[]>(SUPPS_KEY, []);
+
+    try {
+      const res = await apiFetch("/api/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supplements: rawSupps, medications: meds }),
+      });
+      const data = await res.json();
+      if (!data?.ok) {
+        setScheduleError(data?.error || "Could not generate schedule.");
+        return;
+      }
+      setScheduleRecs(data.items || []);
+      setScheduleAdvice(data.generalAdvice || "");
+      setScheduleDisclaimer(data.disclaimer || "");
+    } catch {
+      setScheduleError("Connection failed. Please try again.");
+    } finally {
+      setScheduleLoading(false);
+    }
+  }, []);
+
+  const applyScheduleRecs = useCallback(() => {
+    if (!scheduleRecs || scheduleRecs.length === 0) return;
+    const raw = loadLS<any[]>(SUPPS_KEY, []);
+    const meds = loadLS<any[]>("veda.meds.v1", []);
+    let suppsChanged = false;
+    let medsChanged = false;
+
+    for (const rec of scheduleRecs) {
+      const suppIdx = raw.findIndex((s: any) => s.id === rec.id);
+      if (suppIdx >= 0) {
+        raw[suppIdx] = { ...raw[suppIdx], schedule: rec.recommended };
+        suppsChanged = true;
+        continue;
+      }
+      const medIdx = meds.findIndex((m: any) => m.id === rec.id);
+      if (medIdx >= 0) {
+        meds[medIdx] = { ...meds[medIdx], schedule: rec.recommended };
+        medsChanged = true;
+      }
+    }
+
+    if (suppsChanged) {
+      saveLS(SUPPS_KEY, raw);
+      setSupps(loadSupps());
+      window.dispatchEvent(new Event("veda:supps-updated"));
+    }
+    if (medsChanged) {
+      saveLS("veda.meds.v1", meds);
+      window.dispatchEvent(new Event("veda:meds-updated"));
+    }
+    setScheduleRecs(null);
+    setScheduleAdvice("");
+  }, [scheduleRecs]);
 
   const effectiveSchedule = useCallback((s: SavedSupp): ScheduleTime | null => {
     return scheduleOverrides[s.id] ?? s.schedule ?? null;
@@ -482,6 +553,66 @@ export function StackCoverage() {
               <strong>{s.displayName}</strong> has per-100g nutrition — set a serving size on the Supplements page to include it in your balance.
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Schedule optimizer */}
+      {supps.length > 0 && !scheduleRecs && (
+        <button
+          className="coverage__optimize-btn"
+          onClick={optimizeSchedule}
+          disabled={scheduleLoading}
+        >
+          {scheduleLoading ? "Analyzing your stack…" : "⏱ Optimize my schedule"}
+        </button>
+      )}
+
+      {scheduleError && (
+        <div className="coverage__schedule-error">{scheduleError}</div>
+      )}
+
+      {scheduleRecs && scheduleRecs.length > 0 && (
+        <div className="coverage__schedule-recs">
+          <div className="coverage__schedule-recs-header">
+            <span className="coverage__schedule-recs-title">Recommended schedule</span>
+          </div>
+
+          {scheduleAdvice && (
+            <p className="coverage__schedule-advice">{scheduleAdvice}</p>
+          )}
+
+          <div className="coverage__schedule-recs-list">
+            {(["morning", "afternoon", "evening", "night"] as ScheduleTime[]).map((time) => {
+              const items = scheduleRecs.filter((r) => r.recommended === time);
+              if (items.length === 0) return null;
+              return (
+                <div key={time} className="coverage__schedule-recs-group">
+                  <div className="coverage__schedule-recs-time">
+                    {SCHEDULE_META[time].icon} {SCHEDULE_META[time].label}
+                  </div>
+                  {items.map((item) => (
+                    <div key={item.id} className="coverage__schedule-rec-item">
+                      <span className="coverage__schedule-rec-name">{item.name}</span>
+                      <span className="coverage__schedule-rec-reason">{item.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+
+          {scheduleDisclaimer && (
+            <p className="coverage__schedule-disclaimer">{scheduleDisclaimer}</p>
+          )}
+
+          <div className="coverage__schedule-recs-actions">
+            <button className="coverage__schedule-apply" onClick={applyScheduleRecs}>
+              Apply this schedule
+            </button>
+            <button className="coverage__schedule-dismiss" onClick={() => { setScheduleRecs(null); setScheduleAdvice(""); }}>
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
