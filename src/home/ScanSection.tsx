@@ -123,13 +123,8 @@ function hasCaffeineAmount(result: any): boolean {
   return false;
 }
 
-type ScheduleTime = "morning" | "afternoon" | "evening" | "night";
-const SCHEDULE_OPTIONS: { value: ScheduleTime; label: string; icon: string }[] = [
-  { value: "morning", label: "Morning", icon: "🌅" },
-  { value: "afternoon", label: "Afternoon", icon: "☀️" },
-  { value: "evening", label: "Evening", icon: "🌆" },
-  { value: "night", label: "Night", icon: "🌙" },
-];
+import { SCHEDULE_SLOTS } from "../lib/schedule";
+import type { ScheduleTime } from "../lib/schedule";
 
 type CaffeineAnswer = null | "regular" | "decaf";
 
@@ -900,13 +895,14 @@ export default function ScanSection({ onScanComplete }: Props) {
               <div className="scan-status__schedulePicker">
                 <div className="scan-status__scheduleLabel">When do you normally take this?</div>
                 <div className="scan-status__schedulePills">
-                  {SCHEDULE_OPTIONS.map((opt) => (
+                  {SCHEDULE_SLOTS.map((opt) => (
                     <button
                       key={opt.value}
                       className={`scan-status__schedulePill${saveSchedule === opt.value ? " scan-status__schedulePill--active" : ""}`}
                       onClick={() => setSaveSchedule(saveSchedule === opt.value ? undefined : opt.value)}
                     >
-                      {opt.icon} {opt.label}
+                      <span>{opt.icon} {opt.label}</span>
+                      <span className="scan-status__schedulePill-time">{opt.timeRange}</span>
                     </button>
                   ))}
                 </div>

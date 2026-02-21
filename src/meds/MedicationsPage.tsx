@@ -40,13 +40,8 @@ function riskColor(risk: string) {
   return "var(--veda-accent, #2E5BFF)";
 }
 
-type ScheduleTime = "morning" | "afternoon" | "evening" | "night";
-const SCHEDULE_OPTIONS: { value: ScheduleTime; label: string; icon: string }[] = [
-  { value: "morning", label: "Morning", icon: "🌅" },
-  { value: "afternoon", label: "Afternoon", icon: "☀️" },
-  { value: "evening", label: "Evening", icon: "🌆" },
-  { value: "night", label: "Night", icon: "🌙" },
-];
+import { SCHEDULE_SLOTS } from "../lib/schedule";
+import type { ScheduleTime } from "../lib/schedule";
 
 async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
   try {
@@ -277,14 +272,17 @@ export default function MedicationsPage() {
                 <div className="med-card__schedule">
                   <div className="med-card__label">When do you take this?</div>
                   <div className="med-card__schedule-pills">
-                    {SCHEDULE_OPTIONS.map((opt) => (
+                    {SCHEDULE_SLOTS.map((opt) => (
                       <button
                         key={opt.value}
                         className={`med-card__schedule-pill${m.schedule === opt.value ? " med-card__schedule-pill--active" : ""}`}
                         onClick={() => updateSchedule(m.id, m.schedule === opt.value ? undefined : opt.value)}
                       >
                         <span className="med-card__schedule-icon">{opt.icon}</span>
-                        {opt.label}
+                        <span className="med-card__schedule-text">
+                          <span>{opt.label}</span>
+                          <span className="med-card__schedule-time">{opt.timeRange}</span>
+                        </span>
                       </button>
                     ))}
                   </div>

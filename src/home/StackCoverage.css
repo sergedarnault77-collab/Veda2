@@ -318,6 +318,15 @@
   margin-bottom: 4px;
 }
 
+.coverage__group-time {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+  margin-left: 4px;
+  font-size: 0.64rem;
+}
+
 .coverage__chip-wrap {
   display: inline-flex;
   align-items: center;
@@ -428,6 +437,14 @@
   letter-spacing: 0.04em;
   color: var(--veda-text-muted, #8892b0);
   margin-bottom: 2px;
+}
+
+.coverage__schedule-recs-time-range {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+  font-size: 0.68rem;
 }
 
 .coverage__schedule-rec-item {

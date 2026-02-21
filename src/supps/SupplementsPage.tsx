@@ -269,13 +269,8 @@ class CardErrorBoundary extends Component<{ children: ReactNode; name: string; o
   }
 }
 
-type ScheduleTime = "morning" | "afternoon" | "evening" | "night";
-const SCHEDULE_OPTIONS: { value: ScheduleTime; label: string; icon: string }[] = [
-  { value: "morning", label: "Morning", icon: "🌅" },
-  { value: "afternoon", label: "Afternoon", icon: "☀️" },
-  { value: "evening", label: "Evening", icon: "🌆" },
-  { value: "night", label: "Night", icon: "🌙" },
-];
+import { SCHEDULE_SLOTS } from "../lib/schedule";
+import type { ScheduleTime } from "../lib/schedule";
 
 function SupplementCard({
   s,
@@ -393,14 +388,17 @@ function SupplementCard({
         <div className="supp-card__schedule">
           <div className="supp-card__label">When do you take this?</div>
           <div className="supp-card__schedule-pills">
-            {SCHEDULE_OPTIONS.map((opt) => (
+            {SCHEDULE_SLOTS.map((opt) => (
               <button
                 key={opt.value}
                 className={`supp-card__schedule-pill${s.schedule === opt.value ? " supp-card__schedule-pill--active" : ""}`}
                 onClick={() => onUpdateSchedule(s.id, s.schedule === opt.value ? undefined : opt.value)}
               >
                 <span className="supp-card__schedule-icon">{opt.icon}</span>
-                {opt.label}
+                <span className="supp-card__schedule-text">
+                  <span>{opt.label}</span>
+                  <span className="supp-card__schedule-time">{opt.timeRange}</span>
+                </span>
               </button>
             ))}
           </div>

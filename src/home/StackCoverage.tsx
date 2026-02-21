@@ -13,27 +13,19 @@ import {
 import type { NutrientComputed, IntakeLine, DietAnswers, FoodCoverage } from "../lib/nutrition";
 import type { ItemInsights } from "../shared/AddScannedItemModal";
 import { translateName } from "../lib/translate-nutrients";
+import { SCHEDULE_META, SCHEDULE_ORDER } from "../lib/schedule";
+import type { ScheduleTime } from "../lib/schedule";
 import "./StackCoverage.css";
 
 const SUPPS_KEY = "veda.supps.v1";
 const TAKEN_KEY = "veda.supps.taken.v1";
 const DIET_KEY = "veda.diet.answers.v1";
 
-type ScheduleTime = "morning" | "afternoon" | "evening" | "night";
 type TakenStore = {
   date: string;
   flags: Record<string, boolean>;
   scheduleOverrides?: Record<string, ScheduleTime>;
 };
-
-const SCHEDULE_META: Record<ScheduleTime, { label: string; icon: string }> = {
-  morning:   { label: "Morning",   icon: "🌅" },
-  afternoon: { label: "Afternoon", icon: "☀️" },
-  evening:   { label: "Evening",   icon: "🌆" },
-  night:     { label: "Night",     icon: "🌙" },
-};
-
-const SCHEDULE_ORDER: ScheduleTime[] = ["morning", "afternoon", "evening", "night"];
 
 function todayStr() {
   const d = new Date();
@@ -447,7 +439,7 @@ export function StackCoverage() {
             const meta = SCHEDULE_META[time];
             return (
               <div key={time} className="coverage__group">
-                <div className="coverage__group-label">{meta.icon} {meta.label}</div>
+                <div className="coverage__group-label">{meta.icon} {meta.label} <span className="coverage__group-time">{meta.timeRange}</span></div>
                 <div className="coverage__chips">
                   {items.map((s) => {
                     const active = !!taken[s.id];
@@ -471,7 +463,7 @@ export function StackCoverage() {
                         >
                           <option value="">—</option>
                           {SCHEDULE_ORDER.map((t) => (
-                            <option key={t} value={t}>{SCHEDULE_META[t].icon} {SCHEDULE_META[t].label}</option>
+                            <option key={t} value={t}>{SCHEDULE_META[t].icon} {SCHEDULE_META[t].label} ({SCHEDULE_META[t].timeRange})</option>
                           ))}
                         </select>
                       </div>
@@ -507,7 +499,7 @@ export function StackCoverage() {
                       >
                         <option value="">—</option>
                         {SCHEDULE_ORDER.map((t) => (
-                          <option key={t} value={t}>{SCHEDULE_META[t].icon} {SCHEDULE_META[t].label}</option>
+                          <option key={t} value={t}>{SCHEDULE_META[t].icon} {SCHEDULE_META[t].label} ({SCHEDULE_META[t].timeRange})</option>
                         ))}
                       </select>
                     </div>
@@ -588,7 +580,7 @@ export function StackCoverage() {
               return (
                 <div key={time} className="coverage__schedule-recs-group">
                   <div className="coverage__schedule-recs-time">
-                    {SCHEDULE_META[time].icon} {SCHEDULE_META[time].label}
+                    {SCHEDULE_META[time].icon} {SCHEDULE_META[time].label} <span className="coverage__schedule-recs-time-range">{SCHEDULE_META[time].timeRange}</span>
                   </div>
                   {items.map((item) => (
                     <div key={item.id} className="coverage__schedule-rec-item">
