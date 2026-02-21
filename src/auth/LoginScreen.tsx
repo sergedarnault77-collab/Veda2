@@ -17,6 +17,7 @@ export default function LoginScreen({ onLogin, onGoToRegister }: Props) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -145,7 +146,32 @@ export default function LoginScreen({ onLogin, onGoToRegister }: Props) {
         </div>
 
         {error && (
-          <div className="login__error">{error}</div>
+          <div className="login__error">
+            {error}
+            {error === "Invalid login credentials" && (
+              <div className="login__error-hint">
+                If you signed up with Google or Apple, use those buttons above instead.
+              </div>
+            )}
+          </div>
+        )}
+
+        {resetSent ? (
+          <div className="login__reset-sent">Password reset email sent — check your inbox.</div>
+        ) : (
+          <button
+            type="button"
+            className="login__forgot"
+            onClick={async () => {
+              if (!email.trim()) { setError("Enter your email first, then tap Forgot password."); return; }
+              const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+                redirectTo: window.location.origin,
+              });
+              if (resetErr) { setError(resetErr.message); } else { setResetSent(true); setError(null); }
+            }}
+          >
+            Forgot password?
+          </button>
         )}
 
         <button type="submit" className="login__cta" disabled={loading}>

@@ -191,3 +191,33 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+.login__forgot {
+  background: none;
+  border: none;
+  color: var(--veda-text-muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-align: right;
+  width: 100%;
+  padding: 0;
+  margin: -2px 0 4px;
+}
+
+.login__forgot:hover {
+  color: var(--veda-accent);
+}
+
+.login__error-hint {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  opacity: 0.85;
+  font-weight: 400;
+}
+
+.login__reset-sent {
+  font-size: 0.82rem;
+  color: #34d399;
+  text-align: center;
+  padding: 8px 0;
+}
