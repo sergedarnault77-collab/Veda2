@@ -19,8 +19,7 @@ type ScheduleResponse = {
 };
 
 function envOpenAIKey(): string | null {
-  const p = (globalThis as any)?.process;
-  return (p?.env?.OPENAI_API_KEY as string | undefined) ?? null;
+  return process.env.OPENAI_API_KEY ?? null;
 }
 
 export default async function handler(req: Request): Promise<Response> {

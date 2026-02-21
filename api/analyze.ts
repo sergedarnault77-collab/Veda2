@@ -72,14 +72,12 @@ const CATEGORY_KEYS: CategoryKey[] = [
 
 /* ── Env ── */
 function envOpenAIKey(): string | null {
-  const p = (globalThis as any)?.process;
-  return (p?.env?.OPENAI_API_KEY as string | undefined) ?? null;
+  return process.env.OPENAI_API_KEY ?? null;
 }
 
 /* ── Product database lookup (fast path) ── */
 async function tryProductDbLookup(productName: string): Promise<AnalyzeResponse | null> {
-  const p = (globalThis as any)?.process;
-  const connStr = (p?.env?.DATABASE_URL || p?.env?.STORAGE_URL || "").trim();
+  const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
   if (!connStr || !productName || productName.length < 3) return null;
 
   try {

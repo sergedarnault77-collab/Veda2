@@ -3,8 +3,7 @@ export const config = { runtime: "edge" };
 import { requireAuth, unauthorized } from "./lib/auth";
 
 function envOpenAIKey(): string | null {
-  const p = (globalThis as any)?.process;
-  return (p?.env?.OPENAI_API_KEY as string | undefined) ?? null;
+  return process.env.OPENAI_API_KEY ?? null;
 }
 
 function json(data: unknown, status = 200) {

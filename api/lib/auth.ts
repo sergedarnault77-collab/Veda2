@@ -3,8 +3,17 @@ import { createClient } from "@supabase/supabase-js";
 export type AuthUser = { id: string; email: string };
 
 function env(key: string): string {
-  const e = (globalThis as any)?.process?.env ?? {};
-  return (e[key] || "").trim();
+  try {
+    // Edge Runtime: process is a direct global, not always on globalThis
+    if (typeof process !== "undefined" && process?.env) {
+      return (process.env[key] || "").trim();
+    }
+  } catch { /* ignore */ }
+  try {
+    const g = (globalThis as any)?.process?.env;
+    if (g) return (g[key] || "").trim();
+  } catch { /* ignore */ }
+  return "";
 }
 
 function getSupabaseConfig() {

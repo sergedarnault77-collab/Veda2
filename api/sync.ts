@@ -7,8 +7,7 @@ const VALID_COLLECTIONS = ["user", "supps", "meds", "exposure", "scans", "taken"
 type Collection = (typeof VALID_COLLECTIONS)[number];
 
 function getConnStr(): string {
-  const env = (globalThis as any)?.process?.env ?? {};
-  return (env.DATABASE_URL || env.STORAGE_URL || "").trim();
+  return (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
 }
 
 function getDb() {

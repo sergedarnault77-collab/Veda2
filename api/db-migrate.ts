@@ -11,7 +11,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const secret = req.headers.get("x-migrate-secret") || "";
-  const envSecret = ((globalThis as any)?.process?.env?.MIGRATE_SECRET || "").trim();
+  const envSecret = (process.env.MIGRATE_SECRET || "").trim();
   if (!envSecret || secret !== envSecret) {
     return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
       status: 401,
@@ -19,8 +19,7 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
-  const env = (globalThis as any)?.process?.env ?? {};
-  const connStr = (env.DATABASE_URL || env.STORAGE_URL || "").trim();
+  const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
   if (!connStr) {
     return new Response(JSON.stringify({ ok: false, error: "DATABASE_URL or STORAGE_URL not set" }), {
       status: 500,

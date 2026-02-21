@@ -4,8 +4,7 @@ import { neon } from "@neondatabase/serverless";
 import { requireAuth, unauthorized } from "./lib/auth";
 
 function getDb() {
-  const env = (globalThis as any)?.process?.env ?? {};
-  const connStr = (env.DATABASE_URL || env.STORAGE_URL || "").trim();
+  const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
   if (!connStr) return null;
   return neon(connStr);
 }
