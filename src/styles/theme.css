@@ -51,52 +51,72 @@
   --color-veda-caution-soft: var(--veda-caution-soft);
   --color-veda-issue: var(--veda-issue);
   --color-veda-issue-soft: var(--veda-issue-soft);
+  --color-veda-issue-border: var(--veda-issue-border);
+
+  --color-veda-balance-border: var(--veda-balance-border);
+  --color-veda-caution-border: var(--veda-caution-border);
+
+  --color-veda-ai: var(--veda-ai);
+  --color-veda-ai-soft: var(--veda-ai-soft);
+  --color-veda-ai-border: var(--veda-ai-border);
 
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
 
   --radius-lg: var(--radius);
 }
 
-/* ── Veda Light Theme — Design Tokens ── */
+/* ── Veda Light Health Palette — Design Tokens ── */
 
 :root {
-  /* ── core palette ── */
-  --veda-bg: #F6F7F9;
-  --veda-bg-gradient: linear-gradient(145deg, #F6F7F9 0%, #EFF1F5 50%, #F3F4F7 100%);
-  --veda-surface: #FFFFFF;
-  --veda-surface-soft: #F1F3F6;
+  /* ── backgrounds ── */
+  --veda-bg: #F5F8FF;
+  --veda-bg-gradient: linear-gradient(180deg, #F5F8FF 0%, #EEF3FF 52%, #FFFFFF 100%);
+  --veda-surface: rgba(255, 255, 255, 0.92);
+  --veda-surface-soft: rgba(255, 255, 255, 0.78);
   --veda-surface-solid: #FFFFFF;
   --veda-surface-hover: #EDF0F4;
 
+  /* ── text ── */
   --veda-text: #0F172A;
-  --veda-text-muted: #475569;
+  --veda-text-muted: #334155;
   --veda-text-subtle: #64748B;
 
-  --veda-border: #E5E7EB;
-  --veda-border-soft: #EDF0F3;
-  --veda-border-accent: rgba(59, 130, 246, 0.2);
+  /* ── borders ── */
+  --veda-border: rgba(15, 23, 42, 0.10);
+  --veda-border-soft: rgba(15, 23, 42, 0.06);
+  --veda-border-accent: rgba(37, 99, 235, 0.18);
 
-  --veda-accent: #3B82F6;
-  --veda-accent-light: #60A5FA;
-  --veda-accent-glow: rgba(59, 130, 246, 0.15);
-  --veda-royal-deep: #1E3A5F;
+  /* ── brand / accent ── */
+  --veda-accent: #2563EB;
+  --veda-accent-light: #3B82F6;
+  --veda-accent-glow: rgba(37, 99, 235, 0.12);
+  --veda-royal-deep: #1D4ED8;
 
   /* ── semantic status ── */
-  --veda-primary: #3B82F6;
-  --veda-primary-soft: #E8F0FE;
+  --veda-primary: #2563EB;
+  --veda-primary-soft: rgba(37, 99, 235, 0.10);
 
-  --veda-balance: #2FA4A9;
-  --veda-balance-soft: #E6F4F5;
+  --veda-balance: #10B981;
+  --veda-balance-soft: #ECFDF5;
+  --veda-balance-border: #A7F3D0;
 
   --veda-caution: #F59E0B;
-  --veda-caution-soft: #FEF3C7;
+  --veda-caution-soft: #FFFBEB;
+  --veda-caution-border: #FDE68A;
 
-  --veda-issue: #DC2626;
-  --veda-issue-soft: #FDECEC;
+  --veda-issue: #EF4444;
+  --veda-issue-soft: #FEF2F2;
+  --veda-issue-border: #FECACA;
+
+  /* ── AI panel ── */
+  --veda-ai: #6366F1;
+  --veda-ai-soft: #EEF2FF;
+  --veda-ai-border: #C7D2FE;
 
   /* legacy status aliases */
-  --veda-red: #DC2626;
+  --veda-red: #EF4444;
   --veda-orange: #F59E0B;
   --veda-orange-soft: #E8920A;
   --veda-green: var(--veda-balance);
@@ -105,50 +125,51 @@
   /* ── exposure bar fills ── */
   --bar-sugar: #F59E0B;
   --bar-sweetener: #9030A0;
-  --bar-calorie: #3B82F6;
+  --bar-calorie: #2563EB;
   --bar-caffeine: #1AA8B8;
 
   /* ── alpha helpers ── */
-  --alpha-faint: rgba(0, 0, 0, 0.02);
-  --alpha-subtle: rgba(0, 0, 0, 0.04);
-  --alpha-soft: rgba(0, 0, 0, 0.06);
-  --alpha-medium: rgba(0, 0, 0, 0.08);
-  --alpha-hover: rgba(0, 0, 0, 0.04);
+  --alpha-faint: rgba(15, 23, 42, 0.02);
+  --alpha-subtle: rgba(15, 23, 42, 0.04);
+  --alpha-soft: rgba(15, 23, 42, 0.06);
+  --alpha-medium: rgba(15, 23, 42, 0.08);
+  --alpha-hover: rgba(15, 23, 42, 0.04);
 
   /* ── nav glass ── */
   --nav-bg: rgba(255, 255, 255, 0.82);
-  --nav-border: rgba(0, 0, 0, 0.08);
-  --nav-active-bg: rgba(59, 130, 246, 0.10);
-  --nav-active-ring: rgba(59, 130, 246, 0.20);
+  --nav-border: rgba(15, 23, 42, 0.08);
+  --nav-active-bg: rgba(37, 99, 235, 0.10);
+  --nav-active-ring: rgba(37, 99, 235, 0.20);
 
   /* ── typography ── */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
   /* ── drink builder ── */
-  --db-chip-bg: rgba(0, 0, 0, 0.04);
-  --db-chip-hover-bg: rgba(0, 0, 0, 0.08);
-  --db-estimate-bg: rgba(0, 0, 0, 0.04);
+  --db-chip-bg: rgba(15, 23, 42, 0.04);
+  --db-chip-hover-bg: rgba(15, 23, 42, 0.08);
+  --db-estimate-bg: rgba(15, 23, 42, 0.04);
 
   /* ── radii ── */
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-lg: 16px;
   --radius-xl: 24px;
-  --radius: 12px;
+  --radius: 14px;
 
   /* ── shadows ── */
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.06), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.10), 0 4px 10px rgba(15, 23, 42, 0.06);
 
   /* ── shadcn-style semantic tokens ── */
   --background: var(--veda-bg);
   --foreground: var(--veda-text);
 
-  --card: var(--veda-surface);
+  --card: var(--veda-surface-solid);
   --card-foreground: var(--veda-text);
 
-  --popover: var(--veda-surface);
+  --popover: var(--veda-surface-solid);
   --popover-foreground: var(--veda-text);
 
   --primary: var(--veda-primary);
@@ -168,13 +189,13 @@
 
   --border: var(--veda-border);
   --input: var(--veda-border);
-  --ring: rgba(59, 130, 246, 0.35);
+  --ring: rgba(37, 99, 235, 0.35);
 }
 
 /* ── Dark mode (opt-in) ── */
 [data-theme="dark"] {
   --veda-bg: #0A0E1C;
-  --veda-bg-gradient: linear-gradient(145deg, #0A0E1C 0%, #10172D 50%, #0C1024 100%);
+  --veda-bg-gradient: linear-gradient(180deg, #0A0E1C 0%, #10172D 52%, #0C1024 100%);
   --veda-surface: rgba(16, 23, 45, 0.7);
   --veda-surface-soft: rgba(16, 23, 45, 0.5);
   --veda-surface-solid: #10172D;
@@ -188,11 +209,31 @@
   --veda-accent: #2E5BFF;
   --veda-accent-light: #5a80ff;
   --veda-accent-glow: rgba(46, 91, 255, 0.2);
+  --veda-royal-deep: #5a80ff;
+
+  --veda-primary: #2E5BFF;
+  --veda-primary-soft: rgba(46, 91, 255, 0.15);
+
+  --veda-balance: #34D399;
+  --veda-balance-soft: rgba(52, 211, 153, 0.12);
+  --veda-balance-border: rgba(52, 211, 153, 0.25);
+
+  --veda-caution: #FBBF24;
+  --veda-caution-soft: rgba(251, 191, 36, 0.12);
+  --veda-caution-border: rgba(251, 191, 36, 0.25);
+
+  --veda-issue: #F87171;
+  --veda-issue-soft: rgba(248, 113, 113, 0.12);
+  --veda-issue-border: rgba(248, 113, 113, 0.25);
+
+  --veda-ai: #818CF8;
+  --veda-ai-soft: rgba(129, 140, 248, 0.12);
+  --veda-ai-border: rgba(129, 140, 248, 0.25);
 
   --veda-red: #f06292;
   --veda-orange: #FF8C1A;
   --veda-orange-soft: #FFB35C;
-  --veda-green: var(--veda-orange);
+  --veda-green: var(--veda-balance);
   --veda-magenta: #e056a0;
 
   --bar-sugar: #FF8C1A;
@@ -217,4 +258,5 @@
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
