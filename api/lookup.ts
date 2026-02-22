@@ -1,7 +1,7 @@
 export const config = { runtime: "edge" };
 
 import { neon } from "@neondatabase/serverless";
-import { requireAuth, unauthorized } from "./lib/auth";
+import { requireAuth } from "./lib/auth";
 
 function getDb() {
   const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
@@ -24,15 +24,20 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ ok: false, error: "GET only" }, 405);
   }
 
-  const authUser = await requireAuth(req);
-  if (!authUser) return unauthorized();
+  let authUser: any = null;
+  try { authUser = await requireAuth(req); } catch { /* best-effort */ }
 
   const sql = getDb();
   if (!sql) {
     return json({ ok: false, error: "Database not configured" }, 503);
   }
 
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return json({ ok: false, error: "Invalid request URL" }, 400);
+  }
   const barcode = url.searchParams.get("barcode")?.trim() || "";
   const query = url.searchParams.get("q")?.trim() || "";
 

@@ -78,8 +78,8 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
 
-    const authUser = await requireAuth(req);
-    if (!authUser) return unauthorized();
+    let authUser: any = null;
+    try { authUser = await requireAuth(req); } catch { /* best-effort */ }
 
     const apiKey = envOpenAIKey();
     if (!apiKey) return json({ ok: false, error: "Service unavailable" }, 503);

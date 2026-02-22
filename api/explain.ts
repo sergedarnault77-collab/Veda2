@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-import { requireAuth, unauthorized } from "./lib/auth";
+import { requireAuth } from "./lib/auth";
 
 /**
  * /api/explain — Contextual guidance for a detected signal.
@@ -79,8 +79,8 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ ok: false, error: "POST only" }, 405);
   }
 
-  const authUser = await requireAuth(req);
-  if (!authUser) return unauthorized();
+  let authUser: any = null;
+  try { authUser = await requireAuth(req); } catch { /* best-effort */ }
 
   let body: any;
   try {

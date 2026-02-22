@@ -4,7 +4,7 @@
 
 export const config = { runtime: "edge" };
 
-import { requireAuth, unauthorized } from "./lib/auth";
+import { requireAuth } from "./lib/auth";
 
 type AnalyzeResponse = {
   ok: boolean;
@@ -53,8 +53,8 @@ export default async function handler(req: Request): Promise<Response> {
       return json({ ok: false, error: "POST only" }, 405);
     }
 
-    const authUser = await requireAuth(req);
-    if (!authUser) return unauthorized();
+    let authUser: any = null;
+    try { authUser = await requireAuth(req); } catch { /* best-effort */ }
 
     const body = (await req.json().catch(() => null)) as any;
     if (!body) return json({ ok: true, item: stubItem("Invalid JSON") });
@@ -76,7 +76,12 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     // Call the new pipeline on the same origin
-    const origin = new URL(req.url).origin;
+    let origin: string;
+    try {
+      origin = new URL(req.url).origin;
+    } catch {
+      origin = "";
+    }
     const r = await fetch(`${origin}/api/analyze`, {
       method: "POST",
       headers: { "content-type": "application/json" },

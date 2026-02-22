@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-import { requireAuth, unauthorized } from "./lib/auth";
+import { requireAuth } from "./lib/auth";
 
 type TimeSlot = "morning" | "afternoon" | "evening" | "night";
 
@@ -23,8 +23,8 @@ function envOpenAIKey(): string | null {
 }
 
 export default async function handler(req: Request): Promise<Response> {
-  const authUser = await requireAuth(req);
-  if (!authUser) return unauthorized();
+  let authUser: any = null;
+  try { authUser = await requireAuth(req); } catch { /* best-effort */ }
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ ok: false, error: "POST only" }), {

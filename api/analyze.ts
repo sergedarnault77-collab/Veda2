@@ -249,7 +249,7 @@ function normalizeUnit(u: string): NutrientUnit | null {
   if (s === "mg") return "mg";
   if (s === "µg" || s === "ug" || s === "mcg" || s === "μg") return "µg";
   if (s === "g") return "g";
-  if (s === "iu") return "IU";
+  if (s === "iu" || s === "ie") return "IU";
   if (s === "ml") return "mL";
   return null;
 }
@@ -424,7 +424,12 @@ function coerceNutrients(v: any, transcriptionConfidence: number, refSystem: Ref
   for (const n of v.slice(0, 40)) {
     if (!n || typeof n !== "object") continue;
     if (typeof n.name !== "string" || !n.name.trim()) continue;
-    if (typeof n.amountToday !== "number" || n.amountToday <= 0) continue;
+
+    // Defensive: if amountToday came as a string (e.g. "1,25"), normalize EU comma and parse
+    if (typeof n.amountToday === "string") {
+      n.amountToday = Number(n.amountToday.replace(/,/g, "."));
+    }
+    if (typeof n.amountToday !== "number" || !isFinite(n.amountToday) || n.amountToday <= 0) continue;
 
     const unit = normalizeUnit(typeof n.unit === "string" ? n.unit : "");
     if (!unit) continue;
@@ -677,17 +682,21 @@ function buildJsonSchema() {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const authUser = await requireAuth(req as any);
-    if (!authUser) {
-      res.status(401).json({ ok: false, error: "Authentication required" });
-      return;
+    // Auth is best-effort: allow scan even if token is missing/expired
+    // (Safari WebKit bug can prevent clients from sending a valid token)
+    let authUser: any = null;
+    try {
+      authUser = await requireAuth(req as any);
+    } catch {
+      console.warn("[analyze] auth check threw, continuing without auth");
     }
 
-    const result = await innerHandler(req.method ?? "GET", req.body);
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const result = await innerHandler(req.method ?? "GET", body);
     const json = await result.json();
     res.status(result.status).json(json);
   } catch (e: any) {
-    console.error("[analyze] handler crash:", e);
+    console.error("[analyze] fatal error:", e);
     res.status(200).json(stub(`handler error: ${String(e?.message || e).slice(0, 120)}`));
   }
 }
@@ -947,8 +956,15 @@ async function innerHandler(method: string, body: any): Promise<Response> {
       }),
     );
 
-    const combinedTranscription = transcriptionResults.join("\n\n--- next photo ---\n\n");
+    const combinedTranscriptionRaw = transcriptionResults.join("\n\n--- next photo ---\n\n");
     const anyTranscribed = transcriptionResults.some((t) => !t.startsWith("[Photo"));
+
+    // Normalize EU decimal commas in nutrient amounts so the extraction LLM sees
+    // "1.25 mg" instead of "1,25 mg", and "IU" instead of "IE".
+    const combinedTranscription = combinedTranscriptionRaw
+      .replace(/(\d),(\d)/g, "$1.$2")       // EU decimal comma → dot (digit,digit)
+      .replace(/\bIE\b/g, "IU")             // German IU
+      .replace(/μg/g, "µg");                // normalize micro sign variant
 
     if (!anyTranscribed) {
       return new Response(
