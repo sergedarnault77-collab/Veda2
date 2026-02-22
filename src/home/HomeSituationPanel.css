@@ -1,0 +1,222 @@
+/* ── Home Situation Panel ── */
+
+.situation {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Header card */
+.situation__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+}
+
+.situation__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--veda-text);
+}
+
+.situation__subtitle {
+  font-size: 0.72rem;
+  color: var(--veda-text-muted);
+  margin-top: 3px;
+  line-height: 1.45;
+}
+
+.situation__badge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--veda-text-muted);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+  white-space: nowrap;
+}
+
+/* Insight cards */
+.insight-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--veda-border);
+  background: var(--veda-surface);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.insight-card--caution {
+  border-color: rgba(255, 140, 26, 0.2);
+  background: rgba(255, 140, 26, 0.04);
+}
+
+.insight-card--attention {
+  border-color: rgba(240, 98, 146, 0.2);
+  background: rgba(240, 98, 146, 0.04);
+}
+
+.insight-card__toggle {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  text-align: left;
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+.insight-card__title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--veda-text);
+  line-height: 1.35;
+}
+
+.insight-card__severity {
+  font-size: 0.68rem;
+  color: var(--veda-text-muted);
+  margin-top: 3px;
+}
+
+.insight-card__delta {
+  font-size: 0.68rem;
+  color: var(--veda-text-muted);
+  margin-top: 6px;
+}
+
+.insight-card__delta strong {
+  font-weight: 600;
+  color: var(--veda-text);
+}
+
+.insight-card__chevron {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--veda-text-muted);
+  padding-top: 2px;
+}
+
+/* Expanded content */
+.insight-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+/* Step blocks (What We See, Why It Matters, etc.) */
+.insight-block {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+}
+
+.insight-block__label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--veda-text-muted);
+}
+
+.insight-block__list {
+  margin-top: 8px;
+  padding-left: 18px;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.insight-block__list li {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--veda-text);
+}
+
+/* Meaning block (NOW / OVER TIME) */
+.meaning-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.meaning-lens {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+}
+
+.meaning-lens__label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--veda-text-muted);
+}
+
+.meaning-lens__list {
+  margin-top: 8px;
+  padding-left: 18px;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meaning-lens__list li {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--veda-text);
+}
+
+.situation__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Empty state */
+.situation__empty {
+  padding: 32px 16px;
+  text-align: center;
+  border-radius: var(--radius-lg);
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
+}
+
+.situation__empty-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--veda-text);
+  margin-bottom: 6px;
+}
+
+.situation__empty-text {
+  font-size: 0.75rem;
+  color: var(--veda-text-muted);
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (min-width: 600px) {
+  .meaning-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}

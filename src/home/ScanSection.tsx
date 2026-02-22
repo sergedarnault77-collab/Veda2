@@ -130,11 +130,12 @@ type CaffeineAnswer = null | "regular" | "decaf";
 
 interface Props {
   onScanComplete?: (result: ScanResult) => void;
+  onPendingResult?: (result: ScanResult | null) => void;
 }
 
 const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-export default function ScanSection({ onScanComplete }: Props) {
+export default function ScanSection({ onScanComplete, onPendingResult }: Props) {
   const [step, setStep] = useState<ScanStep>("idle");
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [ingredientsImages, setIngredientsImages] = useState<string[]>([]);
@@ -161,6 +162,19 @@ export default function ScanSection({ onScanComplete }: Props) {
     window.addEventListener("veda:synced", onSync);
     return () => window.removeEventListener("veda:synced", onSync);
   }, []);
+
+  useEffect(() => {
+    if (result && result.productName) {
+      onPendingResult?.({
+        productName: result.productName,
+        categories: result.categories || {},
+        nutrients: result.nutrients || [],
+        detectedEntities: result.detectedEntities || [],
+      });
+    } else {
+      onPendingResult?.(null);
+    }
+  }, [result, onPendingResult]);
 
   const hasIngredients = ingredientsImages.length > 0;
   const scanCount = todayScans.length;

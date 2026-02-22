@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import StackSignal from "./StackSignal";
 import { DailyReferenceBars } from "./DailyReferenceBars";
 import ScanSection from "./ScanSection";
 import type { ScanResult } from "./ScanSection";
 import { StackCoverage } from "./StackCoverage";
+import HomeSituationPanel from "./HomeSituationPanel";
+import { buildCurrentModel, buildPreviewModel } from "./buildSituationModel";
 import type { ExposureEntry } from "./stubs";
 import { loadLS } from "../lib/persist";
 import { snapshotToday } from "../lib/exposureHistory";
@@ -246,22 +248,41 @@ export default function HomePage({ isAI = false, userName }: Props) {
     snapshotToday(initial);
     return initial;
   });
+  const [pendingScan, setPendingScan] = useState<ScanResult | null>(null);
+  const [modelVer, setModelVer] = useState(0);
 
   useEffect(() => {
     const onSync = () => {
       const exp = deriveExposureFromScans();
       setExposure(exp);
       snapshotToday(exp);
+      setModelVer((v) => v + 1);
     };
+    const onUpdate = () => setModelVer((v) => v + 1);
     window.addEventListener("veda:synced", onSync);
-    return () => window.removeEventListener("veda:synced", onSync);
+    window.addEventListener("veda:supps-updated", onUpdate);
+    return () => {
+      window.removeEventListener("veda:synced", onSync);
+      window.removeEventListener("veda:supps-updated", onUpdate);
+    };
   }, []);
 
   const handleScanComplete = useCallback(() => {
     const exp = deriveExposureFromScans();
     setExposure(exp);
     snapshotToday(exp);
+    setPendingScan(null);
+    setModelVer((v) => v + 1);
   }, []);
+
+  const handlePendingResult = useCallback((result: ScanResult | null) => {
+    setPendingScan(result);
+  }, []);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const situationModel = useMemo(() => {
+    return pendingScan ? buildPreviewModel(pendingScan) : buildCurrentModel();
+  }, [pendingScan, modelVer]);
 
   const entries = exposureToEntries(exposure);
 
@@ -302,10 +323,13 @@ export default function HomePage({ isAI = false, userName }: Props) {
           {/* 1. PRIMARY — Overall Stack Signal (hero, full width) */}
           <StackSignal />
 
-          {/* 2. Scan entry (label + drink) */}
-          <ScanSection onScanComplete={handleScanComplete} />
+          {/* 2. Situation panel — current stack or preview */}
+          <HomeSituationPanel model={situationModel} />
 
-          {/* 3 + 4: Exposure + Stack coverage side-by-side on tablet+ */}
+          {/* 3. Scan entry (label + drink) */}
+          <ScanSection onScanComplete={handleScanComplete} onPendingResult={handlePendingResult} />
+
+          {/* 4 + 5: Exposure + Stack coverage side-by-side on tablet+ */}
           <div className="home__columns">
             <DailyReferenceBars entries={entries} />
             <StackCoverage />
