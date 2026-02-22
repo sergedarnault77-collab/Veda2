@@ -67,34 +67,71 @@
   --radius-lg: var(--radius);
 }
 
-/* ── Veda Light Health Palette — Design Tokens ── */
+/* =========================================================
+   VEDA — "CALM HEALTH" THEME
+   Light = premium (soft gradient + glass cards)
+   Dark  = evening calm (deep navy, not pitch black)
+   ========================================================= */
 
+/* ── Base tokens (shared light + dark) ── */
 :root {
-  /* ── backgrounds ── */
-  --veda-bg: #F5F8FF;
-  --veda-bg-gradient: linear-gradient(180deg, #F5F8FF 0%, #EEF3FF 52%, #FFFFFF 100%);
-  --veda-surface: rgba(255, 255, 255, 0.92);
-  --veda-surface-soft: rgba(255, 255, 255, 0.78);
+  --radius-xl: 18px;
+  --radius-lg: 16px;
+  --radius-md: 14px;
+  --radius-sm: 12px;
+  --radius: 14px;
+
+  --shadow-sm: 0 2px 8px rgba(2, 6, 23, 0.04);
+  --shadow-md: 0 10px 28px rgba(2, 6, 23, 0.06), 0 2px 8px rgba(2, 6, 23, 0.04);
+  --shadow-lg: 0 16px 40px rgba(2, 6, 23, 0.10), 0 4px 14px rgba(2, 6, 23, 0.06);
+
+  --focus-ring: 0 0 0 4px rgba(37, 99, 235, 0.18);
+
+  /* brand */
+  --brand: #2563EB;
+  --brand-2: #1D4ED8;
+  --brand-3: #60A5FA;
+
+  /* semantic */
+  --ok: #10B981;
+  --warn: #F59E0B;
+  --danger: #EF4444;
+
+  /* typography */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
+/* ── Light theme (default) ── */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* backgrounds */
+  --veda-bg: #F6F9FF;
+  --veda-bg-gradient: linear-gradient(180deg, #F6F9FF 0%, #EEF4FF 52%, #FFFFFF 100%);
+  --veda-surface: rgba(255, 255, 255, 0.82);
+  --veda-surface-soft: rgba(255, 255, 255, 0.70);
   --veda-surface-solid: #FFFFFF;
   --veda-surface-hover: #EDF0F4;
 
-  /* ── text ── */
-  --veda-text: #0F172A;
-  --veda-text-muted: #334155;
-  --veda-text-subtle: #64748B;
+  /* text */
+  --veda-text: #0B1220;
+  --veda-text-muted: #22304A;
+  --veda-text-subtle: #5B6B86;
 
-  /* ── borders ── */
-  --veda-border: rgba(15, 23, 42, 0.10);
-  --veda-border-soft: rgba(15, 23, 42, 0.06);
+  /* borders */
+  --veda-border: rgba(11, 18, 32, 0.10);
+  --veda-border-soft: rgba(11, 18, 32, 0.06);
   --veda-border-accent: rgba(37, 99, 235, 0.18);
 
-  /* ── brand / accent ── */
+  /* brand / accent */
   --veda-accent: #2563EB;
-  --veda-accent-light: #3B82F6;
-  --veda-accent-glow: rgba(37, 99, 235, 0.12);
+  --veda-accent-light: #60A5FA;
+  --veda-accent-glow: rgba(37, 99, 235, 0.14);
   --veda-royal-deep: #1D4ED8;
 
-  /* ── semantic status ── */
+  /* semantic status */
   --veda-primary: #2563EB;
   --veda-primary-soft: rgba(37, 99, 235, 0.10);
 
@@ -110,109 +147,95 @@
   --veda-issue-soft: #FEF2F2;
   --veda-issue-border: #FECACA;
 
-  /* ── AI panel ── */
+  /* AI */
   --veda-ai: #6366F1;
   --veda-ai-soft: #EEF2FF;
   --veda-ai-border: #C7D2FE;
 
-  /* legacy status aliases */
+  /* legacy aliases */
   --veda-red: #EF4444;
   --veda-orange: #F59E0B;
   --veda-orange-soft: #E8920A;
   --veda-green: var(--veda-balance);
   --veda-magenta: #C0408A;
 
-  /* ── exposure bar fills ── */
+  /* exposure bar fills */
   --bar-sugar: #F59E0B;
   --bar-sweetener: #9030A0;
   --bar-calorie: #2563EB;
   --bar-caffeine: #1AA8B8;
 
-  /* ── alpha helpers ── */
-  --alpha-faint: rgba(15, 23, 42, 0.02);
-  --alpha-subtle: rgba(15, 23, 42, 0.04);
-  --alpha-soft: rgba(15, 23, 42, 0.06);
-  --alpha-medium: rgba(15, 23, 42, 0.08);
-  --alpha-hover: rgba(15, 23, 42, 0.04);
+  /* alpha helpers */
+  --alpha-faint: rgba(11, 18, 32, 0.02);
+  --alpha-subtle: rgba(11, 18, 32, 0.04);
+  --alpha-soft: rgba(11, 18, 32, 0.06);
+  --alpha-medium: rgba(11, 18, 32, 0.08);
+  --alpha-hover: rgba(11, 18, 32, 0.04);
 
-  /* ── nav glass ── */
-  --nav-bg: rgba(255, 255, 255, 0.82);
-  --nav-border: rgba(15, 23, 42, 0.08);
+  /* nav / sidebar glass */
+  --nav-bg: rgba(255, 255, 255, 0.72);
+  --nav-border: rgba(11, 18, 32, 0.10);
   --nav-active-bg: rgba(37, 99, 235, 0.10);
   --nav-active-ring: rgba(37, 99, 235, 0.20);
 
-  /* ── typography ── */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  /* chips */
+  --chip: rgba(37, 99, 235, 0.10);
+  --chip-border: rgba(37, 99, 235, 0.18);
+  --chip-text: #143AA3;
 
-  /* ── drink builder ── */
-  --db-chip-bg: rgba(15, 23, 42, 0.04);
-  --db-chip-hover-bg: rgba(15, 23, 42, 0.08);
-  --db-estimate-bg: rgba(15, 23, 42, 0.04);
+  /* drink builder */
+  --db-chip-bg: rgba(11, 18, 32, 0.04);
+  --db-chip-hover-bg: rgba(11, 18, 32, 0.08);
+  --db-estimate-bg: rgba(11, 18, 32, 0.04);
 
-  /* ── radii ── */
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius: 14px;
-
-  /* ── shadows ── */
-  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.06), 0 2px 6px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.10), 0 4px 10px rgba(15, 23, 42, 0.06);
-
-  /* ── shadcn-style semantic tokens ── */
+  /* shadcn-style semantic tokens */
   --background: var(--veda-bg);
   --foreground: var(--veda-text);
-
   --card: var(--veda-surface-solid);
   --card-foreground: var(--veda-text);
-
   --popover: var(--veda-surface-solid);
   --popover-foreground: var(--veda-text);
-
   --primary: var(--veda-primary);
   --primary-foreground: #ffffff;
-
   --secondary: var(--veda-surface-soft);
   --secondary-foreground: var(--veda-text);
-
   --muted: var(--veda-surface-soft);
   --muted-foreground: var(--veda-text-subtle);
-
   --accent: var(--veda-primary-soft);
   --accent-foreground: var(--veda-text);
-
   --destructive: var(--veda-issue);
   --destructive-foreground: #ffffff;
-
   --border: var(--veda-border);
   --input: var(--veda-border);
   --ring: rgba(37, 99, 235, 0.35);
 }
 
-/* ── Dark mode (opt-in) ── */
+/* ── Dark theme: "evening calm" (deep navy, not pitch black) ── */
 [data-theme="dark"] {
-  --veda-bg: #0A0E1C;
-  --veda-bg-gradient: linear-gradient(180deg, #0A0E1C 0%, #10172D 52%, #0C1024 100%);
-  --veda-surface: rgba(16, 23, 45, 0.7);
-  --veda-surface-soft: rgba(16, 23, 45, 0.5);
-  --veda-surface-solid: #10172D;
-  --veda-surface-hover: #141D3A;
-  --veda-border: rgba(255, 255, 255, 0.07);
-  --veda-border-soft: rgba(255, 255, 255, 0.05);
-  --veda-border-accent: rgba(46, 91, 255, 0.25);
-  --veda-text: #E8EBF2;
-  --veda-text-muted: #9AA4BF;
-  --veda-text-subtle: #7E8BA5;
-  --veda-accent: #2E5BFF;
-  --veda-accent-light: #5a80ff;
-  --veda-accent-glow: rgba(46, 91, 255, 0.2);
-  --veda-royal-deep: #5a80ff;
+  color-scheme: dark;
 
-  --veda-primary: #2E5BFF;
-  --veda-primary-soft: rgba(46, 91, 255, 0.15);
+  --veda-bg: #0B1530;
+  --veda-bg-gradient: linear-gradient(180deg, #0B1530 0%, #0C1B3D 52%, #0A1328 100%);
+  --veda-surface: rgba(16, 28, 58, 0.62);
+  --veda-surface-soft: rgba(16, 28, 58, 0.48);
+  --veda-surface-solid: #0F214A;
+  --veda-surface-hover: #142A5A;
+
+  --veda-text: #ECF3FF;
+  --veda-text-muted: #C9DAF6;
+  --veda-text-subtle: rgba(201, 218, 246, 0.70);
+
+  --veda-border: rgba(236, 243, 255, 0.12);
+  --veda-border-soft: rgba(236, 243, 255, 0.08);
+  --veda-border-accent: rgba(96, 165, 250, 0.26);
+
+  --veda-accent: #60A5FA;
+  --veda-accent-light: #93C5FD;
+  --veda-accent-glow: rgba(96, 165, 250, 0.18);
+  --veda-royal-deep: #93C5FD;
+
+  --veda-primary: #60A5FA;
+  --veda-primary-soft: rgba(96, 165, 250, 0.14);
 
   --veda-balance: #34D399;
   --veda-balance-soft: rgba(52, 211, 153, 0.12);
@@ -230,33 +253,117 @@
   --veda-ai-soft: rgba(129, 140, 248, 0.12);
   --veda-ai-border: rgba(129, 140, 248, 0.25);
 
-  --veda-red: #f06292;
-  --veda-orange: #FF8C1A;
-  --veda-orange-soft: #FFB35C;
+  --veda-red: #F87171;
+  --veda-orange: #FBBF24;
+  --veda-orange-soft: #FCD34D;
   --veda-green: var(--veda-balance);
   --veda-magenta: #e056a0;
 
-  --bar-sugar: #FF8C1A;
+  --bar-sugar: #FBBF24;
   --bar-sweetener: #ab47bc;
-  --bar-calorie: #2E5BFF;
+  --bar-calorie: #60A5FA;
   --bar-caffeine: #26c6da;
 
-  --alpha-faint: rgba(255, 255, 255, 0.04);
-  --alpha-subtle: rgba(255, 255, 255, 0.05);
-  --alpha-soft: rgba(255, 255, 255, 0.06);
-  --alpha-medium: rgba(255, 255, 255, 0.08);
-  --alpha-hover: rgba(255, 255, 255, 0.04);
+  --alpha-faint: rgba(236, 243, 255, 0.04);
+  --alpha-subtle: rgba(236, 243, 255, 0.05);
+  --alpha-soft: rgba(236, 243, 255, 0.06);
+  --alpha-medium: rgba(236, 243, 255, 0.08);
+  --alpha-hover: rgba(236, 243, 255, 0.04);
 
-  --nav-bg: rgba(10, 14, 28, 0.88);
-  --nav-border: rgba(255, 255, 255, 0.06);
-  --nav-active-bg: rgba(46, 91, 255, 0.18);
-  --nav-active-ring: rgba(46, 91, 255, 0.25);
+  --nav-bg: rgba(14, 26, 55, 0.60);
+  --nav-border: rgba(236, 243, 255, 0.10);
+  --nav-active-bg: rgba(96, 165, 250, 0.16);
+  --nav-active-ring: rgba(96, 165, 250, 0.25);
 
-  --db-chip-bg: rgba(255, 255, 255, 0.05);
-  --db-chip-hover-bg: rgba(255, 255, 255, 0.1);
+  --chip: rgba(96, 165, 250, 0.14);
+  --chip-border: rgba(96, 165, 250, 0.26);
+  --chip-text: #D9ECFF;
+
+  --db-chip-bg: rgba(236, 243, 255, 0.05);
+  --db-chip-hover-bg: rgba(236, 243, 255, 0.10);
   --db-estimate-bg: rgba(0, 0, 0, 0.2);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 14px 40px rgba(0, 0, 0, 0.30), 0 2px 10px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 20px 58px rgba(0, 0, 0, 0.40), 0 6px 18px rgba(0, 0, 0, 0.26);
+}
+
+/* ── OS preference fallback (when data-theme not set) ── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --veda-bg: #0B1530;
+    --veda-bg-gradient: linear-gradient(180deg, #0B1530 0%, #0C1B3D 52%, #0A1328 100%);
+    --veda-surface: rgba(16, 28, 58, 0.62);
+    --veda-surface-soft: rgba(16, 28, 58, 0.48);
+    --veda-surface-solid: #0F214A;
+    --veda-surface-hover: #142A5A;
+
+    --veda-text: #ECF3FF;
+    --veda-text-muted: #C9DAF6;
+    --veda-text-subtle: rgba(201, 218, 246, 0.70);
+
+    --veda-border: rgba(236, 243, 255, 0.12);
+    --veda-border-soft: rgba(236, 243, 255, 0.08);
+    --veda-border-accent: rgba(96, 165, 250, 0.26);
+
+    --veda-accent: #60A5FA;
+    --veda-accent-light: #93C5FD;
+    --veda-accent-glow: rgba(96, 165, 250, 0.18);
+    --veda-royal-deep: #93C5FD;
+
+    --veda-primary: #60A5FA;
+    --veda-primary-soft: rgba(96, 165, 250, 0.14);
+
+    --veda-balance: #34D399;
+    --veda-balance-soft: rgba(52, 211, 153, 0.12);
+    --veda-balance-border: rgba(52, 211, 153, 0.25);
+
+    --veda-caution: #FBBF24;
+    --veda-caution-soft: rgba(251, 191, 36, 0.12);
+    --veda-caution-border: rgba(251, 191, 36, 0.25);
+
+    --veda-issue: #F87171;
+    --veda-issue-soft: rgba(248, 113, 113, 0.12);
+    --veda-issue-border: rgba(248, 113, 113, 0.25);
+
+    --veda-ai: #818CF8;
+    --veda-ai-soft: rgba(129, 140, 248, 0.12);
+    --veda-ai-border: rgba(129, 140, 248, 0.25);
+
+    --veda-red: #F87171;
+    --veda-orange: #FBBF24;
+    --veda-orange-soft: #FCD34D;
+    --veda-green: var(--veda-balance);
+    --veda-magenta: #e056a0;
+
+    --bar-sugar: #FBBF24;
+    --bar-sweetener: #ab47bc;
+    --bar-calorie: #60A5FA;
+    --bar-caffeine: #26c6da;
+
+    --alpha-faint: rgba(236, 243, 255, 0.04);
+    --alpha-subtle: rgba(236, 243, 255, 0.05);
+    --alpha-soft: rgba(236, 243, 255, 0.06);
+    --alpha-medium: rgba(236, 243, 255, 0.08);
+    --alpha-hover: rgba(236, 243, 255, 0.04);
+
+    --nav-bg: rgba(14, 26, 55, 0.60);
+    --nav-border: rgba(236, 243, 255, 0.10);
+    --nav-active-bg: rgba(96, 165, 250, 0.16);
+    --nav-active-ring: rgba(96, 165, 250, 0.25);
+
+    --chip: rgba(96, 165, 250, 0.14);
+    --chip-border: rgba(96, 165, 250, 0.26);
+    --chip-text: #D9ECFF;
+
+    --db-chip-bg: rgba(236, 243, 255, 0.05);
+    --db-chip-hover-bg: rgba(236, 243, 255, 0.10);
+    --db-estimate-bg: rgba(0, 0, 0, 0.2);
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.22);
+    --shadow-md: 0 14px 40px rgba(0, 0, 0, 0.30), 0 2px 10px rgba(0, 0, 0, 0.22);
+    --shadow-lg: 0 20px 58px rgba(0, 0, 0, 0.40), 0 6px 18px rgba(0, 0, 0, 0.26);
+  }
 }

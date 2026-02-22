@@ -16,11 +16,7 @@
   --nav-height: 72px;
 }
 
-html,
-body {
-  background: var(--background);
-  color: var(--foreground);
-}
+html, body { height: 100%; }
 
 html {
   font-size: 16px;
@@ -29,13 +25,19 @@ html {
 }
 
 body {
-  font-family: var(--font-sans);
-  background: var(--veda-bg-gradient);
+  background:
+    radial-gradient(900px 520px at 18% 10%, rgba(96, 165, 250, 0.18), transparent 60%),
+    radial-gradient(820px 520px at 82% 12%, rgba(99, 102, 241, 0.14), transparent 60%),
+    linear-gradient(180deg, var(--veda-bg) 0%, var(--veda-bg) 52%, var(--veda-surface-solid) 100%);
   background-attachment: fixed;
+  color: var(--veda-text);
+  font-family: var(--font-sans);
   font-size: 16.5px;
   line-height: 1.6;
   min-height: 100dvh;
 }
+
+h1, h2, h3 { letter-spacing: -0.02em; }
 
 /* ── Phone (default): single column, bottom nav ── */
 #root {
@@ -368,150 +370,208 @@ button {
   color: #B45309;
 }
 
-/* ── Hero glow (subtle health glow behind hero areas) ── */
-.veda-hero-glow {
-  position: relative;
+/* ── Page canvas (main content area) ── */
+.veda-canvas {
+  background: transparent;
 }
-.veda-hero-glow::before {
-  content: "";
-  position: absolute;
-  inset: -220px -120px auto -120px;
-  height: 520px;
-  background: radial-gradient(circle at top center, rgba(99, 102, 241, 0.12), transparent 65%);
-  pointer-events: none;
-  z-index: 0;
-}
-.veda-hero-glow > * { position: relative; z-index: 1; }
 
-/* ── Generic card / panel styles ── */
+/* ── Sidebar / nav ── */
+.veda-sidebar {
+  background: var(--nav-bg);
+  border-right: 1px solid var(--nav-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ── Cards ── */
 .veda-card {
   background: var(--veda-surface);
   border: 1px solid var(--veda-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
-
+.veda-card--flat {
+  background: var(--veda-surface-solid);
+  border: 1px solid var(--veda-border);
+  border-radius: var(--radius-xl);
+}
 .veda-card-muted {
   background: var(--veda-surface-soft);
   border: 1px solid var(--veda-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-/* ── Status banners ── */
-.veda-status-ok {
-  background: linear-gradient(135deg, var(--veda-balance-soft), #E6FFFA);
-  border: 1px solid var(--veda-balance-border);
-  color: #065F46;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+/* ── Hero panel (premium glow behind top section) ── */
+.veda-hero {
+  position: relative;
+  overflow: hidden;
 }
-
-.veda-status-warn {
-  background: linear-gradient(135deg, var(--veda-caution-soft), #FFF7ED);
-  border: 1px solid var(--veda-caution-border);
-  color: #92400E;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+.veda-hero::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background:
+    radial-gradient(700px 220px at 35% 0%, rgba(37, 99, 235, 0.14), transparent 60%),
+    radial-gradient(700px 220px at 70% 10%, rgba(99, 102, 241, 0.10), transparent 65%);
+  pointer-events: none;
 }
+.veda-hero > * { position: relative; z-index: 1; }
 
-.veda-status-danger {
-  background: linear-gradient(135deg, var(--veda-issue-soft), #FFF1F2);
-  border: 1px solid var(--veda-issue-border);
-  color: #991B1B;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+/* ── Pills / tabs ── */
+.veda-pill {
+  background: rgba(255, 255, 255, 0.50);
+  border: 1px solid var(--veda-border);
+  color: var(--veda-text-muted);
+  border-radius: 999px;
+  padding: 7px 12px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset;
+}
+[data-theme="dark"] .veda-pill {
+  background: rgba(16, 28, 58, 0.50);
+}
+.veda-pill--active {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.20), rgba(99, 102, 241, 0.14));
+  border-color: rgba(96, 165, 250, 0.35);
+  color: var(--veda-text);
 }
 
 /* ── Buttons ── */
 .veda-btn-primary {
-  background: linear-gradient(135deg, var(--veda-primary), var(--veda-royal-deep));
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 55%, #2457D8 100%);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: var(--radius-md);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
 }
 .veda-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.36);
   filter: brightness(1.02);
 }
 .veda-btn-primary:active {
   transform: translateY(0px);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.22);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
 }
-
 .veda-btn-secondary {
-  background: #F1F5F9;
-  color: var(--veda-text-muted);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid var(--veda-border);
+  color: var(--veda-text-muted);
   border-radius: var(--radius-md);
   transition: filter .12s ease;
+}
+[data-theme="dark"] .veda-btn-secondary {
+  background: rgba(16, 28, 58, 0.52);
 }
 .veda-btn-secondary:hover {
   filter: brightness(0.98);
 }
 
-/* ── Pills / chips ── */
+/* ── Chips ── */
 .veda-chip {
-  background: rgba(37, 99, 235, 0.10);
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  color: #1E3A8A;
+  background: var(--chip);
+  border: 1px solid var(--chip-border);
+  color: var(--chip-text);
   border-radius: 999px;
+}
+
+/* ── Status banners ── */
+.veda-banner {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--veda-border);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0.62));
+  box-shadow: var(--shadow-md);
+}
+[data-theme="dark"] .veda-banner {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.12), rgba(16, 28, 58, 0.55));
+}
+.veda-banner--outline {
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.18) inset, var(--shadow-md);
+}
+
+.veda-status-ok {
+  background: linear-gradient(135deg, var(--veda-balance-soft), #E6FFFA);
+  border: 1px solid var(--veda-balance-border);
+  color: #065F46;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+.veda-status-warn {
+  background: linear-gradient(135deg, var(--veda-caution-soft), #FFF7ED);
+  border: 1px solid var(--veda-caution-border);
+  color: #92400E;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+.veda-status-danger {
+  background: linear-gradient(135deg, var(--veda-issue-soft), #FFF1F2);
+  border: 1px solid var(--veda-issue-border);
+  color: #991B1B;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
 }
 
 /* ── AI panel styling ── */
 .veda-ai-panel {
   background: linear-gradient(135deg, var(--veda-ai-soft), #F8FAFF);
   border: 1px solid var(--veda-ai-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
 }
 
 /* ── Inputs ── */
 .veda-input {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--veda-border);
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   color: var(--veda-text);
   outline: none;
 }
+[data-theme="dark"] .veda-input {
+  background: rgba(16, 28, 58, 0.58);
+}
 .veda-input:focus {
-  border-color: rgba(37, 99, 235, 0.35);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  border-color: rgba(96, 165, 250, 0.40);
+  box-shadow: var(--focus-ring);
 }
 
+/* ── Muted text helper ── */
+.veda-muted { color: var(--veda-text-subtle); }
+
 /* ── Links ── */
-a { color: var(--veda-royal-deep); }
-a:hover { color: var(--veda-primary); }
+a { color: var(--brand); }
+a:hover { color: var(--brand-2); }
 
 /* ── Dark mode component overrides ── */
 
 [data-theme="dark"] .add-scanned-modal__content,
 [data-theme="dark"] .buy-sheet {
-  background: rgba(16, 23, 45, 0.96);
+  background: rgba(15, 33, 74, 0.96);
 }
 
 [data-theme="dark"] .add-scanned-modal__backdrop,
 [data-theme="dark"] .buy-backdrop {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.55);
 }
 
 [data-theme="dark"] .auth-card,
 [data-theme="dark"] .profile-card,
 [data-theme="dark"] .plans-card {
-  background: rgba(16, 23, 45, 0.8);
+  background: rgba(16, 28, 58, 0.80);
 }
 
 [data-theme="dark"] .sweetener-list__chip {
-  background: rgba(255, 140, 26, 0.12);
-  border-color: rgba(255, 140, 26, 0.25);
-  color: #FFB35C;
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.25);
+  color: #FCD34D;
 }
 
-[data-theme="dark"] .timing__dot--morning { background: #FF8C1A; }
-[data-theme="dark"] .timing__dot--midday { background: #5a80ff; }
-[data-theme="dark"] .timing__dot--evening { background: #2E5BFF; }
+[data-theme="dark"] .timing__dot--morning { background: #FBBF24; }
+[data-theme="dark"] .timing__dot--midday { background: #93C5FD; }
+[data-theme="dark"] .timing__dot--evening { background: #60A5FA; }

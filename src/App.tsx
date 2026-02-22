@@ -297,7 +297,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="app-nav">
+      <nav className="app-nav veda-sidebar">
         <div className="app-nav__logo">Veda</div>
         <button data-testid="nav-scan" onClick={() => setTab("home")} className={`app-nav__btn ${tab === "home" ? "app-nav__btn--active" : ""}`}>Scan</button>
         <button onClick={() => setTab("dashboard")} className={`app-nav__btn ${tab === "dashboard" ? "app-nav__btn--active" : ""}`}>Dashboard</button>
@@ -305,7 +305,7 @@ export default function App() {
         <button onClick={() => setTab("meds")} className={`app-nav__btn ${tab === "meds" ? "app-nav__btn--active" : ""}`}>Meds</button>
       </nav>
 
-      <div className="app-content">
+      <div className="app-content veda-canvas veda-hero">
         {tab === "home" && <HomePage isAI={isAI} userName={user.firstName} />}
         {tab === "dashboard" && <DashboardPage />}
         {tab === "meds" && <MedicationsPage />}
