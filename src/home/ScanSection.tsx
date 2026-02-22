@@ -4,7 +4,7 @@ import { prepareImagesForStorage } from "../lib/image-storage";
 import { findExistingIdx } from "../lib/dedup";
 import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
-import { apiFetch } from "../lib/api";
+import { apiFetchSafe } from "../lib/apiFetchSafe";
 import { track } from "../lib/analytics";
 import { extractExposureFromScan } from "./HomePage";
 import LoadingBanner from "../shared/LoadingBanner";
@@ -130,12 +130,11 @@ type CaffeineAnswer = null | "regular" | "decaf";
 
 interface Props {
   onScanComplete?: (result: ScanResult) => void;
-  onPendingResult?: (result: ScanResult | null) => void;
 }
 
 const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-export default function ScanSection({ onScanComplete, onPendingResult }: Props) {
+export default function ScanSection({ onScanComplete }: Props) {
   const [step, setStep] = useState<ScanStep>("idle");
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [ingredientsImages, setIngredientsImages] = useState<string[]>([]);
@@ -162,19 +161,6 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
     window.addEventListener("veda:synced", onSync);
     return () => window.removeEventListener("veda:synced", onSync);
   }, []);
-
-  useEffect(() => {
-    if (result && result.productName) {
-      onPendingResult?.({
-        productName: result.productName,
-        categories: result.categories || {},
-        nutrients: result.nutrients || [],
-        detectedEntities: result.detectedEntities || [],
-      });
-    } else {
-      onPendingResult?.(null);
-    }
-  }, [result, onPendingResult]);
 
   const hasIngredients = ingredientsImages.length > 0;
   const scanCount = todayScans.length;
@@ -227,15 +213,13 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
       ingredientsList: result?.ingredientsList || result?.normalized?.detectedEntities || [],
     };
 
-    apiFetch("/api/interactions", {
+    apiFetchSafe("/api/interactions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ newItem, existingItems: existing }),
+      json: { newItem, existingItems: existing },
     })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.ok && Array.isArray(data.interactions)) {
-          setInteractions(data.interactions);
+      .then((res) => {
+        if (res.ok && Array.isArray(res.data?.interactions)) {
+          setInteractions(res.data.interactions);
         }
       })
       .catch(() => {})
@@ -283,36 +267,6 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
     }
   }
 
-  async function doAnalyzeRequest(payload: any): Promise<any> {
-    let body: string;
-    try {
-      body = JSON.stringify(payload);
-    } catch (e: any) {
-      throw new Error(`[stringify] ${e?.message}`);
-    }
-    console.log("[Veda scan] payload size:", (body.length / 1024).toFixed(0), "KB");
-
-    let r: Response;
-    try {
-      r = await apiFetch("/api/analyze", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body,
-      });
-    } catch (e: any) {
-      throw new Error(`[request] ${e?.message}`);
-    }
-
-    let j: any;
-    try {
-      j = await r.json();
-    } catch (e: any) {
-      throw new Error(`[parse] HTTP ${r.status} — ${e?.message}`);
-    }
-    if (!j.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-    return j;
-  }
-
   async function runAnalysis(frontOnly = false) {
     if (!frontImage) return;
     if (!frontOnly && ingredientsImages.length === 0) return;
@@ -325,8 +279,19 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
       if (!frontOnly && ingredientsImages.length > 0) {
         payload.ingredientsImageDataUrls = ingredientsImages;
       }
-
-      const json = await withMinDelay(doAnalyzeRequest(payload), 700);
+      const json = await withMinDelay(
+        (async () => {
+          const res = await apiFetchSafe("/api/analyze", {
+            method: "POST",
+            json: payload,
+          });
+          if (!res.ok) {
+            throw new Error(`Scan failed (${res.status}): ${res.error}`);
+          }
+          return res.data;
+        })(),
+        700,
+      );
       setResult(json);
       const pName = typeof json?.productName === "string" && json.productName.trim()
         ? json.productName
@@ -334,9 +299,7 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
       setProductName(pName);
       setStep("done");
     } catch (e: any) {
-      const msg = String(e?.message || e);
-      console.error("[Veda scan] analysis failed:", msg, e);
-      setError(msg);
+      setError(String(e?.message || e));
       setStep("done");
     } finally {
       setLoading(false);
@@ -571,20 +534,15 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
     setUrlError(null);
     setUrlLoading(true);
     try {
-      const res = await apiFetch("/api/parse-url", {
+      const res = await apiFetchSafe("/api/parse-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed }),
+        json: { url: trimmed },
       });
-      let data: any;
-      try { data = await res.json(); } catch {
-        setUrlError(`Server error (HTTP ${res.status}).`);
+      if (!res.ok) {
+        setUrlError(res.error || "Could not extract data from that URL.");
         return;
       }
-      if (!data?.ok) {
-        setUrlError(data?.error || "Could not extract data from that URL.");
-        return;
-      }
+      const data = res.data;
 
       const pName = data.productName || "Item (from URL)";
       const nutrients: any[] = (data.nutrients || []).filter(
