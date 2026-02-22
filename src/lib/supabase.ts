@@ -9,6 +9,25 @@ try {
   supabase = createClient(
     supabaseUrl || "https://placeholder.supabase.co",
     supabaseAnonKey || "placeholder",
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: "pkce",
+        storage: {
+          getItem: (key) => {
+            try { return localStorage.getItem(key); } catch { return null; }
+          },
+          setItem: (key, value) => {
+            try { localStorage.setItem(key, value); } catch {}
+          },
+          removeItem: (key) => {
+            try { localStorage.removeItem(key); } catch {}
+          },
+        },
+      },
+    },
   );
 } catch (err) {
   console.error("[Supabase] Failed to create client:", err);
