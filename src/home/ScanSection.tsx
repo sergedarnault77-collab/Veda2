@@ -283,6 +283,18 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
     }
   }
 
+  async function doAnalyzeRequest(payload: any): Promise<any> {
+    const body = JSON.stringify(payload);
+    const r = await apiFetch("/api/analyze", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j?.error || `HTTP ${r.status}`);
+    return j;
+  }
+
   async function runAnalysis(frontOnly = false) {
     if (!frontImage) return;
     if (!frontOnly && ingredientsImages.length === 0) return;
@@ -295,18 +307,22 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
       if (!frontOnly && ingredientsImages.length > 0) {
         payload.ingredientsImageDataUrls = ingredientsImages;
       }
-      const json = await withMinDelay(
-        apiFetch("/api/analyze", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-        }).then(async (r) => {
-          const j = await r.json();
-          if (!j.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-          return j;
-        }),
-        700,
-      );
+
+      let json: any;
+      try {
+        json = await withMinDelay(doAnalyzeRequest(payload), 700);
+      } catch (firstErr: any) {
+        const firstMsg = String(firstErr?.message || firstErr);
+        console.warn("[Veda scan] first attempt failed:", firstMsg, firstErr);
+
+        if (/pattern|URL|network|fetch|abort|load/i.test(firstMsg)) {
+          await new Promise((r) => setTimeout(r, 1200));
+          json = await withMinDelay(doAnalyzeRequest(payload), 700);
+        } else {
+          throw firstErr;
+        }
+      }
+
       setResult(json);
       const pName = typeof json?.productName === "string" && json.productName.trim()
         ? json.productName
@@ -315,8 +331,9 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
       setStep("done");
     } catch (e: any) {
       const msg = String(e?.message || e);
+      console.error("[Veda scan] analysis failed:", msg, e);
       if (/did not match the expected pattern/i.test(msg)) {
-        setError("Scan failed due to a browser issue. Please try again.");
+        setError("Scan failed — please close other tabs, then try again.");
       } else {
         setError(msg);
       }
