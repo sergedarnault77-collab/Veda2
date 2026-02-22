@@ -3,7 +3,7 @@
 // response into a ParsedItem for use by AddScannedItemModal / meds / supps.
 
 import type { NutrientRow } from "../home/stubs";
-import { apiFetch } from "./api";
+import { apiFetchSafe } from "./apiFetchSafe";
 
 export type { NutrientRow };
 
@@ -78,45 +78,30 @@ export async function parseScannedItem(
       : [ingredientsDataUrl];
 
   try {
-    const ac = new AbortController();
-    const timeout = setTimeout(() => ac.abort(), 90_000);
-
-    let res: Response;
-    try {
-      res = await apiFetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          frontImageDataUrl: frontDataUrl,
-          ingredientsImageDataUrls: ingredientsArray,
-        }),
-        signal: ac.signal,
-      });
-    } catch (fetchErr: any) {
-      clearTimeout(timeout);
-      const msg = fetchErr?.name === "AbortError"
-        ? "Request timed out — the server took too long. Try again in a moment."
-        : `Connection failed: ${fetchErr?.message || "check your network and try again."}`;
-      return stubItem(kind, msg);
-    }
-    clearTimeout(timeout);
+    const res = await apiFetchSafe("/api/analyze", {
+      method: "POST",
+      json: {
+        frontImageDataUrl: frontDataUrl,
+        ingredientsImageDataUrls: ingredientsArray,
+      },
+      timeoutMs: 90_000,
+    });
 
     if (!res.ok) {
-      console.warn(`[parse-item] /api/analyze HTTP ${res.status}`);
+      const code = res.error.code;
       const hint =
-        res.status === 504 || res.status === 503
-          ? "Request timed out — dense labels can take longer. Try a single close-up photo of just the nutrition panel."
-          : `Server error (${res.status}). Try again in a moment.`;
+        code === "FETCH_FAILED" && res.error.message.includes("abort")
+          ? "Request timed out — the server took too long. Try again in a moment."
+          : res.status === 504 || res.status === 503
+            ? "Request timed out — dense labels can take longer. Try a single close-up photo of just the nutrition panel."
+            : res.status === 0
+              ? `Connection failed: ${res.error.message || "check your network and try again."}`
+              : `Server error (${res.status}). Try again in a moment.`;
+      console.warn(`[parse-item] /api/analyze failed:`, res.error);
       return stubItem(kind, hint);
     }
 
-    let json: any;
-    try {
-      json = await res.json();
-    } catch (parseErr) {
-      console.warn("[parse-item] response JSON parse failed", parseErr);
-      return stubItem(kind, "Server returned an unreadable response. Try again.");
-    }
+    const json: any = res.data;
 
     if (!json?.ok) {
       console.warn("[parse-item] analyze returned ok=false", json);
@@ -143,9 +128,23 @@ export async function parseScannedItem(
         : 0;
 
     const rawNutrients: NutrientRow[] = Array.isArray(json.nutrients)
-      ? json.nutrients.filter(
-          (n: any) => n && typeof n.nutrientId === "string" && typeof n.amountToday === "number",
-        )
+      ? json.nutrients
+          .map((n: any) => {
+            if (!n || typeof n.nutrientId !== "string") return null;
+            // Defensive: normalize EU comma if amountToday arrived as string
+            if (typeof n.amountToday === "string") {
+              n = { ...n, amountToday: Number(n.amountToday.replace(/,/g, ".")) };
+            }
+            if (typeof n.amountToday !== "number" || !isFinite(n.amountToday)) return null;
+            // Normalize unit aliases
+            if (typeof n.unit === "string") {
+              const u = n.unit.toLowerCase();
+              if (u === "ie") n = { ...n, unit: "IU" };
+              else if (u === "mcg" || u === "μg") n = { ...n, unit: "µg" };
+            }
+            return n;
+          })
+          .filter(Boolean) as NutrientRow[]
       : [];
 
     const servingSizeG = typeof json.servingSizeG === "number" && json.servingSizeG > 0

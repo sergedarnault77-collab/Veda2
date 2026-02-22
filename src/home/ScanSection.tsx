@@ -286,7 +286,7 @@ export default function ScanSection({ onScanComplete }: Props) {
             json: payload,
           });
           if (!res.ok) {
-            throw new Error(`Scan failed (${res.status}): ${res.error}`);
+            throw new Error(`Scan failed (${res.status}): ${res.error.message}`);
           }
           return res.data;
         })(),
@@ -539,7 +539,7 @@ export default function ScanSection({ onScanComplete }: Props) {
         json: { url: trimmed },
       });
       if (!res.ok) {
-        setUrlError(res.error || "Could not extract data from that URL.");
+        setUrlError(res.error.message || "Could not extract data from that URL.");
         return;
       }
       const data = res.data;

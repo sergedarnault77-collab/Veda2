@@ -77,6 +77,7 @@ function describeItem(it: any): string {
 }
 
 export default async function handler(req: Request): Promise<Response> {
+  console.log("[interactions] handler entered", req.method);
   try {
     if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
 

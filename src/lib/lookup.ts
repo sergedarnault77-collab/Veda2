@@ -4,7 +4,7 @@
  */
 
 import type { NutrientRow } from "../home/stubs";
-import { apiFetch } from "./api";
+import { apiFetchSafe } from "./apiFetchSafe";
 
 export type LookupMatch = {
   source: string;
@@ -57,9 +57,9 @@ export function matchToNutrients(match: LookupMatch): NutrientRow[] {
 
 export async function lookupByBarcode(barcode: string): Promise<LookupResult> {
   try {
-    const r = await apiFetch(`/api/lookup?barcode=${encodeURIComponent(barcode)}`);
+    const r = await apiFetchSafe<any>(`/api/lookup?barcode=${encodeURIComponent(barcode)}`);
     if (!r.ok) return { hit: false };
-    const data = await r.json();
+    const data = r.data;
     if (data?.ok && data.match) {
       return { hit: true, match: data.match };
     }
@@ -72,9 +72,9 @@ export async function lookupByBarcode(barcode: string): Promise<LookupResult> {
 export async function lookupByName(query: string): Promise<LookupResult> {
   if (!query || query.length < 3) return { hit: false };
   try {
-    const r = await apiFetch(`/api/lookup?q=${encodeURIComponent(query)}`);
+    const r = await apiFetchSafe<any>(`/api/lookup?q=${encodeURIComponent(query)}`);
     if (!r.ok) return { hit: false };
-    const data = await r.json();
+    const data = r.data;
     if (data?.ok && Array.isArray(data.matches) && data.matches.length > 0) {
       const best = data.matches[0];
       if (Number(best.similarity) >= 0.3 && best.nutrients.length > 0) {

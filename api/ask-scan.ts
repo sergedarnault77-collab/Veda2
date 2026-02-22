@@ -75,6 +75,7 @@ function buildUserPrompt(
 }
 
 export default async function handler(req: Request): Promise<Response> {
+  console.log("[ask-scan] handler entered", req.method);
   try {
     if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
 

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { loadLS, saveLS } from "../lib/persist";
-import { apiFetch } from "../lib/api";
+import { apiFetchSafe } from "../lib/apiFetchSafe";
 import { loadUser } from "../lib/auth";
 import {
   computeDailyNutrients,
@@ -226,12 +226,15 @@ export function StackCoverage() {
     const rawSupps = loadLS<any[]>(SUPPS_KEY, []);
 
     try {
-      const res = await apiFetch("/api/schedule", {
+      const res = await apiFetchSafe<any>("/api/schedule", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ supplements: rawSupps, medications: meds }),
+        json: { supplements: rawSupps, medications: meds },
       });
-      const data = await res.json();
+      if (!res.ok) {
+        setScheduleError(res.error.message || "Could not generate schedule.");
+        return;
+      }
+      const data = res.data;
       if (!data?.ok) {
         setScheduleError(data?.error || "Could not generate schedule.");
         return;
@@ -314,13 +317,12 @@ export function StackCoverage() {
       (ul ? `The tolerable upper intake level (UL) is ${ul} ${unit}. ` : "") +
       `What are the risks of exceeding this level? What symptoms should I watch for? Should I reduce or split my dose?`;
 
-    apiFetch("/api/ask-scan", {
+    apiFetchSafe<any>("/api/ask-scan", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, productName: label, nutrients: [], interactions: [] }),
+      json: { question, productName: label, nutrients: [], interactions: [] },
     })
-      .then((r) => r.ok ? r.json() : null)
-      .then((json) => {
+      .then((res) => {
+        const json = res.ok ? res.data : null;
         let answer: string;
         const raw = json?.answer;
         if (typeof raw === "string") {
@@ -401,14 +403,14 @@ export function StackCoverage() {
       labelTranscription: s.labelTranscription ?? null,
     }));
 
-    apiFetch("/api/advise", {
+    apiFetchSafe<any>("/api/advise", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
+      json: { items },
     })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => {
-        if (cancelled || !json?.ok) return;
+      .then((res) => {
+        if (cancelled || !res.ok) return;
+        const json = res.data;
+        if (!json?.ok) return;
         setStackInsight({
           summary: json.summary || "",
           overlaps: Array.isArray(json.overlaps) ? json.overlaps : [],

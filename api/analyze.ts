@@ -681,9 +681,12 @@ function buildJsonSchema() {
    ══════════════════════════════════════════════════════════ */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log("[analyze] handler entered", req.method);
   try {
-    // Auth is best-effort: allow scan even if token is missing/expired
-    // (Safari WebKit bug can prevent clients from sending a valid token)
+    if (req.method !== "POST") {
+      return res.status(405).json({ ok: false, error: "Method not allowed" });
+    }
+
     let authUser: any = null;
     try {
       authUser = await requireAuth(req as any);
@@ -692,7 +695,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    const result = await innerHandler(req.method ?? "GET", body);
+    const result = await innerHandler("POST", body);
     const json = await result.json();
     res.status(result.status).json(json);
   } catch (e: any) {

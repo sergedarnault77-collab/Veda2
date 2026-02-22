@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiFetch } from "../lib/api";
+import { apiFetchSafe } from "../lib/apiFetchSafe";
 import "./ContextPanel.css";
 
 export interface ExplainSignal {
@@ -38,20 +38,18 @@ export default function ContextPanel({ signal, onClose }: Props) {
         "This is not medical advice. Veda does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
     };
 
-    apiFetch("/api/explain", {
+    apiFetchSafe("/api/explain", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ signal }),
+      json: { signal },
     })
-      .then((r) => r.json())
-      .then((json) => {
+      .then((res) => {
         if (cancelled) return;
-        if (json?.ok) {
+        if (res.ok && res.data?.ok) {
           setResult({
-            whatWasDetected: json.whatWasDetected || [],
-            whyItMatters: json.whyItMatters || [],
-            whatPeopleDo: json.whatPeopleDo || [],
-            disclaimer: json.disclaimer || "",
+            whatWasDetected: res.data.whatWasDetected || [],
+            whyItMatters: res.data.whyItMatters || [],
+            whatPeopleDo: res.data.whatPeopleDo || [],
+            disclaimer: res.data.disclaimer || "",
           });
         } else {
           setResult(fallbackResult);

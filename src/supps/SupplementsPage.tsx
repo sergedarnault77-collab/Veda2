@@ -1,7 +1,7 @@
 import { Component, useEffect, useMemo, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import { loadLS, saveLS } from "../lib/persist";
-import { apiFetch } from "../lib/api";
+import { apiFetchSafe } from "../lib/apiFetchSafe";
 import { prepareImagesForStorage } from "../lib/image-storage";
 import { findExistingIdx } from "../lib/dedup";
 import { translateName } from "../lib/translate-nutrients";
@@ -134,13 +134,12 @@ async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
       ingredientsList: ingredients,
     };
 
-    const res = await apiFetch("/api/interactions", {
+    const res = await apiFetchSafe<any>("/api/interactions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ newItem, existingItems: existing }),
+      json: { newItem, existingItems: existing },
     });
     if (!res.ok) return [];
-    const data = await res.json();
+    const data = res.data;
     if (!data?.ok || !Array.isArray(data.interactions)) return [];
 
     const nameLower = (item.displayName || "").toLowerCase();
@@ -159,10 +158,9 @@ async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
 
 async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
   try {
-    const res = await apiFetch("/api/advise", {
+    const res = await apiFetchSafe<any>("/api/advise", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      json: {
         items: [
           {
             id: "single",
@@ -172,10 +170,10 @@ async function fetchInsights(item: ScannedItem): Promise<ItemInsights | null> {
             labelTranscription: item.labelTranscription ?? null,
           },
         ],
-      }),
+      },
     });
     if (!res.ok) return null;
-    const json = await res.json();
+    const json = res.data;
     if (!json?.ok) return null;
     return {
       summary: json.summary || "",
@@ -680,23 +678,17 @@ function SupplementsPageInner() {
     setUrlError(null);
     setUrlLoading(true);
     try {
-      const res = await apiFetch("/api/parse-url", {
+      const res = await apiFetchSafe<any>("/api/parse-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed }),
+        json: { url: trimmed },
       });
 
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        const text = await res.text().catch(() => "");
-        setUrlError(
-          `Server returned an unexpected response (HTTP ${res.status}). ${text.slice(0, 80)}`,
-        );
+      if (!res.ok) {
+        setUrlError(res.error.message || "Could not extract supplement data from that URL.");
         return;
       }
 
+      const data = res.data;
       if (!data?.ok) {
         setUrlError(data?.error || "Could not extract supplement data from that URL.");
         return;

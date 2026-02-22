@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { loadLS } from "../lib/persist";
-import { apiFetch } from "../lib/api";
+import { apiFetchSafe } from "../lib/apiFetchSafe";
 import "./AskScanQuestion.css";
 
 type ScanAnswer = {
@@ -117,46 +117,27 @@ export default function AskScanQuestion({ productName, nutrients, interactions }
     setAnswer(null);
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30_000);
-
-      const res = await apiFetch("/api/ask-scan", {
+      const res = await apiFetchSafe("/api/ask-scan", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, scanContext }),
-        signal: controller.signal,
+        json: { question: q, scanContext },
+        timeoutMs: 30_000,
       });
-      clearTimeout(timeout);
 
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        setError("Could not read response. Please try again.");
-        return;
-      }
-
-      if (!data?.ok) {
-        const msg = data?.error;
-        if (msg === "Authentication required") {
-          if (data?.hint === "server_config_missing") {
-            setError("Server configuration issue — please contact support.");
-          } else {
-            setError("Session expired — please log out and sign in again.");
-          }
+      if (!res.ok) {
+        const code = res.error.code;
+        if (code === "FETCH_FAILED" && res.error.message.includes("abort")) {
+          setError("Request timed out. Please try again.");
+        } else if (res.status === 401) {
+          setError("Session expired — please log out and sign in again.");
         } else {
-          setError(msg || "Something went wrong. Please try again.");
+          setError(res.error.message || "Something went wrong. Please try again.");
         }
         return;
       }
 
-      setAnswer(data.answer);
+      setAnswer(res.data.answer);
     } catch (err: any) {
-      if (err?.name === "AbortError") {
-        setError("Request timed out. Please try again.");
-      } else {
-        setError("Connection failed. Please try again.");
-      }
+      setError("Connection failed. Please try again.");
     } finally {
       setLoading(false);
     }

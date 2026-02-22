@@ -1,125 +1,170 @@
-// Safari-safe fetch wrapper for Veda
-// Fixes: "The string did not match the expected pattern"
-// Root cause: Supabase auth SDK + Safari/WebKit URL parsing bug
-// Strategy: NEVER call supabase.auth.getSession() on Safari.
-// Read token directly from storage instead. Harden response parsing.
+export type ApiOk<T> = { ok: true; status: number; data: T; headers?: Record<string, string> };
+export type ApiErr = {
+  ok: false;
+  status: number;
+  error: {
+    code: string;
+    message: string;
+    details?: any;
+    contentType?: string | null;
+    rawTextSnippet?: string;
+  };
+  headers?: Record<string, string>;
+};
+export type ApiResult<T> = ApiOk<T> | ApiErr;
 
-import { supabase } from "./supabase";
-
-/* ---------- Safari / WebKit detection ---------- */
-function isSafariOrWebKit(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Brave/i.test(ua);
-  const isWebKit = /AppleWebKit/i.test(ua);
-  return isSafari || isWebKit;
+function getHeadersRecord(h: Headers): Record<string, string> {
+  const out: Record<string, string> = {};
+  try {
+    h.forEach((v, k) => (out[k.toLowerCase()] = v));
+  } catch {}
+  return out;
 }
 
-/* ---------- Extract Supabase access token WITHOUT SDK ---------- */
-function getAccessTokenFromStorage(): string | null {
-  const stores: Storage[] = [];
-  if (typeof localStorage !== "undefined") stores.push(localStorage);
-  if (typeof sessionStorage !== "undefined") stores.push(sessionStorage);
+/**
+ * Best-effort token reader that avoids calling Supabase SDK in WebKit.
+ * We look for any stored access token in common locations.
+ */
+export function readAccessTokenFromStorage(): string | null {
+  try {
+    const direct = localStorage.getItem("access_token") || localStorage.getItem("sb-access-token");
+    if (direct && direct.length > 10) return direct;
 
-  for (const store of stores) {
-    try {
-      for (let i = 0; i < store.length; i++) {
-        const key = store.key(i);
-        if (!key || !key.endsWith("-auth-token")) continue;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (!k.includes("auth") && !k.includes("sb-")) continue;
 
-        const raw = store.getItem(key);
-        if (!raw) continue;
+      const raw = localStorage.getItem(k);
+      if (!raw || raw.length < 20) continue;
 
-        try {
-          const obj = JSON.parse(raw);
-
-          if (typeof obj?.access_token === "string") return obj.access_token;
-          if (typeof obj?.session?.access_token === "string") return obj.session.access_token;
-          if (typeof obj?.currentSession?.access_token === "string") return obj.currentSession.access_token;
-          if (typeof obj?.data?.session?.access_token === "string") return obj.data.session.access_token;
-        } catch {
-          continue;
+      try {
+        const j = JSON.parse(raw);
+        const token =
+          j?.access_token ||
+          j?.currentSession?.access_token ||
+          j?.session?.access_token ||
+          j?.data?.session?.access_token ||
+          j?.user?.access_token;
+        if (typeof token === "string" && token.length > 10) return token;
+      } catch {
+        if (raw.includes("access_token")) {
+          const m = raw.match(/"access_token"\s*:\s*"([^"]+)"/);
+          if (m?.[1] && m[1].length > 10) return m[1];
         }
       }
-    } catch {
-      continue;
     }
-  }
-
+  } catch {}
   return null;
 }
 
-/* ---------- Best-effort token getter ---------- */
-async function getAccessToken(): Promise<string | null> {
-  const fromStorage = getAccessTokenFromStorage();
-  if (fromStorage) return fromStorage;
-
-  if (isSafariOrWebKit()) return null;
-
+async function safeParseJson(resp: Response): Promise<{ ok: true; json: any } | { ok: false; text: string }> {
+  const ct = resp.headers.get("content-type");
+  if (ct && ct.toLowerCase().includes("application/json")) {
+    try {
+      const json = await resp.json();
+      return { ok: true, json };
+    } catch {
+      // fallthrough to text
+    }
+  }
   try {
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token ?? getAccessTokenFromStorage();
+    const text = await resp.text();
+    return { ok: false, text };
   } catch {
-    return getAccessTokenFromStorage();
+    return { ok: false, text: "" };
   }
 }
 
-/* ---------- Safe response reader ---------- */
-async function readResponseSafe(res: Response): Promise<{
-  json: any | null;
-  text: string;
-}> {
-  const text = await res.text();
-  try {
-    return { json: JSON.parse(text), text };
-  } catch {
-    return { json: null, text };
-  }
-}
-
-/* ---------- Main export ---------- */
 export async function apiFetchSafe<T = any>(
   path: string,
-  options: RequestInit & { json?: any } = {}
-): Promise<{ ok: true; data: T } | { ok: false; status: number; error: string }> {
-  const headers = new Headers(options.headers || {});
-  headers.set("Accept", "application/json");
+  init?: RequestInit & { json?: any; timeoutMs?: number }
+): Promise<ApiResult<T>> {
+  const timeoutMs = init?.timeoutMs ?? 30000;
 
-  let body: BodyInit | undefined = options.body;
-  if (options.json !== undefined) {
-    headers.set("Content-Type", "application/json");
-    body = JSON.stringify(options.json);
+  const headers = new Headers(init?.headers || {});
+  if (!headers.has("accept")) headers.set("accept", "application/json");
+
+  const token = readAccessTokenFromStorage();
+  if (token && !headers.has("authorization")) headers.set("authorization", `Bearer ${token}`);
+
+  let body = init?.body;
+  if (init?.json !== undefined) {
+    headers.set("content-type", "application/json");
+    body = JSON.stringify(init.json);
   }
 
-  const token = await getAccessToken();
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
 
-  let res: Response;
+  let resp: Response | null = null;
   try {
-    res = await fetch(path, { ...options, headers, body });
-  } catch (err: any) {
-    return { ok: false, status: 0, error: err?.message || "Network error" };
-  }
-
-  const parsed = await readResponseSafe(res);
-
-  if (!res.ok) {
-    const msg =
-      parsed.json?.error ||
-      parsed.json?.message ||
-      parsed.text?.slice(0, 200) ||
-      `${res.status} ${res.statusText}`;
-
-    return { ok: false, status: res.status, error: msg };
-  }
-
-  if (!parsed.json) {
+    resp = await fetch(path, {
+      ...init,
+      body,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (e: any) {
+    clearTimeout(t);
+    const msg = String(e?.message || e);
     return {
       ok: false,
-      status: res.status,
-      error: "Expected JSON but received non-JSON response",
+      status: 0,
+      error: {
+        code: "FETCH_FAILED",
+        message: msg,
+        details: { name: e?.name, stack: e?.stack },
+      },
+    };
+  } finally {
+    clearTimeout(t);
+  }
+
+  const headersRec = getHeadersRecord(resp.headers);
+  const parsed = await safeParseJson(resp);
+
+  if (resp.ok) {
+    if (parsed.ok) {
+      return { ok: true, status: resp.status, data: parsed.json as T, headers: headersRec };
+    }
+    return {
+      ok: false,
+      status: resp.status,
+      error: {
+        code: "NON_JSON_SUCCESS",
+        message: "Server returned non-JSON response.",
+        contentType: resp.headers.get("content-type"),
+        rawTextSnippet: (parsed as any).text?.slice(0, 300),
+      },
+      headers: headersRec,
     };
   }
 
-  return { ok: true, data: parsed.json as T };
+  if (parsed.ok) {
+    const j: any = parsed.json;
+    return {
+      ok: false,
+      status: resp.status,
+      error: {
+        code: j?.error?.code || j?.code || "HTTP_ERROR",
+        message: j?.error?.message || j?.message || j?.error || `HTTP ${resp.status}`,
+        details: j?.error?.details || j?.details || j,
+        contentType: resp.headers.get("content-type"),
+      },
+      headers: headersRec,
+    };
+  }
+
+  return {
+    ok: false,
+    status: resp.status,
+    error: {
+      code: "NON_JSON_ERROR",
+      message: `HTTP ${resp.status} — Non-JSON response`,
+      contentType: resp.headers.get("content-type"),
+      rawTextSnippet: (parsed as any).text?.slice(0, 300),
+    },
+    headers: headersRec,
+  };
 }

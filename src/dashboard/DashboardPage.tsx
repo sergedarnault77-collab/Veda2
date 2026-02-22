@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadLS, saveLS } from "../lib/persist";
-import { apiFetch } from "../lib/api";
+import { apiFetchSafe } from "../lib/apiFetchSafe";
 import { getLast7Days, getLast30Days, formatDayLabel } from "../lib/exposureHistory";
 import { SCHEDULE_ORDER, SCHEDULE_META } from "../lib/schedule";
 import type { ScheduleTime } from "../lib/schedule";
@@ -286,12 +286,15 @@ export default function DashboardPage() {
     const rawMeds = loadLS<any[]>(MEDS_KEY, []);
 
     try {
-      const res = await apiFetch("/api/schedule", {
+      const res = await apiFetchSafe<any>("/api/schedule", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ supplements: rawSupps, medications: rawMeds }),
+        json: { supplements: rawSupps, medications: rawMeds },
       });
-      const json = await res.json();
+      if (!res.ok) {
+        setScheduleError(res.error.message || "Could not generate suggestions.");
+        return;
+      }
+      const json = res.data;
       if (!json?.ok) {
         setScheduleError(json?.error || "Could not generate suggestions.");
         return;
