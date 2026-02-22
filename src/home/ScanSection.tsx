@@ -4,7 +4,10 @@ import { prepareImagesForStorage } from "../lib/image-storage";
 import { findExistingIdx } from "../lib/dedup";
 import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
+import { analyzeScan } from "../lib/scanApi";
 import { apiFetchSafe } from "../lib/apiFetchSafe";
+import ScanDebugStrip from "../components/ScanDebugStrip";
+import type { ScanTrace } from "../components/ScanDebugStrip";
 import { track } from "../lib/analytics";
 import { extractExposureFromScan } from "./HomePage";
 import LoadingBanner from "../shared/LoadingBanner";
@@ -153,6 +156,7 @@ export default function ScanSection({ onScanComplete }: Props) {
   const [ixLoading, setIxLoading] = useState(false);
   const [servingG, setServingG] = useState<number | null>(null);
   const [saveSchedule, setSaveSchedule] = useState<ScheduleTime | undefined>(undefined);
+  const [trace, setTrace] = useState<ScanTrace | null>(null);
 
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
@@ -281,14 +285,28 @@ export default function ScanSection({ onScanComplete }: Props) {
       }
       const json = await withMinDelay(
         (async () => {
-          const res = await apiFetchSafe("/api/analyze", {
-            method: "POST",
-            json: payload,
+          const r = await analyzeScan(payload);
+          const ct = r.headers?.["content-type"];
+          const vercelId = r.headers?.["x-vercel-id"];
+          const handlerEntered = r.headers?.["x-veda-handler-entered"];
+
+          setTrace({
+            ts: Date.now(),
+            endpoint: "analyze",
+            url: r.url,
+            requestId: r.requestId,
+            status: r.status,
+            contentType: ct,
+            vercelId,
+            handlerEntered,
+            message: r.ok ? "ok" : r.error.message,
           });
-          if (!res.ok) {
-            throw new Error(`Scan failed (${res.status}): ${res.error.message}`);
+
+          if (!r.ok) {
+            console.error("Scan failed (trace):", r);
+            throw new Error(`[scan] ${r.error.message}`);
           }
-          return res.data;
+          return r.data;
         })(),
         700,
       );
@@ -781,6 +799,8 @@ export default function ScanSection({ onScanComplete }: Props) {
       )}
 
       {error && <div className="scan-status__error">{error}</div>}
+
+      <ScanDebugStrip trace={trace} />
 
       {/* Current result (if active scan) */}
       {step === "done" && result && (

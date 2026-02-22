@@ -681,7 +681,13 @@ function buildJsonSchema() {
    ══════════════════════════════════════════════════════════ */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log("[analyze] handler entered", req.method);
+  const requestId = req.headers["x-veda-request-id"] || "none";
+  console.log("[analyze] handler entered", req.method, "rid=" + requestId);
+
+  res.setHeader("x-veda-handler-entered", "1");
+  res.setHeader("x-veda-request-id", String(requestId));
+  res.setHeader("content-type", "application/json");
+
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ ok: false, error: "Method not allowed" });
@@ -699,7 +705,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const json = await result.json();
     res.status(result.status).json(json);
   } catch (e: any) {
-    console.error("[analyze] fatal error:", e);
+    console.error("[analyze] fatal error:", e, "rid=" + requestId);
     res.status(200).json(stub(`handler error: ${String(e?.message || e).slice(0, 120)}`));
   }
 }
