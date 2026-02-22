@@ -12,8 +12,8 @@ try {
     {
       auth: {
         persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
         flowType: "pkce",
         storage: {
           getItem: (key) => {

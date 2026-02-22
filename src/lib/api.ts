@@ -1,34 +1,46 @@
-import { supabase } from "./supabase";
-
 /**
- * Read the Supabase access_token directly from localStorage.
- * This is the ONLY safe way on Safari/WebKit, which throws
- * "The string did not match the expected pattern" from the SDK's
- * internal URL constructor during getSession/refreshSession.
+ * SDK-free auth token management.
+ *
+ * The Supabase JS SDK uses `new URL()` internally, which throws
+ * "The string did not match the expected pattern" on Safari/WebKit.
+ * This module reads/refreshes tokens via localStorage + direct HTTP,
+ * completely bypassing the SDK for API calls.
  */
-function getTokenFromStorage(): string | null {
+
+const SUPABASE_URL = (
+  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_SUPABASE_URL) || ""
+).trim();
+const SUPABASE_ANON_KEY = (
+  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY) || ""
+).trim();
+
+function findAuthStorageKey(): string | null {
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
-        const raw = localStorage.getItem(key);
-        if (!raw) continue;
-        const parsed = JSON.parse(raw);
-        const token = parsed?.access_token || parsed?.currentSession?.access_token;
-        if (token && typeof token === "string") return token;
-      }
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) return key;
     }
-  } catch {
-    // localStorage unavailable or corrupt
-  }
+  } catch {}
+  return null;
+}
+
+function readSession(): { access_token: string; refresh_token: string } | null {
+  try {
+    const key = findAuthStorageKey();
+    if (!key) return null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const access = parsed?.access_token ?? parsed?.currentSession?.access_token;
+    const refresh = parsed?.refresh_token ?? parsed?.currentSession?.refresh_token;
+    if (typeof access === "string" && access) return { access_token: access, refresh_token: refresh ?? "" };
+  } catch {}
   return null;
 }
 
 function isTokenExpired(token: string): boolean {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return true;
-    const payload = JSON.parse(atob(parts[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     if (typeof payload.exp !== "number") return false;
     return payload.exp * 1000 < Date.now() - 30_000;
   } catch {
@@ -36,19 +48,37 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-async function sdkGetToken(): Promise<string | null> {
+/**
+ * Refresh the session by calling Supabase's token endpoint directly.
+ * No SDK involved -- just a plain HTTP POST.
+ */
+async function refreshTokenDirect(): Promise<string | null> {
   try {
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token ?? null;
-  } catch {
-    return null;
-  }
-}
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+    const session = readSession();
+    if (!session?.refresh_token) return null;
 
-async function sdkRefreshToken(): Promise<string | null> {
-  try {
-    const { data } = await supabase.auth.refreshSession();
-    return data?.session?.access_token ?? null;
+    const resp = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ refresh_token: session.refresh_token }),
+    });
+
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (!data?.access_token) return null;
+
+    const storageKey = findAuthStorageKey();
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(data));
+      } catch {}
+    }
+    return data.access_token as string;
   } catch {
     return null;
   }
@@ -65,37 +95,29 @@ function buildHeaders(init: RequestInit | undefined, token: string | null): Head
 /**
  * Wrapper around fetch() that injects the Supabase auth token.
  *
- * Token resolution strategy (localStorage-first to avoid Safari SDK bugs):
- * 1. Read token from localStorage (instant, no SDK calls, safe on all browsers)
- * 2. If token looks expired, try SDK refresh (wrapped in try-catch)
- * 3. If still nothing, try SDK getSession as last resort
- * 4. Send request; on 401, retry with refreshed token
+ * Completely SDK-free to avoid Safari/WebKit URL-constructor bugs:
+ * 1. Read token from localStorage
+ * 2. If expired, refresh via direct HTTP to Supabase /auth/v1/token
+ * 3. Send request; on 401, try one refresh + retry
  */
 export async function apiFetch(
   input: string | URL | RequestInfo,
   init?: RequestInit,
 ): Promise<Response> {
-  let token = getTokenFromStorage();
+  let session = readSession();
+  let token = session?.access_token ?? null;
 
-  if (!token || isTokenExpired(token)) {
-    const sdkToken = await sdkGetToken();
-    if (sdkToken) {
-      token = sdkToken;
-    } else if (!token || isTokenExpired(token)) {
-      const refreshed = await sdkRefreshToken();
-      if (refreshed) token = refreshed;
-    }
+  if (token && isTokenExpired(token)) {
+    token = await refreshTokenDirect() ?? token;
   }
 
   const headers = buildHeaders(init, token);
   const res = await fetch(input, { ...init, headers });
 
   if (res.status === 401 && token) {
-    const refreshed = await sdkRefreshToken();
-    const freshToken = refreshed || getTokenFromStorage();
-    if (freshToken && freshToken !== token) {
-      const retryHeaders = buildHeaders(init, freshToken);
-      return fetch(input, { ...init, headers: retryHeaders });
+    const fresh = await refreshTokenDirect();
+    if (fresh && fresh !== token) {
+      return fetch(input, { ...init, headers: buildHeaders(init, fresh) });
     }
   }
 
