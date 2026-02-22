@@ -1,9 +1,10 @@
 /**
- * SDK-free auth token management + Safari-safe fetch.
+ * SDK-free auth + request layer.
  *
- * Safari/WebKit bug: fetch() throws "The string did not match the
- * expected pattern" when the Request body is a large string.
- * Fix: always send Blob bodies; fall back to XMLHttpRequest if fetch fails.
+ * Uses XMLHttpRequest exclusively to avoid the Safari/WebKit bug where
+ * fetch()'s internal Request constructor throws "The string did not
+ * match the expected pattern" for large string bodies.
+ * XHR uses a completely different WebKit code path and is not affected.
  */
 
 const SUPABASE_URL = (
@@ -53,25 +54,24 @@ async function refreshTokenDirect(): Promise<string | null> {
     const session = readSession();
     if (!session?.refresh_token) return null;
 
-    const resp = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
-      method: "POST",
-      headers: {
+    const resp = await xhrRequest(
+      `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
+      "POST",
+      {
         "Content-Type": "application/json",
         apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ refresh_token: session.refresh_token }),
-    });
+      JSON.stringify({ refresh_token: session.refresh_token }),
+    );
 
-    if (!resp.ok) return null;
-    const data = await resp.json();
+    if (resp.status < 200 || resp.status >= 300) return null;
+    const data = JSON.parse(resp.body);
     if (!data?.access_token) return null;
 
     const storageKey = findAuthStorageKey();
     if (storageKey) {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(data));
-      } catch {}
+      try { localStorage.setItem(storageKey, JSON.stringify(data)); } catch {}
     }
     return data.access_token as string;
   } catch {
@@ -79,7 +79,7 @@ async function refreshTokenDirect(): Promise<string | null> {
   }
 }
 
-function buildHeaders(init: RequestInit | undefined, token: string | null): Record<string, string> {
+function collectHeaders(init: RequestInit | undefined, token: string | null): Record<string, string> {
   const out: Record<string, string> = {};
   const src = init?.headers;
   if (src) {
@@ -97,57 +97,40 @@ function buildHeaders(init: RequestInit | undefined, token: string | null): Reco
   return out;
 }
 
+interface XhrResult { status: number; body: string; contentType: string }
+
 /**
- * XMLHttpRequest fallback: avoids Safari's fetch() body-parsing bug entirely.
+ * Pure XMLHttpRequest — avoids fetch() entirely.
  */
-function xhrFetch(
+function xhrRequest(
   url: string,
   method: string,
   headers: Record<string, string>,
-  body?: Blob | string | null,
-): Promise<Response> {
+  body?: string | null,
+): Promise<XhrResult> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open(method, url, true);
     for (const [k, v] of Object.entries(headers)) {
-      xhr.setRequestHeader(k, v);
+      try { xhr.setRequestHeader(k, v); } catch {}
     }
-    xhr.onload = () => {
-      resolve(new Response(xhr.responseText, {
-        status: xhr.status,
-        statusText: xhr.statusText,
-        headers: { "content-type": xhr.getResponseHeader("content-type") || "" },
-      }));
-    };
-    xhr.onerror = () => reject(new Error(`XHR network error`));
-    xhr.ontimeout = () => reject(new Error(`XHR timeout`));
     xhr.timeout = 120_000;
+    xhr.onload = () => {
+      resolve({
+        status: xhr.status,
+        body: xhr.responseText,
+        contentType: xhr.getResponseHeader("content-type") || "",
+      });
+    };
+    xhr.onerror = () => reject(new Error("Network error"));
+    xhr.ontimeout = () => reject(new Error("Request timed out (120s)"));
     xhr.send(body ?? null);
   });
 }
 
 /**
- * Safari-safe request: try fetch with Blob body first, fall back to XHR.
- */
-async function safeFetch(
-  url: string,
-  method: string,
-  headers: Record<string, string>,
-  body?: string | null,
-): Promise<Response> {
-  const blobBody = body ? new Blob([body], { type: headers["content-type"] || headers["Content-Type"] || "application/json" }) : undefined;
-
-  try {
-    return await fetch(url, { method, headers, body: blobBody });
-  } catch (fetchErr: any) {
-    console.warn("[apiFetch] fetch() failed, falling back to XHR:", fetchErr?.message);
-    return xhrFetch(url, method, headers, blobBody ?? body);
-  }
-}
-
-/**
- * Wrapper around fetch() that injects Supabase auth token.
- * Uses Blob bodies + XHR fallback to work around Safari bugs.
+ * Wrapper that injects the Supabase auth token and sends via XHR.
+ * Drop-in replacement for fetch() — returns a standard Response object.
  */
 export async function apiFetch(
   input: string | URL | RequestInfo,
@@ -163,17 +146,20 @@ export async function apiFetch(
   const url = typeof input === "string" ? input : String(input);
   const method = init?.method ?? "GET";
   const body = typeof init?.body === "string" ? init.body : null;
-  const headers = buildHeaders(init, token);
+  const headers = collectHeaders(init, token);
 
-  const res = await safeFetch(url, method, headers, body);
+  let result = await xhrRequest(url, method, headers, body);
 
-  if (res.status === 401 && token) {
+  if (result.status === 401 && token) {
     const fresh = await refreshTokenDirect();
     if (fresh && fresh !== token) {
-      const freshHeaders = buildHeaders(init, fresh);
-      return safeFetch(url, method, freshHeaders, body);
+      const freshHeaders = collectHeaders(init, fresh);
+      result = await xhrRequest(url, method, freshHeaders, body);
     }
   }
 
-  return res;
+  return new Response(result.body, {
+    status: result.status,
+    headers: { "content-type": result.contentType },
+  });
 }

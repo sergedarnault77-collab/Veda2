@@ -284,14 +284,31 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
   }
 
   async function doAnalyzeRequest(payload: any): Promise<any> {
-    const body = JSON.stringify(payload);
+    let body: string;
+    try {
+      body = JSON.stringify(payload);
+    } catch (e: any) {
+      throw new Error(`[stringify] ${e?.message}`);
+    }
     console.log("[Veda scan] payload size:", (body.length / 1024).toFixed(0), "KB");
-    const r = await apiFetch("/api/analyze", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body,
-    });
-    const j = await r.json();
+
+    let r: Response;
+    try {
+      r = await apiFetch("/api/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body,
+      });
+    } catch (e: any) {
+      throw new Error(`[request] ${e?.message}`);
+    }
+
+    let j: any;
+    try {
+      j = await r.json();
+    } catch (e: any) {
+      throw new Error(`[parse] HTTP ${r.status} — ${e?.message}`);
+    }
     if (!j.ok) throw new Error(j?.error || `HTTP ${r.status}`);
     return j;
   }
