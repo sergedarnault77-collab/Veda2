@@ -1,10 +1,11 @@
 /**
  * SDK-free auth token management.
  *
- * The Supabase JS SDK uses `new URL()` internally, which throws
- * "The string did not match the expected pattern" on Safari/WebKit.
- * This module reads/refreshes tokens via localStorage + direct HTTP,
- * completely bypassing the SDK for API calls.
+ * Safari/WebKit bugs addressed:
+ * 1. Supabase SDK uses `new URL()` internally → lazy-loaded in supabase.ts
+ * 2. Safari's `fetch()` Request constructor throws "The string did not
+ *    match the expected pattern" on large string bodies (>~500KB).
+ *    Fix: convert body strings to Blob before calling fetch().
  */
 
 const SUPABASE_URL = (
@@ -93,9 +94,25 @@ function buildHeaders(init: RequestInit | undefined, token: string | null): Head
 }
 
 /**
+ * Safari-safe fetch: convert string bodies to Blob to avoid the
+ * "The string did not match the expected pattern" error that Safari
+ * throws in its Request constructor for large string payloads.
+ */
+function safeFetch(input: string | URL | RequestInfo, init?: RequestInit): Promise<Response> {
+  if (init?.body && typeof init.body === "string" && init.body.length > 50_000) {
+    const contentType =
+      new Headers(init.headers).get("content-type") || "application/json";
+    const blob = new Blob([init.body], { type: contentType });
+    const { body: _, ...rest } = init;
+    return fetch(input, { ...rest, body: blob });
+  }
+  return fetch(input, init);
+}
+
+/**
  * Wrapper around fetch() that injects the Supabase auth token.
  *
- * Completely SDK-free to avoid Safari/WebKit URL-constructor bugs:
+ * Uses safeFetch() to work around Safari's large-body bug:
  * 1. Read token from localStorage
  * 2. If expired, refresh via direct HTTP to Supabase /auth/v1/token
  * 3. Send request; on 401, try one refresh + retry
@@ -112,12 +129,12 @@ export async function apiFetch(
   }
 
   const headers = buildHeaders(init, token);
-  const res = await fetch(input, { ...init, headers });
+  const res = await safeFetch(input, { ...init, headers });
 
   if (res.status === 401 && token) {
     const fresh = await refreshTokenDirect();
     if (fresh && fresh !== token) {
-      return fetch(input, { ...init, headers: buildHeaders(init, fresh) });
+      return safeFetch(input, { ...init, headers: buildHeaders(init, fresh) });
     }
   }
 

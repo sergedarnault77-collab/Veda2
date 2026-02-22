@@ -285,6 +285,7 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
 
   async function doAnalyzeRequest(payload: any): Promise<any> {
     const body = JSON.stringify(payload);
+    console.log("[Veda scan] payload size:", (body.length / 1024).toFixed(0), "KB");
     const r = await apiFetch("/api/analyze", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -308,21 +309,7 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
         payload.ingredientsImageDataUrls = ingredientsImages;
       }
 
-      let json: any;
-      try {
-        json = await withMinDelay(doAnalyzeRequest(payload), 700);
-      } catch (firstErr: any) {
-        const firstMsg = String(firstErr?.message || firstErr);
-        console.warn("[Veda scan] first attempt failed:", firstMsg, firstErr);
-
-        if (/pattern|URL|network|fetch|abort|load/i.test(firstMsg)) {
-          await new Promise((r) => setTimeout(r, 1200));
-          json = await withMinDelay(doAnalyzeRequest(payload), 700);
-        } else {
-          throw firstErr;
-        }
-      }
-
+      const json = await withMinDelay(doAnalyzeRequest(payload), 700);
       setResult(json);
       const pName = typeof json?.productName === "string" && json.productName.trim()
         ? json.productName
@@ -332,11 +319,7 @@ export default function ScanSection({ onScanComplete, onPendingResult }: Props) 
     } catch (e: any) {
       const msg = String(e?.message || e);
       console.error("[Veda scan] analysis failed:", msg, e);
-      if (/did not match the expected pattern/i.test(msg)) {
-        setError("Scan failed — please close other tabs, then try again.");
-      } else {
-        setError(msg);
-      }
+      setError(msg);
       setStep("done");
     } finally {
       setLoading(false);
