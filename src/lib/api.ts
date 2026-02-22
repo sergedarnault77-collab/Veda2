@@ -55,6 +55,11 @@ function buildHeaders(init: RequestInit | undefined, token: string | null): Head
  * Falls back to reading the token from localStorage if the SDK throws
  * (common Safari/WebKit bug). Auth failures never block the API call.
  */
+function isSafariPatternError(e: unknown): boolean {
+  const msg = String((e as any)?.message || e || "");
+  return msg.includes("did not match the expected pattern");
+}
+
 export async function apiFetch(
   input: string | URL | RequestInfo,
   init?: RequestInit,
@@ -63,14 +68,27 @@ export async function apiFetch(
 
   try {
     token = await getToken();
-    if (!token) {
-      token = await refreshAndGetToken();
-    }
-    if (!token) {
-      token = getTokenFromStorage();
-    }
   } catch (e) {
-    console.warn("[apiFetch] All token methods failed, trying localStorage:", e);
+    if (isSafariPatternError(e)) {
+      console.warn("[apiFetch] Safari pattern error in getToken, using localStorage");
+    } else {
+      console.warn("[apiFetch] getToken failed:", e);
+    }
+  }
+
+  if (!token) {
+    try {
+      token = await refreshAndGetToken();
+    } catch (e) {
+      if (isSafariPatternError(e)) {
+        console.warn("[apiFetch] Safari pattern error in refreshSession, using localStorage");
+      } else {
+        console.warn("[apiFetch] refreshAndGetToken failed:", e);
+      }
+    }
+  }
+
+  if (!token) {
     token = getTokenFromStorage();
   }
 
@@ -86,7 +104,14 @@ export async function apiFetch(
         return fetch(input, { ...init, headers: retryHeaders });
       }
     } catch (e) {
-      console.warn("[apiFetch] Auth retry failed:", e);
+      if (!isSafariPatternError(e)) {
+        console.warn("[apiFetch] Auth retry failed:", e);
+      }
+      const fallback = getTokenFromStorage();
+      if (fallback && fallback !== token) {
+        const retryHeaders = buildHeaders(init, fallback);
+        return fetch(input, { ...init, headers: retryHeaders });
+      }
     }
   }
 

@@ -301,9 +301,7 @@ export default function ScanSection({ onScanComplete }: Props) {
       setStep("done");
     } catch (e: any) {
       const msg = String(e?.message || e);
-      setError(msg.includes("did not match the expected pattern")
-        ? "Scan failed due to a browser issue. Please try again."
-        : msg);
+      setError(msg);
       setStep("done");
     } finally {
       setLoading(false);
