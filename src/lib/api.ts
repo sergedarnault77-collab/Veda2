@@ -1,11 +1,9 @@
 /**
- * SDK-free auth token management.
+ * SDK-free auth token management + Safari-safe fetch.
  *
- * Safari/WebKit bugs addressed:
- * 1. Supabase SDK uses `new URL()` internally → lazy-loaded in supabase.ts
- * 2. Safari's `fetch()` Request constructor throws "The string did not
- *    match the expected pattern" on large string bodies (>~500KB).
- *    Fix: convert body strings to Blob before calling fetch().
+ * Safari/WebKit bug: fetch() throws "The string did not match the
+ * expected pattern" when the Request body is a large string.
+ * Fix: always send Blob bodies; fall back to XMLHttpRequest if fetch fails.
  */
 
 const SUPABASE_URL = (
@@ -49,10 +47,6 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-/**
- * Refresh the session by calling Supabase's token endpoint directly.
- * No SDK involved -- just a plain HTTP POST.
- */
 async function refreshTokenDirect(): Promise<string | null> {
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
@@ -85,37 +79,75 @@ async function refreshTokenDirect(): Promise<string | null> {
   }
 }
 
-function buildHeaders(init: RequestInit | undefined, token: string | null): Headers {
-  const headers = new Headers(init?.headers);
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
+function buildHeaders(init: RequestInit | undefined, token: string | null): Record<string, string> {
+  const out: Record<string, string> = {};
+  const src = init?.headers;
+  if (src) {
+    if (src instanceof Headers) {
+      src.forEach((v, k) => { out[k] = v; });
+    } else if (Array.isArray(src)) {
+      for (const [k, v] of src) out[k] = v;
+    } else {
+      Object.assign(out, src);
+    }
   }
-  return headers;
+  if (token && !out["Authorization"] && !out["authorization"]) {
+    out["Authorization"] = `Bearer ${token}`;
+  }
+  return out;
 }
 
 /**
- * Safari-safe fetch: convert string bodies to Blob to avoid the
- * "The string did not match the expected pattern" error that Safari
- * throws in its Request constructor for large string payloads.
+ * XMLHttpRequest fallback: avoids Safari's fetch() body-parsing bug entirely.
  */
-function safeFetch(input: string | URL | RequestInfo, init?: RequestInit): Promise<Response> {
-  if (init?.body && typeof init.body === "string" && init.body.length > 50_000) {
-    const contentType =
-      new Headers(init.headers).get("content-type") || "application/json";
-    const blob = new Blob([init.body], { type: contentType });
-    const { body: _, ...rest } = init;
-    return fetch(input, { ...rest, body: blob });
-  }
-  return fetch(input, init);
+function xhrFetch(
+  url: string,
+  method: string,
+  headers: Record<string, string>,
+  body?: Blob | string | null,
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url, true);
+    for (const [k, v] of Object.entries(headers)) {
+      xhr.setRequestHeader(k, v);
+    }
+    xhr.onload = () => {
+      resolve(new Response(xhr.responseText, {
+        status: xhr.status,
+        statusText: xhr.statusText,
+        headers: { "content-type": xhr.getResponseHeader("content-type") || "" },
+      }));
+    };
+    xhr.onerror = () => reject(new Error(`XHR network error`));
+    xhr.ontimeout = () => reject(new Error(`XHR timeout`));
+    xhr.timeout = 120_000;
+    xhr.send(body ?? null);
+  });
 }
 
 /**
- * Wrapper around fetch() that injects the Supabase auth token.
- *
- * Uses safeFetch() to work around Safari's large-body bug:
- * 1. Read token from localStorage
- * 2. If expired, refresh via direct HTTP to Supabase /auth/v1/token
- * 3. Send request; on 401, try one refresh + retry
+ * Safari-safe request: try fetch with Blob body first, fall back to XHR.
+ */
+async function safeFetch(
+  url: string,
+  method: string,
+  headers: Record<string, string>,
+  body?: string | null,
+): Promise<Response> {
+  const blobBody = body ? new Blob([body], { type: headers["content-type"] || headers["Content-Type"] || "application/json" }) : undefined;
+
+  try {
+    return await fetch(url, { method, headers, body: blobBody });
+  } catch (fetchErr: any) {
+    console.warn("[apiFetch] fetch() failed, falling back to XHR:", fetchErr?.message);
+    return xhrFetch(url, method, headers, blobBody ?? body);
+  }
+}
+
+/**
+ * Wrapper around fetch() that injects Supabase auth token.
+ * Uses Blob bodies + XHR fallback to work around Safari bugs.
  */
 export async function apiFetch(
   input: string | URL | RequestInfo,
@@ -128,13 +160,18 @@ export async function apiFetch(
     token = await refreshTokenDirect() ?? token;
   }
 
+  const url = typeof input === "string" ? input : String(input);
+  const method = init?.method ?? "GET";
+  const body = typeof init?.body === "string" ? init.body : null;
   const headers = buildHeaders(init, token);
-  const res = await safeFetch(input, { ...init, headers });
+
+  const res = await safeFetch(url, method, headers, body);
 
   if (res.status === 401 && token) {
     const fresh = await refreshTokenDirect();
     if (fresh && fresh !== token) {
-      return safeFetch(input, { ...init, headers: buildHeaders(init, fresh) });
+      const freshHeaders = buildHeaders(init, fresh);
+      return safeFetch(url, method, freshHeaders, body);
     }
   }
 
