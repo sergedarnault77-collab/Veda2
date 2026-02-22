@@ -25,12 +25,13 @@ type LegalView = "privacy" | "terms" | null;
 type Theme = "dark" | "light";
 
 const THEME_KEY = "veda.theme";
-const THEME_MIGRATED_KEY = "veda.theme.v2";
+const THEME_MIGRATED_KEY = "veda.theme.v3";
 
 function loadTheme(): Theme {
   if (typeof window === "undefined") return "light";
   if (!localStorage.getItem(THEME_MIGRATED_KEY)) {
     localStorage.removeItem(THEME_KEY);
+    localStorage.removeItem("veda.theme.v2");
     localStorage.setItem(THEME_MIGRATED_KEY, "1");
   }
   return (localStorage.getItem(THEME_KEY) as Theme) || "light";
