@@ -62,7 +62,7 @@
 .register__social-btn--apple {
   background: #000;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--alpha-medium);
 }
 
 .register__social-btn--apple:hover {
@@ -70,13 +70,13 @@
 }
 
 .register__social-btn--google {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.02);
   color: var(--veda-text);
-  border: 1px solid var(--veda-border);
+  border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .register__social-btn--google:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .register__divider {
@@ -98,16 +98,6 @@
   flex: 1;
   height: 1px;
   background: var(--veda-border);
-}
-
-/* Light mode overrides for social buttons */
-[data-theme="light"] .register__social-btn--google {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: rgba(0, 0, 0, 0.12);
-}
-
-[data-theme="light"] .register__social-btn--google:hover {
-  background: rgba(0, 0, 0, 0.04);
 }
 
 .register__form {
@@ -153,7 +143,7 @@
   font-size: 0.9rem;
   font-family: inherit;
   color: var(--veda-text);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--alpha-faint);
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-md);
   outline: none;

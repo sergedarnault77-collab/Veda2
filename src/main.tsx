@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { initSentry, Sentry } from "./lib/sentry";
 import { initAnalytics } from "./lib/analytics";
+import "./styles/theme.css";
 import "./index.css";
 
 initSentry();
@@ -43,12 +44,12 @@ class GlobalErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 40, fontFamily: "system-ui", color: "#fff", background: "#0a0a1a", minHeight: "100vh" }}>
+        <div style={{ padding: 40, fontFamily: "system-ui", color: "var(--foreground)", background: "var(--background)", minHeight: "100vh" }}>
           <h1 style={{ fontSize: 20, marginBottom: 12 }}>Something went wrong</h1>
           <p style={{ opacity: 0.7, fontSize: 14, marginBottom: 16 }}>{this.state.error}</p>
           <button
             onClick={() => { this.setState({ hasError: false, error: "" }); window.location.reload(); }}
-            style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "#6c5ce7", color: "#fff", cursor: "pointer", fontSize: 14 }}
+            style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "var(--primary)", color: "var(--primary-foreground)", cursor: "pointer", fontSize: 14 }}
           >
             Reload app
           </button>

@@ -73,7 +73,7 @@
   letter-spacing: 0.1em;
   color: var(--veda-text-muted);
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--alpha-faint);
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-sm);
   margin-bottom: 10px;
@@ -162,7 +162,7 @@
 
 .plans__cta--secondary {
   color: var(--veda-text);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--alpha-faint);
   border: 1px solid var(--veda-border);
 }
 

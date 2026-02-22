@@ -62,9 +62,9 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--alpha-medium);
+  background: var(--alpha-subtle);
+  color: var(--veda-text-subtle);
   font-size: 0.72rem;
   font-weight: 700;
   display: flex;
@@ -77,7 +77,7 @@
 
 .explainer__why:hover {
   background: rgba(31, 58, 95, 0.2);
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--veda-text);
   border-color: rgba(31, 58, 95, 0.4);
 }
 

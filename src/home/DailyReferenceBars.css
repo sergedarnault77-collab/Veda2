@@ -53,7 +53,7 @@
 
 .exposure__track {
   height: 6px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--alpha-subtle);
   border-radius: 4px;
   overflow: hidden;
 }

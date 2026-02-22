@@ -27,8 +27,8 @@ type Theme = "dark" | "light";
 const THEME_KEY = "veda.theme";
 
 function loadTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  return (localStorage.getItem(THEME_KEY) as Theme) || "dark";
+  if (typeof window === "undefined") return "light";
+  return (localStorage.getItem(THEME_KEY) as Theme) || "light";
 }
 
 function applyTheme(theme: Theme) {
@@ -280,17 +280,17 @@ export default function App() {
   // Show brief loading overlay during initial server sync
   if (syncing) {
     return (
-      <div className="app-shell" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <div style={{ textAlign: "center", color: "var(--veda-text-muted)" }}>
-          <div style={{ fontSize: "1.8rem", marginBottom: 12 }}>Veda</div>
-          <div style={{ fontSize: "0.82rem", opacity: 0.7 }}>Syncing your data…</div>
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-center text-muted-foreground">
+          <div className="text-3xl mb-3">Veda</div>
+          <div className="text-sm opacity-70">Syncing your data…</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="app-shell">
+    <div className="min-h-screen bg-background text-foreground">
       <nav className="app-nav">
         <div className="app-nav__logo">Veda</div>
         <button data-testid="nav-scan" onClick={() => setTab("home")} className={`app-nav__btn ${tab === "home" ? "app-nav__btn--active" : ""}`}>Scan</button>
@@ -348,48 +348,13 @@ function AccountBar({
   const otherPlan: Plan = user.plan === "ai" ? "freemium" : "ai";
   const otherLabel = user.plan === "ai" ? "Freemium" : "Veda AI";
 
-  const btnBorder = theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)";
-  const btnBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)";
-
-  const btnStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "10px 14px",
-    fontSize: "0.82rem",
-    fontWeight: 600,
-    borderRadius: 12,
-    border: `1px solid ${btnBorder}`,
-    background: btnBg,
-    color: "var(--veda-text)",
-    cursor: "pointer",
-    marginBottom: 8,
-    fontFamily: "inherit",
-  };
+  const btnCls = "acct-btn w-full py-2.5 px-3.5 text-sm font-semibold rounded-xl border border-border bg-card text-foreground cursor-pointer mb-2 font-[inherit]";
 
   return (
     <>
       <button
         onClick={() => { setOpen((v) => !v); setShowProfile(false); }}
-        style={{
-          position: "fixed",
-          top: 16,
-          right: 16,
-          zIndex: 100,
-          width: 38,
-          height: 38,
-          borderRadius: "50%",
-          border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)"}`,
-          background: theme === "dark"
-            ? "linear-gradient(135deg, rgba(46,91,255,0.3), rgba(90,128,255,0.15))"
-            : "linear-gradient(135deg, rgba(46,91,255,0.2), rgba(46,91,255,0.08))",
-          color: theme === "dark" ? "#fff" : "#1a1a2e",
-          fontWeight: 700,
-          fontSize: "0.82rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          boxShadow: theme === "dark" ? "0 4px 16px rgba(0,0,0,0.35)" : "0 4px 16px rgba(0,0,0,0.08)",
-        }}
+        className="fixed top-4 right-4 z-[100] w-[38px] h-[38px] rounded-full border border-border bg-gradient-to-br from-primary/20 to-primary/8 text-foreground font-bold text-sm flex items-center justify-center cursor-pointer shadow-md"
         aria-label="Account"
       >
         {user.firstName.charAt(0).toUpperCase()}
@@ -397,61 +362,45 @@ function AccountBar({
 
       {open && (
         <div
-          style={{
-            position: "fixed",
-            top: 60,
-            right: 16,
-            zIndex: 100,
-            width: showProfile ? 310 : 260,
-            maxHeight: "80vh",
-            overflowY: "auto",
-            padding: "20px",
-            borderRadius: 20,
-            background: theme === "dark" ? "rgba(10,14,28,0.94)" : "rgba(255,255,255,0.95)",
-            border: `1px solid ${btnBorder}`,
-            boxShadow: theme === "dark" ? "0 16px 48px rgba(0,0,0,0.6)" : "0 16px 48px rgba(0,0,0,0.12)",
-            backdropFilter: "blur(20px)",
-          }}
+          className="fixed top-[60px] right-4 z-[100] max-h-[80vh] overflow-y-auto p-5 rounded-2xl bg-card/95 border border-border shadow-xl backdrop-blur-xl"
+          style={{ width: showProfile ? 310 : 260 }}
         >
           {showProfile ? (
-            <ProfilePanel user={user} theme={theme} onSave={(u) => { onUpdateUser(u); setShowProfile(false); }} onBack={() => setShowProfile(false)} />
+            <ProfilePanel user={user} onSave={(u) => { onUpdateUser(u); setShowProfile(false); }} onBack={() => setShowProfile(false)} />
           ) : (
             <>
-              <div style={{ fontWeight: 700, fontSize: "0.92rem", marginBottom: 2, color: "var(--veda-text)" }}>
+              <div className="font-bold text-[0.92rem] mb-0.5 text-foreground">
                 {user.firstName} {user.lastName}
               </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--veda-text-muted)", marginBottom: 4 }}>
+              <div className="text-xs text-muted-foreground mb-1">
                 {user.email}
               </div>
-              <div style={{ fontSize: "0.72rem", color: "var(--veda-text-muted)", marginBottom: 16 }}>
+              <div className="text-xs text-muted-foreground mb-4">
                 Plan: <strong>{planLabel}</strong> · {user.country}
               </div>
 
-              <button onClick={() => setShowProfile(true)} style={btnStyle}>
+              <button onClick={() => setShowProfile(true)} className={btnCls}>
                 My Profile
               </button>
 
-              <button
-                onClick={onToggleTheme}
-                style={{ ...btnStyle, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-              >
+              <button onClick={onToggleTheme} className={`${btnCls} flex items-center justify-center gap-2`}>
                 {theme === "dark" ? "☀️" : "🌙"} Switch to {theme === "dark" ? "Day" : "Night"} mode
               </button>
 
-              <button onClick={() => { onChangePlan(otherPlan); setOpen(false); }} style={btnStyle}>
+              <button onClick={() => { onChangePlan(otherPlan); setOpen(false); }} className={btnCls}>
                 Switch to {otherLabel}
               </button>
 
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <div className="flex gap-2 mb-2">
                 <button
                   onClick={() => { onShowLegal("privacy"); setOpen(false); }}
-                  style={{ ...btnStyle, fontSize: "0.72rem", padding: "8px 10px", flex: 1, marginBottom: 0 }}
+                  className={`${btnCls} text-xs py-2 px-2.5 flex-1 !mb-0`}
                 >
                   Privacy Policy
                 </button>
                 <button
                   onClick={() => { onShowLegal("terms"); setOpen(false); }}
-                  style={{ ...btnStyle, fontSize: "0.72rem", padding: "8px 10px", flex: 1, marginBottom: 0 }}
+                  className={`${btnCls} text-xs py-2 px-2.5 flex-1 !mb-0`}
                 >
                   Terms of Service
                 </button>
@@ -459,12 +408,7 @@ function AccountBar({
 
               <button
                 onClick={() => { onLogout(); setOpen(false); }}
-                style={{
-                  ...btnStyle,
-                  border: "1px solid rgba(240,98,146,0.2)",
-                  background: "rgba(240,98,146,0.06)",
-                  color: "var(--veda-red)",
-                }}
+                className={`${btnCls} border-destructive/20 bg-destructive/5 text-destructive`}
               >
                 Log out
               </button>
@@ -476,14 +420,7 @@ function AccountBar({
                     setOpen(false);
                   }
                 }}
-                style={{
-                  ...btnStyle,
-                  border: "1px solid rgba(240,98,146,0.3)",
-                  background: "rgba(240,98,146,0.08)",
-                  color: "var(--veda-red)",
-                  fontSize: "0.72rem",
-                  marginBottom: 0,
-                }}
+                className={`${btnCls} border-destructive/30 bg-destructive/8 text-destructive text-xs !mb-0`}
               >
                 Delete Account
               </button>
@@ -506,12 +443,10 @@ const SEX_OPTIONS: { value: BiologicalSex; label: string }[] = [
 
 function ProfilePanel({
   user,
-  theme,
   onSave,
   onBack,
 }: {
   user: VedaUser;
-  theme: string;
   onSave: (u: VedaUser) => void;
   onBack: () => void;
 }) {
@@ -525,29 +460,8 @@ function ProfilePanel({
   const [weightKg, setWeightKg] = useState(user.weightKg?.toString() ?? "");
   const [saved, setSaved] = useState(false);
 
-  const isDark = theme === "dark";
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "8px 12px",
-    fontSize: "0.82rem",
-    fontFamily: "inherit",
-    borderRadius: 10,
-    border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)"}`,
-    background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-    color: "var(--veda-text)",
-    outline: "none",
-    boxSizing: "border-box" as const,
-  };
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    fontSize: "0.68rem",
-    fontWeight: 600,
-    color: "var(--veda-text-muted)",
-    marginBottom: 3,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.04em",
-  };
-  const rowStyle: React.CSSProperties = { marginBottom: 10 };
+  const inputCls = "w-full py-2 px-3 text-sm font-[inherit] rounded-[10px] border border-input bg-card text-foreground outline-none";
+  const labelCls = "block text-[0.68rem] font-semibold text-muted-foreground mb-0.5 uppercase tracking-wide";
 
   function handleSave() {
     const updated: VedaUser = {
@@ -570,56 +484,46 @@ function ProfilePanel({
     <div>
       <button
         onClick={onBack}
-        style={{
-          background: "none",
-          border: "none",
-          color: "var(--veda-accent)",
-          fontSize: "0.78rem",
-          fontWeight: 600,
-          cursor: "pointer",
-          padding: 0,
-          marginBottom: 12,
-          fontFamily: "inherit",
-        }}
+        className="bg-transparent border-none text-primary text-[0.78rem] font-semibold cursor-pointer p-0 mb-3 font-[inherit]"
       >
         ← Back
       </button>
 
-      <div style={{ fontWeight: 700, fontSize: "0.88rem", marginBottom: 14, color: "var(--veda-text)" }}>
+      <div className="font-bold text-[0.88rem] mb-3.5 text-foreground">
         My Profile
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 2 }}>
-        <div style={rowStyle}>
-          <label style={labelStyle}>First name</label>
-          <input style={inputStyle} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+      <div className="grid grid-cols-2 gap-2 mb-0.5">
+        <div className="mb-2.5">
+          <label className={labelCls}>First name</label>
+          <input className={inputCls} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
         </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Last name</label>
-          <input style={inputStyle} value={lastName} onChange={(e) => setLastName(e.target.value)} />
-        </div>
-      </div>
-
-      <div style={rowStyle}>
-        <label style={labelStyle}>Email</label>
-        <input style={{ ...inputStyle, opacity: 0.6, cursor: "not-allowed" }} value={user.email} readOnly />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 2 }}>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Country</label>
-          <input style={inputStyle} value={country} onChange={(e) => setCountry(e.target.value)} />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>City</label>
-          <input style={inputStyle} value={city} onChange={(e) => setCity(e.target.value)} />
+        <div className="mb-2.5">
+          <label className={labelCls}>Last name</label>
+          <input className={inputCls} value={lastName} onChange={(e) => setLastName(e.target.value)} />
         </div>
       </div>
 
-      <div style={rowStyle}>
-        <label style={labelStyle}>Sex</label>
+      <div className="mb-2.5">
+        <label className={labelCls}>Email</label>
+        <input className={`${inputCls} opacity-60 cursor-not-allowed`} value={user.email} readOnly />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mb-0.5">
+        <div className="mb-2.5">
+          <label className={labelCls}>Country</label>
+          <input className={inputCls} value={country} onChange={(e) => setCountry(e.target.value)} />
+        </div>
+        <div className="mb-2.5">
+          <label className={labelCls}>City</label>
+          <input className={inputCls} value={city} onChange={(e) => setCity(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="mb-2.5">
+        <label className={labelCls}>Sex</label>
         <select
-          style={inputStyle}
+          className={inputCls}
           value={sex ?? ""}
           onChange={(e) => setSex((e.target.value || null) as BiologicalSex | null)}
         >
@@ -628,10 +532,10 @@ function ProfilePanel({
         </select>
       </div>
 
-      <div style={rowStyle}>
-        <label style={labelStyle}>Age range</label>
+      <div className="mb-2.5">
+        <label className={labelCls}>Age range</label>
         <select
-          style={inputStyle}
+          className={inputCls}
           value={ageRange ?? ""}
           onChange={(e) => setAgeRange((e.target.value || null) as AgeRange | null)}
         >
@@ -640,32 +544,20 @@ function ProfilePanel({
         </select>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 2 }}>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Height (cm)</label>
-          <input style={inputStyle} type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} />
+      <div className="grid grid-cols-2 gap-2 mb-0.5">
+        <div className="mb-2.5">
+          <label className={labelCls}>Height (cm)</label>
+          <input className={inputCls} type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} />
         </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Weight (kg)</label>
-          <input style={inputStyle} type="number" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} />
+        <div className="mb-2.5">
+          <label className={labelCls}>Weight (kg)</label>
+          <input className={inputCls} type="number" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} />
         </div>
       </div>
 
       <button
         onClick={handleSave}
-        style={{
-          width: "100%",
-          padding: "10px 14px",
-          fontSize: "0.82rem",
-          fontWeight: 700,
-          borderRadius: 12,
-          border: "none",
-          background: "linear-gradient(135deg, var(--veda-accent), var(--veda-accent-light))",
-          color: "#fff",
-          cursor: "pointer",
-          fontFamily: "inherit",
-          marginTop: 4,
-        }}
+        className="w-full py-2.5 px-3.5 text-sm font-bold rounded-xl border-none bg-gradient-to-br from-primary to-primary/70 text-primary-foreground cursor-pointer font-[inherit] mt-1"
       >
         {saved ? "✓ Saved" : "Save changes"}
       </button>

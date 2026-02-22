@@ -54,14 +54,14 @@
 }
 
 .supps-page__add--url {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--alpha-soft);
+  border: 1px solid var(--alpha-medium);
   color: var(--veda-text);
   box-shadow: none;
 }
 
 .supps-page__add--url:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--alpha-medium);
   box-shadow: none;
 }
 
@@ -116,26 +116,16 @@
   padding: 20px;
   border-radius: var(--radius-xl);
   background: var(--veda-surface);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(0, 0, 0, 0.10);
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   gap: 10px;
   transition: border-color 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.supp-card:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-[data-theme="light"] .supp-card {
-  border-color: rgba(0, 0, 0, 0.10);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-[data-theme="light"] .supp-card:hover {
+.supp-card:hover {
   border-color: rgba(0, 0, 0, 0.18);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
 }
@@ -268,7 +258,7 @@
 .supp-nutrients {
   margin-top: 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--alpha-medium);
   background: rgba(31, 58, 95, 0.08);
   padding: 10px 10px 8px;
 }
@@ -301,7 +291,7 @@
   padding: 6px 8px;
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.20);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--alpha-medium);
 }
 
 .supp-nutrients__name {
@@ -466,7 +456,7 @@
 .supps-url-modal__spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.08);
+  border: 2px solid var(--alpha-medium);
   border-top-color: var(--veda-accent);
   border-radius: 50%;
   animation: supps-url-spin 0.7s linear infinite;
@@ -499,7 +489,7 @@
   width: 56px;
   padding: 4px 6px;
   border-radius: var(--radius-sm, 4px);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.04);
   border: 1px solid var(--veda-accent);
   color: var(--veda-text);
   font-family: inherit;
@@ -550,12 +540,6 @@
 @keyframes supp-saved-fade {
   0%, 70% { opacity: 1; }
   100% { opacity: 0; }
-}
-
-[data-theme="light"] .supp-card__serving-input {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: var(--veda-accent);
-  color: var(--veda-text);
 }
 
 /* ── Schedule picker ── */

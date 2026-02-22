@@ -1,0 +1,220 @@
+@import "tailwindcss";
+
+/* ── Tailwind ↔ Veda token bridge ── */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-veda-bg: var(--veda-bg);
+  --color-veda-surface: var(--veda-surface);
+  --color-veda-surface-soft: var(--veda-surface-soft);
+  --color-veda-surface-solid: var(--veda-surface-solid);
+  --color-veda-surface-hover: var(--veda-surface-hover);
+  --color-veda-text: var(--veda-text);
+  --color-veda-text-muted: var(--veda-text-muted);
+  --color-veda-text-subtle: var(--veda-text-subtle);
+  --color-veda-border: var(--veda-border);
+  --color-veda-border-soft: var(--veda-border-soft);
+  --color-veda-border-accent: var(--veda-border-accent);
+  --color-veda-accent: var(--veda-accent);
+  --color-veda-accent-light: var(--veda-accent-light);
+  --color-veda-primary: var(--veda-primary);
+  --color-veda-primary-soft: var(--veda-primary-soft);
+  --color-veda-balance: var(--veda-balance);
+  --color-veda-balance-soft: var(--veda-balance-soft);
+  --color-veda-caution: var(--veda-caution);
+  --color-veda-caution-soft: var(--veda-caution-soft);
+  --color-veda-issue: var(--veda-issue);
+  --color-veda-issue-soft: var(--veda-issue-soft);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+
+  --radius-lg: var(--radius);
+}
+
+/* ── Veda Light Theme — Design Tokens ── */
+
+:root {
+  /* ── core palette ── */
+  --veda-bg: #F6F7F9;
+  --veda-bg-gradient: linear-gradient(145deg, #F6F7F9 0%, #EFF1F5 50%, #F3F4F7 100%);
+  --veda-surface: #FFFFFF;
+  --veda-surface-soft: #F1F3F6;
+  --veda-surface-solid: #FFFFFF;
+  --veda-surface-hover: #EDF0F4;
+
+  --veda-text: #0F172A;
+  --veda-text-muted: #475569;
+  --veda-text-subtle: #64748B;
+
+  --veda-border: #E5E7EB;
+  --veda-border-soft: #EDF0F3;
+  --veda-border-accent: rgba(59, 130, 246, 0.2);
+
+  --veda-accent: #3B82F6;
+  --veda-accent-light: #60A5FA;
+  --veda-accent-glow: rgba(59, 130, 246, 0.15);
+  --veda-royal-deep: #1E3A5F;
+
+  /* ── semantic status ── */
+  --veda-primary: #3B82F6;
+  --veda-primary-soft: #E8F0FE;
+
+  --veda-balance: #2FA4A9;
+  --veda-balance-soft: #E6F4F5;
+
+  --veda-caution: #F59E0B;
+  --veda-caution-soft: #FEF3C7;
+
+  --veda-issue: #DC2626;
+  --veda-issue-soft: #FDECEC;
+
+  /* legacy status aliases */
+  --veda-red: #DC2626;
+  --veda-orange: #F59E0B;
+  --veda-orange-soft: #E8920A;
+  --veda-green: var(--veda-balance);
+  --veda-magenta: #C0408A;
+
+  /* ── exposure bar fills ── */
+  --bar-sugar: #F59E0B;
+  --bar-sweetener: #9030A0;
+  --bar-calorie: #3B82F6;
+  --bar-caffeine: #1AA8B8;
+
+  /* ── alpha helpers ── */
+  --alpha-faint: rgba(0, 0, 0, 0.02);
+  --alpha-subtle: rgba(0, 0, 0, 0.04);
+  --alpha-soft: rgba(0, 0, 0, 0.06);
+  --alpha-medium: rgba(0, 0, 0, 0.08);
+  --alpha-hover: rgba(0, 0, 0, 0.04);
+
+  /* ── nav glass ── */
+  --nav-bg: rgba(255, 255, 255, 0.82);
+  --nav-border: rgba(0, 0, 0, 0.08);
+  --nav-active-bg: rgba(59, 130, 246, 0.10);
+  --nav-active-ring: rgba(59, 130, 246, 0.20);
+
+  /* ── typography ── */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* ── drink builder ── */
+  --db-chip-bg: rgba(0, 0, 0, 0.04);
+  --db-chip-hover-bg: rgba(0, 0, 0, 0.08);
+  --db-estimate-bg: rgba(0, 0, 0, 0.04);
+
+  /* ── radii ── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius: 12px;
+
+  /* ── shadows ── */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.06);
+
+  /* ── shadcn-style semantic tokens ── */
+  --background: var(--veda-bg);
+  --foreground: var(--veda-text);
+
+  --card: var(--veda-surface);
+  --card-foreground: var(--veda-text);
+
+  --popover: var(--veda-surface);
+  --popover-foreground: var(--veda-text);
+
+  --primary: var(--veda-primary);
+  --primary-foreground: #ffffff;
+
+  --secondary: var(--veda-surface-soft);
+  --secondary-foreground: var(--veda-text);
+
+  --muted: var(--veda-surface-soft);
+  --muted-foreground: var(--veda-text-subtle);
+
+  --accent: var(--veda-primary-soft);
+  --accent-foreground: var(--veda-text);
+
+  --destructive: var(--veda-issue);
+  --destructive-foreground: #ffffff;
+
+  --border: var(--veda-border);
+  --input: var(--veda-border);
+  --ring: rgba(59, 130, 246, 0.35);
+}
+
+/* ── Dark mode (opt-in) ── */
+[data-theme="dark"] {
+  --veda-bg: #0A0E1C;
+  --veda-bg-gradient: linear-gradient(145deg, #0A0E1C 0%, #10172D 50%, #0C1024 100%);
+  --veda-surface: rgba(16, 23, 45, 0.7);
+  --veda-surface-soft: rgba(16, 23, 45, 0.5);
+  --veda-surface-solid: #10172D;
+  --veda-surface-hover: #141D3A;
+  --veda-border: rgba(255, 255, 255, 0.07);
+  --veda-border-soft: rgba(255, 255, 255, 0.05);
+  --veda-border-accent: rgba(46, 91, 255, 0.25);
+  --veda-text: #E8EBF2;
+  --veda-text-muted: #9AA4BF;
+  --veda-text-subtle: #7E8BA5;
+  --veda-accent: #2E5BFF;
+  --veda-accent-light: #5a80ff;
+  --veda-accent-glow: rgba(46, 91, 255, 0.2);
+
+  --veda-red: #f06292;
+  --veda-orange: #FF8C1A;
+  --veda-orange-soft: #FFB35C;
+  --veda-green: var(--veda-orange);
+  --veda-magenta: #e056a0;
+
+  --bar-sugar: #FF8C1A;
+  --bar-sweetener: #ab47bc;
+  --bar-calorie: #2E5BFF;
+  --bar-caffeine: #26c6da;
+
+  --alpha-faint: rgba(255, 255, 255, 0.04);
+  --alpha-subtle: rgba(255, 255, 255, 0.05);
+  --alpha-soft: rgba(255, 255, 255, 0.06);
+  --alpha-medium: rgba(255, 255, 255, 0.08);
+  --alpha-hover: rgba(255, 255, 255, 0.04);
+
+  --nav-bg: rgba(10, 14, 28, 0.88);
+  --nav-border: rgba(255, 255, 255, 0.06);
+  --nav-active-bg: rgba(46, 91, 255, 0.18);
+  --nav-active-ring: rgba(46, 91, 255, 0.25);
+
+  --db-chip-bg: rgba(255, 255, 255, 0.05);
+  --db-chip-hover-bg: rgba(255, 255, 255, 0.1);
+  --db-estimate-bg: rgba(0, 0, 0, 0.2);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+}

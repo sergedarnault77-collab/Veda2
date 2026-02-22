@@ -19,7 +19,7 @@
   max-width: 480px;
   max-height: 80vh;
   overflow-y: auto;
-  background: var(--veda-bg, #141428);
+  background: var(--veda-bg);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   padding: 12px 20px 28px;
@@ -35,7 +35,7 @@
   width: 36px;
   height: 4px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--alpha-medium);
   margin: 0 auto 16px;
 }
 
@@ -110,8 +110,8 @@
   gap: 12px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: var(--veda-surface, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--veda-border, rgba(255, 255, 255, 0.06));
+  background: var(--veda-surface);
+  border: 1px solid var(--veda-border);
   text-decoration: none;
   color: inherit;
   transition: background 0.15s, border-color 0.15s;
@@ -165,7 +165,7 @@
   width: 100%;
   padding: 12px;
   border-radius: 12px;
-  border: 1px solid var(--veda-border, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--veda-border);
   background: transparent;
   color: var(--veda-text, #fff);
   font-size: 0.88rem;
@@ -176,7 +176,7 @@
 }
 
 .buy-sheet__close:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--alpha-subtle);
 }
 
 @media (min-width: 600px) {
