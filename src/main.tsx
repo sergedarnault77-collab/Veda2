@@ -9,6 +9,17 @@ import "./index.css";
 initSentry();
 initAnalytics();
 
+// Safari/WebKit throws "The string did not match the expected pattern" from
+// internal Supabase URL parsing. Suppress it globally so it never crashes the
+// app or surfaces as a user-visible error.
+window.addEventListener("unhandledrejection", (e) => {
+  const msg = String(e?.reason?.message || e?.reason || "");
+  if (msg.includes("did not match the expected pattern")) {
+    e.preventDefault();
+    console.warn("[Veda] Suppressed Safari auth pattern error");
+  }
+});
+
 class GlobalErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean; error: string }
@@ -16,7 +27,12 @@ class GlobalErrorBoundary extends Component<
   state = { hasError: false, error: "" };
 
   static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error: String(error?.message || error) };
+    const msg = String(error?.message || error);
+    if (msg.includes("did not match the expected pattern")) {
+      console.warn("[Veda] Suppressed Safari auth pattern error in boundary");
+      return { hasError: false, error: "" };
+    }
+    return { hasError: true, error: msg };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {

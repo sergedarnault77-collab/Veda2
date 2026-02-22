@@ -300,7 +300,36 @@ export default function ScanSection({ onScanComplete }: Props) {
       setProductName(pName);
       setStep("done");
     } catch (e: any) {
-      setError(String(e?.message || e));
+      const msg = String(e?.message || e);
+      if (msg.includes("did not match the expected pattern")) {
+        // Safari auth bug — retry without auth token
+        try {
+          const payload: any = { frontImageDataUrl: frontImage };
+          if (!frontOnly && ingredientsImages.length > 0) {
+            payload.ingredientsImageDataUrls = ingredientsImages;
+          }
+          const fallbackRes = await fetch("/api/analyze", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const j = await fallbackRes.json();
+          if (j.ok) {
+            setResult(j);
+            const pName = typeof j?.productName === "string" && j.productName.trim()
+              ? j.productName : "(unnamed item)";
+            setProductName(pName);
+            setStep("done");
+            setLoading(false);
+            return;
+          }
+          setError("Session issue — please sign out and back in, then retry.");
+        } catch {
+          setError("Session issue — please sign out and back in, then retry.");
+        }
+      } else {
+        setError(msg);
+      }
       setStep("done");
     } finally {
       setLoading(false);
