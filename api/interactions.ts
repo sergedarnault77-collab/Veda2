@@ -1,7 +1,8 @@
 export const config = { runtime: "nodejs" };
 
-import { requireAuth, unauthorized } from "./lib/auth";
-import { traceHeadersEdge } from "./lib/traceHeaders";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { requireAuth } from "./lib/auth";
+import { setTraceHeaders } from "./lib/traceHeaders";
 
 type Interaction = {
   severity: "info" | "caution" | "warning";
@@ -17,14 +18,6 @@ type InteractionsResponse = {
 
 function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
-}
-
-let _traceH: Record<string, string> = {};
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ..._traceH, "content-type": "application/json; charset=utf-8" },
-  });
 }
 
 function stubResponse(): InteractionsResponse {
@@ -78,24 +71,23 @@ function describeItem(it: any): string {
   return parts.join("\n");
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  _traceH = traceHeadersEdge(req);
-  console.log("[interactions] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setTraceHeaders(req, res);
+  console.log("[interactions] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
   try {
-    if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
+    if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
 
-    let authUser: any = null;
-    try { authUser = await requireAuth(req); } catch { /* best-effort */ }
+    try { await requireAuth(req); } catch { /* best-effort */ }
 
     const apiKey = envOpenAIKey();
-    if (!apiKey) return json(stubResponse());
+    if (!apiKey) return res.status(200).json(stubResponse());
 
-    const body = await req.json().catch(() => null);
+    const body = req.body || {};
     const newItem = body?.newItem;
     const existingItems = body?.existingItems;
 
     if (!newItem || !Array.isArray(existingItems) || existingItems.length === 0) {
-      return json(stubResponse());
+      return res.status(200).json(stubResponse());
     }
 
     const newDesc = describeItem(newItem);
@@ -149,7 +141,7 @@ export default async function handler(req: Request): Promise<Response> {
       }),
     });
 
-    if (!r.ok) return json(stubResponse());
+    if (!r.ok) return res.status(200).json(stubResponse());
 
     const resp = await r.json().catch(() => null);
     let outText: string | null = null;
@@ -167,10 +159,10 @@ export default async function handler(req: Request): Promise<Response> {
       outText = chunks.join("\n").trim() || null;
     }
 
-    if (!outText) return json(stubResponse());
+    if (!outText) return res.status(200).json(stubResponse());
 
     let parsed: any;
-    try { parsed = JSON.parse(outText); } catch { return json(stubResponse()); }
+    try { parsed = JSON.parse(outText); } catch { return res.status(200).json(stubResponse()); }
 
     const interactions: Interaction[] = Array.isArray(parsed.interactions)
       ? parsed.interactions.slice(0, 10).map((ix: any) => ({
@@ -181,8 +173,8 @@ export default async function handler(req: Request): Promise<Response> {
         }))
       : [];
 
-    return json({ ok: true, interactions });
+    return res.status(200).json({ ok: true, interactions });
   } catch {
-    return json(stubResponse());
+    return res.status(200).json(stubResponse());
   }
 }

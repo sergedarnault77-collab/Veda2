@@ -1,18 +1,11 @@
 export const config = { runtime: "nodejs" };
 
-import { requireAuth, unauthorized } from "./lib/auth";
-import { traceHeadersEdge } from "./lib/traceHeaders";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { requireAuth } from "./lib/auth";
+import { setTraceHeaders } from "./lib/traceHeaders";
 
 function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
-}
-
-let _traceH: Record<string, string> = {};
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ..._traceH, "content-type": "application/json; charset=utf-8" },
-  });
 }
 
 const SYSTEM_PROMPT = [
@@ -33,10 +26,7 @@ const SYSTEM_PROMPT = [
   "}",
 ].join("\n");
 
-function buildUserPrompt(
-  question: string,
-  scanContext: any,
-): string {
+function buildUserPrompt(question: string, scanContext: any): string {
   const parts: string[] = [];
   const hasScan = Boolean(scanContext.productName);
 
@@ -76,24 +66,23 @@ function buildUserPrompt(
   return parts.join("\n");
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  _traceH = traceHeadersEdge(req);
-  console.log("[ask-scan] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setTraceHeaders(req, res);
+  console.log("[ask-scan] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
   try {
-    if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
+    if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
 
-    let authUser: any = null;
-    try { authUser = await requireAuth(req); } catch { /* best-effort */ }
+    try { await requireAuth(req); } catch { /* best-effort */ }
 
     const apiKey = envOpenAIKey();
-    if (!apiKey) return json({ ok: false, error: "Service unavailable" }, 503);
+    if (!apiKey) return res.status(503).json({ ok: false, error: "Service unavailable" });
 
-    const body = await req.json().catch(() => null);
+    const body = req.body || {};
     const question = typeof body?.question === "string" ? body.question.trim() : "";
     const scanContext = body?.scanContext;
 
-    if (!question) return json({ ok: false, error: "No question provided" }, 400);
-    if (question.length > 500) return json({ ok: false, error: "Question too long" }, 400);
+    if (!question) return res.status(400).json({ ok: false, error: "No question provided" });
+    if (question.length > 500) return res.status(400).json({ ok: false, error: "Question too long" });
 
     const userMsg = buildUserPrompt(question, scanContext ?? {});
 
@@ -118,22 +107,16 @@ export default async function handler(req: Request): Promise<Response> {
       });
       clearTimeout(timeout);
 
-      if (!r.ok) {
-        return json({ ok: false, error: "AI service error" }, 502);
-      }
+      if (!r.ok) return res.status(502).json({ ok: false, error: "AI service error" });
 
       const resp = await r.json();
       const raw = resp?.choices?.[0]?.message?.content;
-      if (!raw) return json({ ok: false, error: "Empty response" }, 502);
+      if (!raw) return res.status(502).json({ ok: false, error: "Empty response" });
 
       let parsed: any;
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        return json({ ok: false, error: "Unparseable response" }, 502);
-      }
+      try { parsed = JSON.parse(raw); } catch { return res.status(502).json({ ok: false, error: "Unparseable response" }); }
 
-      return json({
+      return res.status(200).json({
         ok: true,
         answer: {
           shortAnswer: typeof parsed.shortAnswer === "string" ? parsed.shortAnswer : "",
@@ -149,9 +132,7 @@ export default async function handler(req: Request): Promise<Response> {
       clearTimeout(timeout);
     }
   } catch (err: any) {
-    if (err?.name === "AbortError") {
-      return json({ ok: false, error: "Request timed out" }, 504);
-    }
-    return json({ ok: false, error: "Internal error" }, 500);
+    if (err?.name === "AbortError") return res.status(504).json({ ok: false, error: "Request timed out" });
+    return res.status(500).json({ ok: false, error: "Internal error" });
   }
 }

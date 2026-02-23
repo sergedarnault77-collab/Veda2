@@ -1,7 +1,8 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { requireAuth } from "./lib/auth";
-import { traceHeadersEdge } from "./lib/traceHeaders";
+import { setTraceHeaders } from "./lib/traceHeaders";
 
 type TimeSlot = "morning" | "afternoon" | "evening" | "night";
 
@@ -23,39 +24,24 @@ function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
 }
 
-let _traceH: Record<string, string> = {};
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ..._traceH, "content-type": "application/json; charset=utf-8" },
-  });
-}
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setTraceHeaders(req, res);
+  console.log("[schedule] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
 
-export default async function handler(req: Request): Promise<Response> {
-  _traceH = traceHeadersEdge(req);
-  console.log("[schedule] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
-  let authUser: any = null;
-  try { authUser = await requireAuth(req); } catch { /* best-effort */ }
+  try { await requireAuth(req); } catch { /* best-effort */ }
 
-  if (req.method !== "POST") {
-    return json({ ok: false, error: "POST only" }, 405);
-  }
+  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
 
   const apiKey = envOpenAIKey();
-  if (!apiKey) {
-    return json({ ok: false, error: "API key missing" }, 500);
-  }
+  if (!apiKey) return res.status(500).json({ ok: false, error: "API key missing" });
 
-  let body: any;
-  try { body = await req.json(); } catch {
-    return json({ ok: false, error: "Invalid JSON" }, 400);
-  }
+  const body = req.body || {};
 
   const supplements: any[] = Array.isArray(body?.supplements) ? body.supplements : [];
   const medications: any[] = Array.isArray(body?.medications) ? body.medications : [];
 
   if (supplements.length === 0 && medications.length === 0) {
-    return json({
+    return res.status(200).json({
       ok: true,
       items: [],
       generalAdvice: "Add supplements or medications first, then I can recommend optimal timing.",
@@ -107,27 +93,16 @@ export default async function handler(req: Request): Promise<Response> {
     "• Zinc → evening with food (separate from iron)",
     "• Omega-3 / fish oil → with meals (morning or evening)",
     "• Probiotics → morning on empty stomach",
-    "• Protein powder → morning or afternoon (around activity)",
-    "• Creatine → any consistent time, often morning or post-workout",
     "• Melatonin → night (30-60 min before bed)",
     "• Caffeine → morning only (not after 2 PM)",
     "• Medications → follow prescriber guidance; if unknown, morning with food is safest default",
     "",
-    "Consider INTERACTIONS between the user's items:",
-    "• Separate iron from calcium, zinc, coffee, and dairy",
-    "• Separate calcium from iron and thyroid medications",
-    "• Take stimulants (caffeine, ADHD meds) in the morning",
-    "• Take calming supplements (magnesium, melatonin) in the evening/night",
-    "",
-    "Return JSON with this exact structure:",
-    '{ "items": [{ "id": "<item id>", "name": "<item name>", "recommended": "morning|afternoon|evening|night", "reason": "<1-2 sentence explanation>" }], "generalAdvice": "<2-3 sentences of overall scheduling tips for this specific stack>", "disclaimer": "This is general information based on common supplement timing guidelines. It is not medical advice. Consult a healthcare professional for personalized recommendations." }',
+    "Return JSON with: items (array of {id, name, recommended, reason}), generalAdvice (string), disclaimer (string).",
     "",
     "Rules:",
-    "- Return a recommendation for EVERY item the user lists",
+    "- Return a recommendation for EVERY item",
     "- Use the exact item IDs provided",
-    "- Keep reasons concise (1-2 sentences max)",
     "- Descriptive language only, no prescriptive medical advice",
-    "- If unsure about a specific item, default to 'morning with food' and say why",
   ].join("\n");
 
   try {
@@ -136,10 +111,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
-      },
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
@@ -154,20 +126,14 @@ export default async function handler(req: Request): Promise<Response> {
     });
     clearTimeout(timer);
 
-    if (!r.ok) {
-      return json({ ok: false, error: `AI error: ${r.status}` });
-    }
+    if (!r.ok) return res.status(200).json({ ok: false, error: `AI error: ${r.status}` });
 
     const resp = await r.json();
     const text = resp?.choices?.[0]?.message?.content;
-    if (!text) {
-      return json({ ok: false, error: "No AI response" });
-    }
+    if (!text) return res.status(200).json({ ok: false, error: "No AI response" });
 
     let parsed: any;
-    try { parsed = JSON.parse(text); } catch {
-      return json({ ok: false, error: "Invalid AI response" });
-    }
+    try { parsed = JSON.parse(text); } catch { return res.status(200).json({ ok: false, error: "Invalid AI response" }); }
 
     const validSlots = new Set(["morning", "afternoon", "evening", "night"]);
     const items: ScheduleItem[] = [];
@@ -194,11 +160,9 @@ export default async function handler(req: Request): Promise<Response> {
         : "This is general information, not medical advice. Consult a healthcare professional for personalized recommendations.",
     };
 
-    return json(result);
+    return res.status(200).json(result);
   } catch (err: any) {
-    if (err?.name === "AbortError") {
-      return json({ ok: false, error: "Request timed out" });
-    }
-    return json({ ok: false, error: "Unexpected error" }, 500);
+    if (err?.name === "AbortError") return res.status(200).json({ ok: false, error: "Request timed out" });
+    return res.status(500).json({ ok: false, error: "Unexpected error" });
   }
 }

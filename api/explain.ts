@@ -1,19 +1,8 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { requireAuth } from "./lib/auth";
-import { traceHeadersEdge } from "./lib/traceHeaders";
-
-/**
- * /api/explain — Contextual guidance for a detected signal.
- *
- * Returns 4 structured sections:
- *  1. whatWasDetected  — fact-based observation
- *  2. whyItMatters     — educational context
- *  3. whatPeopleDo     — non-directive, third-person patterns
- *  4. disclaimer       — always present
- *
- * NEVER returns medical advice, directives, or diagnosis.
- */
+import { setTraceHeaders } from "./lib/traceHeaders";
 
 interface ExplainResponse {
   ok: true;
@@ -27,14 +16,6 @@ function envKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
 }
 
-let _traceH: Record<string, string> = {};
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ..._traceH, "content-type": "application/json; charset=utf-8" },
-  });
-}
-
 function fallback(signal: any): ExplainResponse {
   const kind = String(signal?.kind || "signal");
   const label = String(signal?.label || "this item");
@@ -45,8 +26,7 @@ function fallback(signal: any): ExplainResponse {
     whatWasDetected: [detail || `${label} was flagged as ${kind}.`],
     whyItMatters: ["Context depends on dose, timing, and individual factors."],
     whatPeopleDo: ["Some people review overlapping sources when flagged."],
-    disclaimer:
-      "This is not medical advice. Veda does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
+    disclaimer: "This is not medical advice. Veda does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
   };
 }
 
@@ -59,49 +39,30 @@ function buildSchema() {
       additionalProperties: false,
       required: ["whatWasDetected", "whyItMatters", "whatPeopleDo"],
       properties: {
-        whatWasDetected: {
-          type: "array",
-          items: { type: "string" },
-        },
-        whyItMatters: {
-          type: "array",
-          items: { type: "string" },
-        },
-        whatPeopleDo: {
-          type: "array",
-          items: { type: "string" },
-        },
+        whatWasDetected: { type: "array", items: { type: "string" } },
+        whyItMatters: { type: "array", items: { type: "string" } },
+        whatPeopleDo: { type: "array", items: { type: "string" } },
       },
     },
   };
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  _traceH = traceHeadersEdge(req);
-  console.log("[explain] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
-  if (req.method !== "POST") {
-    return json({ ok: false, error: "POST only" }, 405);
-  }
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setTraceHeaders(req, res);
+  console.log("[explain] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
 
-  let authUser: any = null;
-  try { authUser = await requireAuth(req); } catch { /* best-effort */ }
+  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
 
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return json({ ok: false, error: "Invalid JSON" }, 400);
-  }
+  try { await requireAuth(req); } catch { /* best-effort */ }
+
+  const body = req.body;
+  if (!body) return res.status(400).json({ ok: false, error: "Invalid JSON" });
 
   const signal = body?.signal;
-  if (!signal) {
-    return json({ ok: false, error: "signal required" }, 400);
-  }
+  if (!signal) return res.status(400).json({ ok: false, error: "signal required" });
 
   const apiKey = envKey();
-  if (!apiKey) {
-    return json(fallback(signal));
-  }
+  if (!apiKey) return res.status(200).json(fallback(signal));
 
   const kind = String(signal.kind || "flag");
   const label = String(signal.label || "Unknown");
@@ -117,26 +78,14 @@ export default async function handler(req: Request): Promise<Response> {
     "You MUST return JSON with exactly 3 arrays of short strings:",
     "",
     "1. whatWasDetected (1-3 items): Pure facts about what was observed.",
-    "   Example: \"You're currently at ~1250% of the daily reference intake for Vitamin C\"",
-    "   Example: \"This amount comes from 3 sources you scanned today\"",
-    "",
     "2. whyItMatters (1-3 items): Educational context. Why this is notable.",
-    "   Example: \"Vitamin C absorption saturates quickly — amounts above ~200mg are commonly excreted\"",
-    "   Example: \"High doses may cause GI discomfort in some people\"",
-    "   Use language like: 'commonly', 'tends to', 'may', 'in some people', 'is often associated with'",
-    "",
-    "3. whatPeopleDo (1-3 items): Non-directive, third-person patterns. What others typically do.",
-    "   Example: \"Some people reduce overlapping supplements when redundancy is detected\"",
-    "   Example: \"Others space doses across the day\"",
-    "   NEVER use 'you should', 'stop taking', 'we recommend'. Always third-person: 'some people', 'many', 'others'.",
+    "3. whatPeopleDo (1-3 items): Non-directive, third-person patterns.",
     "",
     "ABSOLUTE RULES:",
     "- NEVER give medical advice, diagnosis, or treatment recommendations",
-    "- NEVER say 'you should', 'stop', 'avoid', 'do not take', 'unsafe', 'dangerous', 'will cause harm'",
-    "- NEVER recommend specific doses for the user",
+    "- NEVER say 'you should', 'stop', 'avoid', 'do not take', 'unsafe', 'dangerous'",
     "- Keep each bullet under 120 characters",
-    "- Be grounded in the data provided — do not invent facts",
-    "- If you don't have enough data, say so honestly",
+    "- Be grounded in the data provided",
   ].join("\n");
 
   const userPrompt = [
@@ -147,17 +96,12 @@ export default async function handler(req: Request): Promise<Response> {
     nutrients.length > 0 ? `Nutrient data: ${nutrients.join("; ")}` : "",
     "",
     "Provide contextual guidance for this signal.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].filter(Boolean).join("\n");
 
   try {
     const r = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
-      },
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
       body: JSON.stringify({
         model: "gpt-4o-mini",
         input: [
@@ -168,9 +112,7 @@ export default async function handler(req: Request): Promise<Response> {
       }),
     });
 
-    if (!r.ok) {
-      return json(fallback(signal));
-    }
+    if (!r.ok) return res.status(200).json(fallback(signal));
 
     const resp = await r.json();
     let outText: string | null = null;
@@ -180,33 +122,26 @@ export default async function handler(req: Request): Promise<Response> {
       for (const item of resp.output) {
         if (!Array.isArray(item?.content)) continue;
         for (const c of item.content) {
-          if (typeof c?.text === "string") {
-            outText = c.text;
-            break;
-          }
+          if (typeof c?.text === "string") { outText = c.text; break; }
         }
         if (outText) break;
       }
     }
 
-    if (!outText) return json(fallback(signal));
+    if (!outText) return res.status(200).json(fallback(signal));
 
     const parsed = JSON.parse(outText);
-
     const cap = (arr: any[], max: number) =>
       Array.isArray(arr) ? arr.filter((s: any) => typeof s === "string").slice(0, max).map((s: string) => s.slice(0, 200)) : [];
 
-    const result: ExplainResponse = {
+    return res.status(200).json({
       ok: true,
       whatWasDetected: cap(parsed.whatWasDetected, 3),
       whyItMatters: cap(parsed.whyItMatters, 3),
       whatPeopleDo: cap(parsed.whatPeopleDo, 3),
-      disclaimer:
-        "This is not medical advice. Veda does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
-    };
-
-    return json(result);
+      disclaimer: "This is not medical advice. Veda does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
+    } as ExplainResponse);
   } catch {
-    return json(fallback(signal));
+    return res.status(200).json(fallback(signal));
   }
 }

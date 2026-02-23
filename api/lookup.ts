@@ -1,8 +1,9 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { neon } from "@neondatabase/serverless";
 import { requireAuth } from "./lib/auth";
-import { traceHeadersEdge } from "./lib/traceHeaders";
+import { setTraceHeaders } from "./lib/traceHeaders";
 
 function getDb() {
   const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
@@ -10,48 +11,24 @@ function getDb() {
   return neon(connStr);
 }
 
-let _traceH: Record<string, string> = {};
-function json(data: any, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      ..._traceH,
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "public, max-age=3600, s-maxage=86400",
-    },
-  });
-}
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setTraceHeaders(req, res);
+  res.setHeader("cache-control", "public, max-age=3600, s-maxage=86400");
+  console.log("[lookup] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
 
-export default async function handler(req: Request): Promise<Response> {
-  _traceH = traceHeadersEdge(req);
-  console.log("[lookup] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
-  if (req.method !== "GET") {
-    return json({ ok: false, error: "GET only" }, 405);
-  }
+  if (req.method !== "GET") return res.status(405).json({ ok: false, error: "GET only" });
 
-  let authUser: any = null;
-  try { authUser = await requireAuth(req); } catch { /* best-effort */ }
+  try { await requireAuth(req); } catch { /* best-effort */ }
 
   const sql = getDb();
-  if (!sql) {
-    return json({ ok: false, error: "Database not configured" }, 503);
-  }
+  if (!sql) return res.status(503).json({ ok: false, error: "Database not configured" });
 
-  let url: URL;
-  try {
-    url = new URL(req.url);
-  } catch {
-    return json({ ok: false, error: "Invalid request URL" }, 400);
-  }
-  const barcode = url.searchParams.get("barcode")?.trim() || "";
-  const query = url.searchParams.get("q")?.trim() || "";
+  const barcode = (req.query.barcode as string || "").trim();
+  const query = (req.query.q as string || "").trim();
 
-  if (!barcode && !query) {
-    return json({ ok: false, error: "Provide ?barcode=... or ?q=..." }, 400);
-  }
+  if (!barcode && !query) return res.status(400).json({ ok: false, error: "Provide ?barcode=... or ?q=..." });
 
   try {
-    /* ── Barcode lookup (exact match, fastest) ── */
     if (barcode) {
       const rows = await sql`
         SELECT p.id, p.source, p.source_id, p.barcode, p.product_name, p.brand_name,
@@ -61,9 +38,7 @@ export default async function handler(req: Request): Promise<Response> {
         LIMIT 1
       `;
 
-      if (rows.length === 0) {
-        return json({ ok: true, match: null });
-      }
+      if (rows.length === 0) return res.status(200).json({ ok: true, match: null });
 
       const product = rows[0];
       const nutrients = await sql`
@@ -73,7 +48,7 @@ export default async function handler(req: Request): Promise<Response> {
         ORDER BY ingredient_name
       `;
 
-      return json({
+      return res.status(200).json({
         ok: true,
         match: {
           source: product.source,
@@ -95,7 +70,6 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    /* ── Text search (trigram similarity on name + brand) ── */
     const searchTerm = query.toLowerCase().slice(0, 200);
 
     const rows = await sql`
@@ -113,9 +87,7 @@ export default async function handler(req: Request): Promise<Response> {
       LIMIT 5
     `;
 
-    if (rows.length === 0) {
-      return json({ ok: true, matches: [] });
-    }
+    if (rows.length === 0) return res.status(200).json({ ok: true, matches: [] });
 
     const results = await Promise.all(
       rows.map(async (product: any) => {
@@ -147,8 +119,8 @@ export default async function handler(req: Request): Promise<Response> {
       }),
     );
 
-    return json({ ok: true, matches: results });
+    return res.status(200).json({ ok: true, matches: results });
   } catch (e: any) {
-    return json({ ok: false, error: String(e?.message || e).slice(0, 200) }, 500);
+    return res.status(500).json({ ok: false, error: String(e?.message || e).slice(0, 200) });
   }
 }

@@ -1,7 +1,8 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { requireAuth } from "./lib/auth";
-import { traceHeadersEdge } from "./lib/traceHeaders";
+import { setTraceHeaders } from "./lib/traceHeaders";
 
 type OverlapRisk = "low" | "medium" | "high";
 
@@ -25,20 +26,7 @@ function envOpenAIKey(): string | null {
 }
 
 function stubResponse(reason: string): AdviseResponse {
-  return {
-    ok: true,
-    summary: "",
-    overlaps: [],
-    notes: [reason],
-  };
-}
-
-let _traceH: Record<string, string> = {};
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ..._traceH, "content-type": "application/json; charset=utf-8" },
-  });
+  return { ok: true, summary: "", overlaps: [], notes: [reason] };
 }
 
 function buildSchema() {
@@ -72,31 +60,25 @@ function buildSchema() {
   };
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  _traceH = traceHeadersEdge(req);
-  console.log("[advise] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setTraceHeaders(req, res);
+  console.log("[advise] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
   try {
-    if (req.method !== "POST") {
-      return json({ ok: false, error: "POST only" }, 405);
-    }
+    if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
 
-    let authUser: any = null;
-    try { authUser = await requireAuth(req); } catch { /* best-effort */ }
+    try { await requireAuth(req); } catch { /* best-effort */ }
 
     const apiKey = envOpenAIKey();
-    if (!apiKey) {
-      return json(stubResponse("OPENAI_API_KEY missing"));
-    }
+    if (!apiKey) return res.status(200).json(stubResponse("OPENAI_API_KEY missing"));
 
-    const body = await req.json().catch(() => null);
+    const body = req.body || {};
     const items = body?.items;
     if (!Array.isArray(items) || items.length === 0) {
-      return json(stubResponse("No items provided"));
+      return res.status(200).json(stubResponse("No items provided"));
     }
 
-    // Build a compact text representation of items for the prompt
     const itemDescriptions = items
-      .slice(0, 10) // cap at 10 items
+      .slice(0, 10)
       .map((it: any, i: number) => {
         const parts: string[] = [];
         parts.push(`Item ${i + 1}: ${it.displayName || "Unknown"}`);
@@ -104,10 +86,7 @@ export default async function handler(req: Request): Promise<Response> {
           parts.push(`  Transcription (first 600 chars): ${String(it.labelTranscription).slice(0, 600)}`);
         }
         if (Array.isArray(it.nutrients) && it.nutrients.length > 0) {
-          const nList = it.nutrients
-            .slice(0, 30)
-            .map((n: any) => `${n.name} ${n.amountToday}${n.unit}`)
-            .join(", ");
+          const nList = it.nutrients.slice(0, 30).map((n: any) => `${n.name} ${n.amountToday}${n.unit}`).join(", ");
           parts.push(`  Nutrients: ${nList}`);
         }
         if (Array.isArray(it.ingredientsList) && it.ingredientsList.length > 0) {
@@ -137,48 +116,26 @@ export default async function handler(req: Request): Promise<Response> {
 
     const schema = buildSchema();
 
-    const payload = {
-      model: "gpt-4o-mini",
-      input: [
-        {
-          role: "system",
-          content: [{ type: "input_text", text: system }],
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: `Analyze these items and provide insights:\n\n${itemDescriptions}`,
-            },
-          ],
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema" as const,
-          ...schema,
-        },
-      },
-    };
-
     const r = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(payload),
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        input: [
+          { role: "system", content: [{ type: "input_text", text: system }] },
+          { role: "user", content: [{ type: "input_text", text: `Analyze these items and provide insights:\n\n${itemDescriptions}` }] },
+        ],
+        text: { format: { type: "json_schema" as const, ...schema } },
+      }),
     });
 
     if (!r.ok) {
       const errText = await r.text().catch(() => "");
-      return json(stubResponse(`OpenAI error ${r.status}: ${errText.slice(0, 100)}`));
+      return res.status(200).json(stubResponse(`OpenAI error ${r.status}: ${errText.slice(0, 100)}`));
     }
 
     const resp = await r.json().catch(() => null);
 
-    // Extract output text
     let outText: string | null = null;
     if (resp && typeof resp.output_text === "string") {
       outText = resp.output_text;
@@ -187,53 +144,35 @@ export default async function handler(req: Request): Promise<Response> {
       for (const item of resp.output) {
         if (!Array.isArray(item?.content)) continue;
         for (const c of item.content) {
-          if ((c?.type === "output_text" || c?.type === "text") && typeof c?.text === "string") {
-            chunks.push(c.text);
-          }
+          if ((c?.type === "output_text" || c?.type === "text") && typeof c?.text === "string") chunks.push(c.text);
         }
       }
       outText = chunks.join("\n").trim() || null;
     }
 
-    if (!outText) {
-      return json(stubResponse("OpenAI: no output_text"));
-    }
+    if (!outText) return res.status(200).json(stubResponse("OpenAI: no output_text"));
 
     let parsed: any = null;
-    try {
-      parsed = JSON.parse(outText);
-    } catch {
-      return json(stubResponse("OpenAI: invalid JSON output"));
-    }
+    try { parsed = JSON.parse(outText); } catch { return res.status(200).json(stubResponse("OpenAI: invalid JSON output")); }
 
-    const summary =
-      typeof parsed.summary === "string" ? parsed.summary.slice(0, 250) : "";
+    const summary = typeof parsed.summary === "string" ? parsed.summary.slice(0, 250) : "";
 
     const overlaps: Overlap[] = Array.isArray(parsed.overlaps)
       ? parsed.overlaps.slice(0, 8).map((o: any) => ({
           key: typeof o.key === "string" ? o.key.slice(0, 40) : "",
           what: typeof o.what === "string" ? o.what.slice(0, 120) : "",
           whyItMatters: typeof o.whyItMatters === "string" ? o.whyItMatters.slice(0, 160) : "",
-          risk:
-            o.risk === "high" || o.risk === "medium" || o.risk === "low"
-              ? o.risk
-              : "low",
-          related: Array.isArray(o.related)
-            ? o.related.filter((x: any) => typeof x === "string").slice(0, 10)
-            : [],
+          risk: o.risk === "high" || o.risk === "medium" || o.risk === "low" ? o.risk : "low",
+          related: Array.isArray(o.related) ? o.related.filter((x: any) => typeof x === "string").slice(0, 10) : [],
         }))
       : [];
 
     const notes: string[] = Array.isArray(parsed.notes)
-      ? parsed.notes
-          .filter((n: any) => typeof n === "string")
-          .map((n: string) => n.slice(0, 150))
-          .slice(0, 3)
+      ? parsed.notes.filter((n: any) => typeof n === "string").map((n: string) => n.slice(0, 150)).slice(0, 3)
       : [];
 
-    const result: AdviseResponse = { ok: true, summary, overlaps, notes };
-    return json(result);
+    return res.status(200).json({ ok: true, summary, overlaps, notes } as AdviseResponse);
   } catch (e: any) {
-    return json(stubResponse(`exception: ${String(e?.message || e).slice(0, 100)}`));
+    return res.status(200).json(stubResponse(`exception: ${String(e?.message || e).slice(0, 100)}`));
   }
 }
