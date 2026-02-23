@@ -31,6 +31,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 - `req.json()` — use `req.body` instead (Node.js parses automatically)
 - `req.headers.get(...)` — use `req.headers[...]` (Node.js uses plain object)
 
+## Shared modules directory
+
+All shared utility modules must live in `api/_lib/` (underscore prefix).
+Vercel treats files in `api/lib/` as serverless functions, causing crashes.
+
+```
+api/_lib/auth.ts        ✅ correct — excluded from route processing
+api/_lib/traceHeaders.ts ✅ correct
+api/lib/auth.ts         ❌ WRONG — Vercel tries to invoke as a function
+```
+
 ## Response shape
 
 All endpoints must return JSON:

@@ -1,8 +1,8 @@
 export const config = { runtime: "nodejs", maxDuration: 60 };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setTraceHeaders } from "./lib/traceHeaders";
-import { getNeonDb } from "./lib/neonDb";
+import { setTraceHeaders } from "./_lib/traceHeaders";
+import { getNeonDb } from "./_lib/neonDb";
 
 function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
@@ -115,7 +115,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     let authUser: any = null;
-    try { const { requireAuth } = await import("./lib/auth"); authUser = await requireAuth(req as any); } catch { /* best-effort */ }
+    try { const { requireAuth } = await import("./_lib/auth"); authUser = await requireAuth(req as any); } catch { /* best-effort */ }
     if (!authUser) {
       return res.status(401).json({ ok: false, error: "Authentication required" });
     }

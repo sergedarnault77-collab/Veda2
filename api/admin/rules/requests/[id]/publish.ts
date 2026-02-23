@@ -9,7 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   let authUser: any = null;
   try {
-    const { requireAuth } = await import("../../../../lib/auth");
+    const { requireAuth } = await import("../../../../_lib/auth");
     authUser = await requireAuth(req);
   } catch { /* best-effort */ }
   if (!authUser) {

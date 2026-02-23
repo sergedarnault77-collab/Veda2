@@ -1,7 +1,7 @@
 export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setTraceHeaders } from "./lib/traceHeaders";
+import { setTraceHeaders } from "./_lib/traceHeaders";
 
 type TimeSlot = "morning" | "afternoon" | "evening" | "night";
 
@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   setTraceHeaders(req, res);
   console.log("[schedule] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
 
-  try { const { requireAuth } = await import("./lib/auth"); await requireAuth(req); } catch { /* best-effort */ }
+  try { const { requireAuth } = await import("./_lib/auth"); await requireAuth(req); } catch { /* best-effort */ }
 
   if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
 

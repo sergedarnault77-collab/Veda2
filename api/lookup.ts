@@ -1,8 +1,8 @@
 export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setTraceHeaders } from "./lib/traceHeaders";
-import { getNeonDb } from "./lib/neonDb";
+import { setTraceHeaders } from "./_lib/traceHeaders";
+import { getNeonDb } from "./_lib/neonDb";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setTraceHeaders(req, res);
@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method !== "GET") return res.status(405).json({ ok: false, error: "GET only" });
 
-  try { const { requireAuth } = await import("./lib/auth"); await requireAuth(req); } catch { /* best-effort */ }
+  try { const { requireAuth } = await import("./_lib/auth"); await requireAuth(req); } catch { /* best-effort */ }
 
   const sql = await getNeonDb();
   if (!sql) return res.status(503).json({ ok: false, error: "Database not configured" });

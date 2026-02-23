@@ -3,15 +3,15 @@ export const config = { runtime: "nodejs" };
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { InteractionRule, ItemProfile, ScheduleInputItem } from "../../src/lib/timing/types";
 import { generateSchedule } from "../../src/lib/timing/scheduler";
-import { setTraceHeaders } from "../lib/traceHeaders";
-import { getNeonDb } from "../lib/neonDb";
+import { setTraceHeaders } from "../_lib/traceHeaders";
+import { getNeonDb } from "../_lib/neonDb";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setTraceHeaders(req, res);
 
   let authUser: any = null;
   try {
-    const { requireAuth } = await import("../lib/auth");
+    const { requireAuth } = await import("../_lib/auth");
     authUser = await requireAuth(req);
   } catch { /* best-effort */ }
   if (!authUser) {

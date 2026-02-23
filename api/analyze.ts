@@ -1,7 +1,7 @@
 export const config = { runtime: "nodejs", maxDuration: 60 };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setTraceHeaders } from "./lib/traceHeaders";
+import { setTraceHeaders } from "./_lib/traceHeaders";
 
 type CategoryKey =
   | "Sweeteners"
@@ -572,7 +572,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const { requireAuth } = await import("./lib/auth");
+      const { requireAuth } = await import("./_lib/auth");
       await requireAuth(req);
     } catch {
       console.warn("[analyze] auth check threw, continuing without auth");

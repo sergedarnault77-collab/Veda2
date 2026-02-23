@@ -1,7 +1,7 @@
 export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setTraceHeaders } from "./lib/traceHeaders";
+import { setTraceHeaders } from "./_lib/traceHeaders";
 
 type Interaction = {
   severity: "info" | "caution" | "warning";
@@ -76,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
 
-    try { const { requireAuth } = await import("./lib/auth"); await requireAuth(req); } catch { /* best-effort */ }
+    try { const { requireAuth } = await import("./_lib/auth"); await requireAuth(req); } catch { /* best-effort */ }
 
     const apiKey = envOpenAIKey();
     if (!apiKey) return res.status(200).json(stubResponse());

@@ -1,8 +1,8 @@
 export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setTraceHeaders } from "./lib/traceHeaders";
-import { getNeonDb } from "./lib/neonDb";
+import { setTraceHeaders } from "./_lib/traceHeaders";
+import { getNeonDb } from "./_lib/neonDb";
 
 const VALID_COLLECTIONS = ["user", "supps", "meds", "exposure", "scans", "taken"] as const;
 type Collection = (typeof VALID_COLLECTIONS)[number];
@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   let authUser: any = null;
   try {
-    const { requireAuth } = await import("./lib/auth");
+    const { requireAuth } = await import("./_lib/auth");
     authUser = await requireAuth(req);
   } catch { /* best-effort */ }
   if (!authUser) {

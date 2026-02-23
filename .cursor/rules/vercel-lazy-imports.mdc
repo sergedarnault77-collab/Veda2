@@ -50,4 +50,4 @@ export default async function handler(req, res) {
 
 - `import type { ... }` (type-only imports are erased at compile time)
 - `@vercel/node` (tiny, no side effects)
-- Small pure-function utility modules you control (e.g. `./lib/traceHeaders`)
+- Small pure-function utility modules you control (e.g. `./_lib/traceHeaders`)
