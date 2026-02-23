@@ -1,8 +1,24 @@
 export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setTraceHeaders } from "./_lib/traceHeaders";
-import { getNeonDb } from "./_lib/neonDb";
+function setTraceHeaders(req: any, res: any) {
+  const rid = (req.headers?.["x-veda-request-id"] as string) || "";
+  if (rid) res.setHeader("x-veda-request-id", rid);
+  res.setHeader("x-veda-handler-entered", "1");
+  res.setHeader("content-type", "application/json; charset=utf-8");
+}
+
+let _sql: any = null;
+let _cachedConnStr: string | null = null;
+async function getNeonDb() {
+  const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
+  if (!connStr) return null;
+  if (_sql && _cachedConnStr === connStr) return _sql;
+  const { neon } = await import("@neondatabase/serverless");
+  _sql = neon(connStr);
+  _cachedConnStr = connStr;
+  return _sql;
+}
 
 const VALID_COLLECTIONS = ["user", "supps", "meds", "exposure", "scans", "taken"] as const;
 type Collection = (typeof VALID_COLLECTIONS)[number];

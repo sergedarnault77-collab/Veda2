@@ -1,7 +1,12 @@
 export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setTraceHeaders } from "./_lib/traceHeaders";
+function setTraceHeaders(req: any, res: any) {
+  const rid = (req.headers?.["x-veda-request-id"] as string) || "";
+  if (rid) res.setHeader("x-veda-request-id", rid);
+  res.setHeader("x-veda-handler-entered", "1");
+  res.setHeader("content-type", "application/json; charset=utf-8");
+}
 
 type TimeSlot = "morning" | "afternoon" | "evening" | "night";
 
