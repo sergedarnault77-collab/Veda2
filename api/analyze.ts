@@ -1,8 +1,13 @@
 export const config = { runtime: "nodejs", maxDuration: 60 };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { requireAuth } from "./lib/auth";
-import { setTraceHeaders } from "./lib/traceHeaders";
+
+function setTraceHeadersLocal(req: VercelRequest, res: VercelResponse) {
+  const rid = (req.headers?.["x-veda-request-id"] as string) || "";
+  if (rid) res.setHeader("x-veda-request-id", rid);
+  res.setHeader("x-veda-handler-entered", "1");
+  res.setHeader("content-type", "application/json; charset=utf-8");
+}
 
 type CategoryKey =
   | "Sweeteners"
@@ -564,7 +569,7 @@ function extractOutputText(resp: any): string | null {
    ══════════════════════════════════════════════════════════ */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setTraceHeaders(req, res);
+  setTraceHeadersLocal(req, res);
   console.log("[analyze] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
 
   try {
@@ -572,7 +577,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(405).json({ ok: false, error: "Method not allowed" });
     }
 
-    try { await requireAuth(req); } catch {
+    try {
+      const { requireAuth } = await import("./lib/auth");
+      await requireAuth(req);
+    } catch {
       console.warn("[analyze] auth check threw, continuing without auth");
     }
 
