@@ -1,24 +1,33 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
-import { neon } from "@neondatabase/serverless";
-import { requireAuth, unauthorized } from "../lib/auth";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { InteractionRule, ItemProfile, ScheduleInputItem } from "../../src/lib/timing/types";
 import { generateSchedule } from "../../src/lib/timing/scheduler";
 
-export default async function handler(req: Request): Promise<Response> {
-  const authUser = await requireAuth(req);
-  if (!authUser) return unauthorized();
+async function getDb() {
+  const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
+  if (!connStr) return null;
+  const { neon } = await import("@neondatabase/serverless");
+  return neon(connStr);
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("content-type", "application/json; charset=utf-8");
+
+  let authUser: any = null;
+  try {
+    const { requireAuth } = await import("../lib/auth");
+    authUser = await requireAuth(req);
+  } catch { /* best-effort */ }
+  if (!authUser) {
+    return res.status(401).json({ ok: false, error: "Authentication required" });
+  }
 
   if (req.method !== "POST") {
-    return json(405, { ok: false, error: "POST only" });
+    return res.status(405).json({ ok: false, error: "POST only" });
   }
 
-  let body: any;
-  try { body = await req.json(); } catch {
-    return json(400, { ok: false, error: "Invalid JSON" });
-  }
-
-  const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
+  const body = req.body || {};
   const date = body?.date || new Date().toISOString().slice(0, 10);
   const wakeTime = body?.wakeTime;
   const meals = body?.meals;
@@ -32,27 +41,29 @@ export default async function handler(req: Request): Promise<Response> {
       dose: i.dose,
       frequency: i.frequency || "daily",
     }));
-  } else if (connStr) {
-    try {
-      const sql = neon(connStr);
-      const rows = await sql`
-        SELECT canonical_name, display_name, dose, frequency
-        FROM user_intake_items
-        WHERE user_id = ${authUser.id}
-      `;
-      inputItems = rows.map((r: any) => ({
-        canonicalName: r.canonical_name,
-        displayName: r.display_name,
-        dose: r.dose,
-        frequency: r.frequency,
-      }));
-    } catch (e: any) {
-      console.warn("[schedule/generate] DB load failed:", e?.message);
+  } else {
+    const sql = await getDb();
+    if (sql) {
+      try {
+        const rows = await sql`
+          SELECT canonical_name, display_name, dose, frequency
+          FROM user_intake_items
+          WHERE user_id = ${authUser.id}
+        `;
+        inputItems = rows.map((r: any) => ({
+          canonicalName: r.canonical_name,
+          displayName: r.display_name,
+          dose: r.dose,
+          frequency: r.frequency,
+        }));
+      } catch (e: any) {
+        console.warn("[schedule/generate] DB load failed:", e?.message);
+      }
     }
   }
 
   if (inputItems.length === 0) {
-    return json(200, {
+    return res.status(200).json({
       ok: true,
       schedule: {
         date,
@@ -67,10 +78,9 @@ export default async function handler(req: Request): Promise<Response> {
   let profiles: ItemProfile[] = [];
   let additionalRules: InteractionRule[] = [];
 
-  if (connStr) {
+  const sql = await getDb();
+  if (sql) {
     try {
-      const sql = neon(connStr);
-
       const canonicals = inputItems.map((i) => i.canonicalName);
       const profileRows = await sql`
         SELECT canonical_name, display_name, kind, tags, timing
@@ -121,10 +131,10 @@ export default async function handler(req: Request): Promise<Response> {
     wakeTime,
   });
 
-  if (connStr) {
+  const sql2 = await getDb();
+  if (sql2) {
     try {
-      const sql = neon(connStr);
-      await sql`
+      await sql2`
         INSERT INTO schedule_runs (user_id, run_date, input, output)
         VALUES (${authUser.id}, ${date}, ${JSON.stringify({ items: inputItems, meals, wakeTime })}, ${JSON.stringify(schedule)})
       `;
@@ -133,12 +143,5 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  return json(200, { ok: true, schedule });
-}
-
-function json(status: number, body: object): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
+  return res.status(200).json({ ok: true, schedule });
 }

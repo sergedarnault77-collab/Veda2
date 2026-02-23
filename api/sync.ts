@@ -1,8 +1,7 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
-import { neon } from "@neondatabase/serverless";
-import { requireAuth, unauthorized } from "./lib/auth";
-import { traceHeadersEdge } from "./lib/traceHeaders";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { setTraceHeaders } from "./lib/traceHeaders";
 
 const VALID_COLLECTIONS = ["user", "supps", "meds", "exposure", "scans", "taken"] as const;
 type Collection = (typeof VALID_COLLECTIONS)[number];
@@ -11,9 +10,10 @@ function getConnStr(): string {
   return (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
 }
 
-function getDb() {
+async function getDb() {
   const connStr = getConnStr();
   if (!connStr) return null;
+  const { neon } = await import("@neondatabase/serverless");
   return neon(connStr);
 }
 
@@ -38,36 +38,32 @@ function stripImages(data: any): any {
   return data;
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  const traceH = traceHeadersEdge(req);
-  const headers = { ...traceH, "content-type": "application/json; charset=utf-8" };
-  console.log("[sync] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setTraceHeaders(req, res);
+  console.log("[sync] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST only" }), { status: 405, headers });
+    return res.status(405).json({ ok: false, error: "POST only" });
   }
 
-  const authUser = await requireAuth(req);
-  if (!authUser) return unauthorized();
-
-  const sql = getDb();
-  if (!sql) {
-    return new Response(JSON.stringify({ ok: false, error: "Database not configured" }), { status: 503, headers });
-  }
-
-  let body: any;
+  let authUser: any = null;
   try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ ok: false, error: "Invalid JSON" }), { status: 400, headers });
+    const { requireAuth } = await import("./lib/auth");
+    authUser = await requireAuth(req);
+  } catch { /* best-effort */ }
+  if (!authUser) {
+    return res.status(401).json({ ok: false, error: "Authentication required" });
   }
 
-  // Use the verified email from the JWT, not the request body
-  const email = authUser.email;
+  const sql = await getDb();
+  if (!sql) {
+    return res.status(503).json({ ok: false, error: "Database not configured" });
+  }
 
+  const body = req.body || {};
+  const email = authUser.email;
   const action = body?.action;
 
-  // ── LOAD: fetch all collections for a user ──
   if (action === "load") {
     try {
       const rows = await sql`
@@ -84,28 +80,21 @@ export default async function handler(req: Request): Promise<Response> {
         };
       }
 
-      return new Response(JSON.stringify({ ok: true, collections: result }), { status: 200, headers });
+      return res.status(200).json({ ok: true, collections: result });
     } catch (e: any) {
-      return new Response(
-        JSON.stringify({ ok: false, error: String(e?.message || e) }),
-        { status: 500, headers },
-      );
+      return res.status(500).json({ ok: false, error: String(e?.message || e) });
     }
   }
 
-  // ── SAVE: upsert one collection ──
   if (action === "save") {
     const collection = body?.collection;
     if (!VALID_COLLECTIONS.includes(collection)) {
-      return new Response(
-        JSON.stringify({ ok: false, error: `Invalid collection. Must be one of: ${VALID_COLLECTIONS.join(", ")}` }),
-        { status: 400, headers },
-      );
+      return res.status(400).json({ ok: false, error: `Invalid collection. Must be one of: ${VALID_COLLECTIONS.join(", ")}` });
     }
 
     const data = stripImages(body?.data);
     if (data === undefined) {
-      return new Response(JSON.stringify({ ok: false, error: "data required" }), { status: 400, headers });
+      return res.status(400).json({ ok: false, error: "data required" });
     }
 
     try {
@@ -116,20 +105,16 @@ export default async function handler(req: Request): Promise<Response> {
         DO UPDATE SET data = ${JSON.stringify(data)}::jsonb, updated_at = NOW()
       `;
 
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+      return res.status(200).json({ ok: true });
     } catch (e: any) {
-      return new Response(
-        JSON.stringify({ ok: false, error: String(e?.message || e) }),
-        { status: 500, headers },
-      );
+      return res.status(500).json({ ok: false, error: String(e?.message || e) });
     }
   }
 
-  // ── SAVE_BATCH: upsert multiple collections at once ──
   if (action === "save_batch") {
     const items = body?.items;
     if (!Array.isArray(items)) {
-      return new Response(JSON.stringify({ ok: false, error: "items[] required" }), { status: 400, headers });
+      return res.status(400).json({ ok: false, error: "items[] required" });
     }
 
     try {
@@ -147,30 +132,20 @@ export default async function handler(req: Request): Promise<Response> {
         `;
       }
 
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+      return res.status(200).json({ ok: true });
     } catch (e: any) {
-      return new Response(
-        JSON.stringify({ ok: false, error: String(e?.message || e) }),
-        { status: 500, headers },
-      );
+      return res.status(500).json({ ok: false, error: String(e?.message || e) });
     }
   }
 
-  // ── DELETE: remove all data for a user ──
   if (action === "delete_account") {
     try {
       await sql`DELETE FROM user_data WHERE email = ${email}`;
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+      return res.status(200).json({ ok: true });
     } catch (e: any) {
-      return new Response(
-        JSON.stringify({ ok: false, error: String(e?.message || e) }),
-        { status: 500, headers },
-      );
+      return res.status(500).json({ ok: false, error: String(e?.message || e) });
     }
   }
 
-  return new Response(
-    JSON.stringify({ ok: false, error: "action must be 'load', 'save', 'save_batch', or 'delete_account'" }),
-    { status: 400, headers },
-  );
+  return res.status(400).json({ ok: false, error: "action must be 'load', 'save', 'save_batch', or 'delete_account'" });
 }

@@ -1,22 +1,21 @@
 export const config = { runtime: "nodejs", maxDuration: 60 };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { neon } from "@neondatabase/serverless";
-import { requireAuth } from "./lib/auth";
 import { setTraceHeaders } from "./lib/traceHeaders";
 
 function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
 }
 
-function getDb() {
+async function getDb() {
   const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
   if (!connStr) return null;
+  const { neon } = await import("@neondatabase/serverless");
   return neon(connStr);
 }
 
 async function tryDbLookup(productHint: string) {
-  const sql = getDb();
+  const sql = await getDb();
   if (!sql || !productHint || productHint.length < 3) return null;
 
   try {
@@ -121,7 +120,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(405).json({ ok: false, error: "POST only" });
     }
 
-    const authUser = await requireAuth(req as any);
+    let authUser: any = null;
+    try { const { requireAuth } = await import("./lib/auth"); authUser = await requireAuth(req as any); } catch { /* best-effort */ }
     if (!authUser) {
       return res.status(401).json({ ok: false, error: "Authentication required" });
     }

@@ -1,7 +1,6 @@
 export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { requireAuth } from "./lib/auth";
 import { setTraceHeaders } from "./lib/traceHeaders";
 
 interface ExplainResponse {
@@ -53,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
 
-  try { await requireAuth(req); } catch { /* best-effort */ }
+  try { const { requireAuth } = await import("./lib/auth"); await requireAuth(req); } catch { /* best-effort */ }
 
   const body = req.body;
   if (!body) return res.status(400).json({ ok: false, error: "Invalid JSON" });

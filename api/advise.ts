@@ -1,7 +1,6 @@
 export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { requireAuth } from "./lib/auth";
 import { setTraceHeaders } from "./lib/traceHeaders";
 
 type OverlapRisk = "low" | "medium" | "high";
@@ -66,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
 
-    try { await requireAuth(req); } catch { /* best-effort */ }
+    try { const { requireAuth } = await import("./lib/auth"); await requireAuth(req); } catch { /* best-effort */ }
 
     const apiKey = envOpenAIKey();
     if (!apiKey) return res.status(200).json(stubResponse("OPENAI_API_KEY missing"));

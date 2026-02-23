@@ -1,0 +1,53 @@
+---
+description: Never top-level import heavy SDKs in Vercel serverless functions — use lazy singleton pattern instead
+globs: api/**/*.ts
+alwaysApply: false
+---
+
+# Vercel Functions: Lazy-Import Heavy SDKs
+
+Top-level imports of heavy SDKs (Supabase, OpenAI, Neon, Stripe, etc.) crash Vercel functions at module load time with `FUNCTION_INVOCATION_FAILED`. Always use a lazy singleton getter instead.
+
+## Pattern
+
+```typescript
+// ❌ BAD — top-level import crashes the function before the handler runs
+import { createClient } from "@supabase/supabase-js";
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
+
+export default async function handler(req, res) {
+  const { data } = await supabase.from("items").select();
+}
+```
+
+```typescript
+// ✅ GOOD — lazy singleton, created on first call inside the handler
+let _supabase: any = null;
+
+async function getSupabase() {
+  if (_supabase) return _supabase;
+  const { createClient } = await import("@supabase/supabase-js");
+  _supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
+  return _supabase;
+}
+
+export default async function handler(req, res) {
+  const supabase = await getSupabase();
+  const { data } = await supabase.from("items").select();
+}
+```
+
+## Which imports need this treatment
+
+- `@supabase/supabase-js`
+- `openai`
+- `@neondatabase/serverless`
+- `stripe`
+- `pg`
+- Any SDK that initialises network connections, reads env vars, or allocates significant memory at import time
+
+## Safe to keep top-level
+
+- `import type { ... }` (type-only imports are erased at compile time)
+- `@vercel/node` (tiny, no side effects)
+- Small pure-function utility modules you control (e.g. `./lib/traceHeaders`)
