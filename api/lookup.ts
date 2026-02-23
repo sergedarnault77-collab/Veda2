@@ -2,6 +2,7 @@ export const config = { runtime: "edge" };
 
 import { neon } from "@neondatabase/serverless";
 import { requireAuth } from "./lib/auth";
+import { traceHeadersEdge } from "./lib/traceHeaders";
 
 function getDb() {
   const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
@@ -9,17 +10,21 @@ function getDb() {
   return neon(connStr);
 }
 
+let _traceH: Record<string, string> = {};
 function json(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
-      "content-type": "application/json",
+      ..._traceH,
+      "content-type": "application/json; charset=utf-8",
       "cache-control": "public, max-age=3600, s-maxage=86400",
     },
   });
 }
 
 export default async function handler(req: Request): Promise<Response> {
+  _traceH = traceHeadersEdge(req);
+  console.log("[lookup] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
   if (req.method !== "GET") {
     return json({ ok: false, error: "GET only" }, 405);
   }

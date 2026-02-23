@@ -1,4 +1,4 @@
-/* ── Veda 2.0 — Global Reset & Base Styles ── */
+/* ── Veda 2.0 — Global Reset & Tokens ── */
 
 *,
 *::before,
@@ -6,17 +6,88 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  border-color: var(--border);
 }
 
 :root {
+  /* palette — dutch royal blue & orange */
+  --veda-bg: #0A0E1C;
+  --veda-bg-gradient: linear-gradient(145deg, #0A0E1C 0%, #10172D 50%, #0C1024 100%);
+  --veda-surface: rgba(16, 23, 45, 0.7);
+  --veda-surface-solid: #10172D;
+  --veda-surface-hover: #141D3A;
+  --veda-border: rgba(255, 255, 255, 0.07);
+  --veda-border-accent: rgba(46, 91, 255, 0.25);
+  --veda-text: #E8EBF2;
+  --veda-text-muted: #9AA4BF;
+  --veda-accent: #2E5BFF;
+  --veda-accent-light: #5a80ff;
+  --veda-accent-glow: rgba(46, 91, 255, 0.2);
+  --veda-royal-deep: #1F3A5F;
+
+  /* status colors — no green; OK states use orange */
+  --veda-red: #f06292;
+  --veda-orange: #FF8C1A;
+  --veda-orange-soft: #FFB35C;
+  --veda-green: var(--veda-orange);
+  --veda-magenta: #e056a0;
+
+  /* exposure bar fills */
+  --bar-sugar: #FF8C1A;
+  --bar-sweetener: #ab47bc;
+  --bar-calorie: #2E5BFF;
+  --bar-caffeine: #26c6da;
+
+  /* typography */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* drink builder */
+  --db-chip-bg: rgba(255, 255, 255, 0.05);
+  --db-chip-hover-bg: rgba(255, 255, 255, 0.1);
+  --db-estimate-bg: rgba(0, 0, 0, 0.2);
+
+  /* radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+
   /* responsive layout */
   --content-max: 480px;
   --sidebar-width: 0px;
   --nav-height: 72px;
 }
 
-html, body { height: 100%; }
+/* ── Light mode overrides ── */
+[data-theme="light"] {
+  --veda-bg: #f4f4f8;
+  --veda-bg-gradient: linear-gradient(145deg, #f4f4f8 0%, #ecedf3 50%, #f0f0f6 100%);
+  --veda-surface: rgba(255, 255, 255, 0.75);
+  --veda-surface-solid: #ffffff;
+  --veda-surface-hover: #f0effa;
+  --veda-border: rgba(0, 0, 0, 0.08);
+  --veda-border-accent: rgba(31, 58, 95, 0.2);
+  --veda-text: #1a1a2e;
+  --veda-text-muted: #6b6b8a;
+  --veda-accent: #2E5BFF;
+  --veda-accent-light: #5a80ff;
+  --veda-accent-glow: rgba(46, 91, 255, 0.15);
+
+  --veda-red: #d84374;
+  --veda-orange: #e8920a;
+  --veda-orange-soft: #d4940a;
+  --veda-green: var(--veda-orange);
+  --veda-magenta: #c0408a;
+
+  --bar-sugar: #f09000;
+  --bar-sweetener: #9030a0;
+  --bar-calorie: #2088d0;
+  --bar-caffeine: #1aa8b8;
+
+  --db-chip-bg: rgba(0, 0, 0, 0.04);
+  --db-chip-hover-bg: rgba(0, 0, 0, 0.08);
+  --db-estimate-bg: rgba(0, 0, 0, 0.04);
+}
 
 html {
   font-size: 16px;
@@ -25,19 +96,14 @@ html {
 }
 
 body {
-  background:
-    radial-gradient(900px 520px at 18% 10%, rgba(96, 165, 250, 0.18), transparent 60%),
-    radial-gradient(820px 520px at 82% 12%, rgba(99, 102, 241, 0.14), transparent 60%),
-    linear-gradient(180deg, var(--veda-bg) 0%, var(--veda-bg) 52%, var(--veda-surface-solid) 100%);
+  font-family: var(--font-sans);
+  background: var(--veda-bg);
+  background-image: var(--veda-bg-gradient);
   background-attachment: fixed;
   color: var(--veda-text);
-  font-family: var(--font-sans);
-  font-size: 16.5px;
   line-height: 1.6;
   min-height: 100dvh;
 }
-
-h1, h2, h3 { letter-spacing: -0.02em; }
 
 /* ── Phone (default): single column, bottom nav ── */
 #root {
@@ -54,7 +120,7 @@ button {
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--alpha-medium); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
 
 /* ── Tablet (600–1024px) ── */
 @media (min-width: 600px) {
@@ -89,489 +155,288 @@ button {
   }
 }
 
-/* ── Global component surfaces ── */
+/* ── Light mode: global component overrides ── */
 
-/* Cards, sections, panels */
-.scan-status,
-.exposure,
-.coverage,
-.stack-signal,
-.signal-explainer,
-.explaining-signals,
-.context-panel,
-.supp-card,
-.med-card,
-.dashboard__section,
-.interaction-warnings {
-  background: var(--veda-surface);
-  border-color: var(--veda-border);
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* Cards, sections, panels — glass surfaces */
+[data-theme="light"] .scan-status,
+[data-theme="light"] .exposure,
+[data-theme="light"] .coverage,
+[data-theme="light"] .stack-signal,
+[data-theme="light"] .signal-explainer,
+[data-theme="light"] .explaining-signals,
+[data-theme="light"] .context-panel,
+[data-theme="light"] .supp-card,
+[data-theme="light"] .med-card,
+[data-theme="light"] .dashboard__section,
+[data-theme="light"] .interaction-warnings {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 /* Tiles and secondary surfaces */
-.scan-status__tile {
-  border-color: var(--veda-border);
-  background: var(--alpha-faint);
+[data-theme="light"] .scan-status__tile {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
 }
 
-.scan-status__tile:hover {
-  background: rgba(37, 99, 235, 0.05);
-  border-color: var(--veda-border-accent);
+[data-theme="light"] .scan-status__tile:hover {
+  background: rgba(31, 58, 95, 0.06);
+  border-color: rgba(31, 58, 95, 0.2);
 }
 
-.scan-status__tile--primary {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.03));
-  border-color: var(--veda-border-accent);
-  box-shadow: 0 0 12px rgba(37, 99, 235, 0.06);
+[data-theme="light"] .scan-status__tile--primary {
+  background: linear-gradient(135deg, rgba(31, 58, 95, 0.1), rgba(31, 58, 95, 0.04));
+  border-color: rgba(31, 58, 95, 0.25);
+  box-shadow: 0 0 12px rgba(46, 91, 255, 0.08);
 }
 
-.scan-status__tile--primary:hover {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.05));
-  box-shadow: 0 0 18px rgba(37, 99, 235, 0.10);
+[data-theme="light"] .scan-status__tile--primary:hover {
+  background: linear-gradient(135deg, rgba(31, 58, 95, 0.16), rgba(31, 58, 95, 0.06));
+  box-shadow: 0 0 18px rgba(46, 91, 255, 0.12);
 }
 
 /* Buttons — secondary / outline */
-.scan-status__dismissBtn,
-.scan-status__frontOnly {
-  background: var(--alpha-faint);
-  border-color: var(--alpha-medium);
+[data-theme="light"] .scan-status__dismissBtn,
+[data-theme="light"] .scan-status__frontOnly {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
   color: var(--veda-text-muted);
 }
 
-.scan-status__dismissBtn:hover,
-.scan-status__frontOnly:hover {
-  background: var(--alpha-subtle);
+[data-theme="light"] .scan-status__dismissBtn:hover,
+[data-theme="light"] .scan-status__frontOnly:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 /* Caffeine follow-up */
-.scan-status__caffeineQ {
-  background: rgba(37, 99, 235, 0.04);
-  border-color: rgba(37, 99, 235, 0.12);
+[data-theme="light"] .scan-status__caffeineQ {
+  background: rgba(31, 58, 95, 0.05);
+  border-color: rgba(31, 58, 95, 0.15);
 }
 
-.scan-status__caffeineQBtn--decaf {
-  background: var(--alpha-subtle);
-  border-color: var(--alpha-medium);
+[data-theme="light"] .scan-status__caffeineQBtn--decaf {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
   color: var(--veda-text-muted);
 }
 
 /* History divider */
-.scan-status__history {
-  border-top-color: var(--veda-border);
+[data-theme="light"] .scan-status__history {
+  border-top-color: rgba(0, 0, 0, 0.08);
 }
 
 /* Drink builder */
-.drink-builder {
-  background: var(--veda-surface);
-  border-color: var(--veda-border);
+[data-theme="light"] .drink-builder {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-.drink-chip {
-  border-color: var(--veda-border);
-  background: var(--alpha-faint);
+[data-theme="light"] .drink-chip {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
 }
 
-.drink-chip--selected {
-  border-color: var(--veda-border-accent);
-  background: rgba(37, 99, 235, 0.06);
+[data-theme="light"] .drink-chip--selected {
+  border-color: rgba(31, 58, 95, 0.3);
+  background: rgba(31, 58, 95, 0.08);
 }
 
 /* Modals and sheets */
-.add-scanned-modal__content,
-.buy-sheet {
+[data-theme="light"] .add-scanned-modal__content,
+[data-theme="light"] .buy-sheet {
   background: rgba(255, 255, 255, 0.96);
-  border-color: var(--veda-border);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-.add-scanned-modal__backdrop,
-.buy-backdrop {
+[data-theme="light"] .add-scanned-modal__backdrop,
+[data-theme="light"] .buy-backdrop {
   background: rgba(0, 0, 0, 0.3);
 }
 
-.buy-sheet__row {
-  border-color: var(--veda-border-soft);
+[data-theme="light"] .buy-sheet__row {
+  border-color: rgba(0, 0, 0, 0.06);
 }
 
 /* Dashboard chips and cards */
-.day__chip {
-  background: var(--alpha-subtle);
-  border-color: var(--veda-border);
+[data-theme="light"] .day__chip {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-.overlap__card {
-  background: var(--alpha-faint);
-  border-color: var(--veda-border-soft);
+[data-theme="light"] .overlap__card {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
 }
 
-.timing__dot--morning { background: #E8920A; }
-.timing__dot--midday { background: #2088D0; }
-.timing__dot--evening { background: var(--veda-accent); }
+[data-theme="light"] .timing__dot--morning { background: #e8920a; }
+[data-theme="light"] .timing__dot--midday { background: #2088d0; }
+[data-theme="light"] .timing__dot--evening { background: #2E5BFF; }
 
 /* Auth screens */
-.auth-card,
-.profile-card,
-.plans-card {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: var(--veda-border);
+[data-theme="light"] .auth-card,
+[data-theme="light"] .profile-card,
+[data-theme="light"] .plans-card {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-.auth-card input,
-.profile-card select,
-.scan-status__urlInput {
-  background: var(--alpha-faint);
-  border-color: var(--alpha-medium);
+[data-theme="light"] .auth-card input,
+[data-theme="light"] .profile-card select,
+[data-theme="light"] .scan-status__urlInput {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.12);
   color: var(--veda-text);
 }
 
 /* Loading banner */
-.loading-banner {
-  background: var(--veda-surface);
-  border-color: var(--veda-border);
+[data-theme="light"] .loading-banner {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 /* Coverage bars / exposure bars */
-.exposure__bar-track,
-.coverage__bar-bg {
-  background: var(--alpha-soft);
+[data-theme="light"] .exposure__bar-track,
+[data-theme="light"] .coverage__bar-bg {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 /* Stack signal states */
-.stack-signal__badge--balanced {
-  background: rgba(37, 99, 235, 0.08);
+[data-theme="light"] .stack-signal__badge--balanced {
+  background: rgba(46, 91, 255, 0.08);
 }
 
-.stack-signal__badge--redundant {
-  background: rgba(245, 158, 11, 0.10);
+[data-theme="light"] .stack-signal__badge--redundant {
+  background: rgba(232, 146, 10, 0.1);
 }
 
-.stack-signal__badge--excessive {
-  background: rgba(220, 38, 38, 0.08);
+[data-theme="light"] .stack-signal__badge--excessive {
+  background: rgba(216, 67, 116, 0.1);
 }
 
-/* Supplement & Medication cards */
-.supp-card:hover,
-.med-card:hover {
-  border-color: var(--alpha-medium);
+/* ── Supplement & Medication cards: nutrient rows, ingredients, insights ── */
+
+[data-theme="light"] .supp-card:hover,
+[data-theme="light"] .med-card:hover {
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
-.supp-nutrients,
-.med-nutrients {
-  background: rgba(37, 99, 235, 0.04);
-  border-color: rgba(37, 99, 235, 0.10);
+[data-theme="light"] .supp-nutrients,
+[data-theme="light"] .med-nutrients {
+  background: rgba(31, 58, 95, 0.05);
+  border-color: rgba(31, 58, 95, 0.12);
 }
 
-.supp-nutrients__row,
-.med-nutrients__row {
-  background: rgba(37, 99, 235, 0.06);
-  border-color: rgba(37, 99, 235, 0.10);
+[data-theme="light"] .supp-nutrients__row,
+[data-theme="light"] .med-nutrients__row {
+  background: rgba(31, 58, 95, 0.08);
+  border-color: rgba(31, 58, 95, 0.12);
   color: var(--veda-text);
 }
 
-.supp-nutrients__name,
-.med-nutrients__name,
-.supp-nutrients__amt,
-.med-nutrients__amt,
-.supp-nutrients__pct,
-.med-nutrients__pct {
-  color: var(--veda-text);
-  opacity: 1;
-}
-
-.supp-nutrients__hdr,
-.med-nutrients__hdr {
-  color: var(--veda-text);
-}
-
-.supp-nutrients__sub,
-.med-nutrients__sub {
-  color: var(--veda-text-muted);
-}
-
-.item-ingredients__chip {
-  background: rgba(37, 99, 235, 0.05);
-  border-color: rgba(37, 99, 235, 0.12);
-  color: var(--veda-text);
-}
-
-.item-insights {
-  background: rgba(37, 99, 235, 0.03);
-  border-color: rgba(37, 99, 235, 0.10);
-}
-
-.item-insights__title,
-.item-insights__summary,
-.item-insights__what,
-.item-insights__note {
+[data-theme="light"] .supp-nutrients__name,
+[data-theme="light"] .med-nutrients__name,
+[data-theme="light"] .supp-nutrients__amt,
+[data-theme="light"] .med-nutrients__amt,
+[data-theme="light"] .supp-nutrients__pct,
+[data-theme="light"] .med-nutrients__pct {
   color: var(--veda-text);
   opacity: 1;
 }
 
-/* Interaction warning cards */
-.interaction-warnings__card {
-  border-color: var(--veda-border);
+[data-theme="light"] .supp-nutrients__hdr,
+[data-theme="light"] .med-nutrients__hdr {
+  color: var(--veda-text);
 }
 
-.ix-warnings--loading {
-  background: var(--alpha-faint);
+[data-theme="light"] .supp-nutrients__sub,
+[data-theme="light"] .med-nutrients__sub {
   color: var(--veda-text-muted);
 }
 
-.ix-warnings__spinner {
-  border-color: var(--alpha-medium);
+[data-theme="light"] .item-ingredients__chip {
+  background: rgba(31, 58, 95, 0.06);
+  border-color: rgba(31, 58, 95, 0.14);
+  color: var(--veda-text);
+}
+
+[data-theme="light"] .item-insights {
+  background: rgba(31, 58, 95, 0.04);
+  border-color: rgba(31, 58, 95, 0.12);
+}
+
+[data-theme="light"] .item-insights__title,
+[data-theme="light"] .item-insights__summary,
+[data-theme="light"] .item-insights__what,
+[data-theme="light"] .item-insights__note {
+  color: var(--veda-text);
+  opacity: 1;
+}
+
+/* Interaction warning cards in light mode */
+[data-theme="light"] .interaction-warnings__card {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .ix-warnings--loading {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--veda-text-muted);
+}
+
+[data-theme="light"] .ix-warnings__spinner {
+  border-color: rgba(0, 0, 0, 0.1);
   border-top-color: var(--veda-accent);
 }
 
-.ix-card--info {
-  background: rgba(37, 99, 235, 0.04);
-  border-left-color: rgba(37, 99, 235, 0.2);
+[data-theme="light"] .ix-card--info {
+  background: rgba(31, 58, 95, 0.04);
+  border-left-color: rgba(31, 58, 95, 0.2);
 }
 
-.ix-card--warning {
-  background: rgba(220, 38, 38, 0.05);
+[data-theme="light"] .ix-card--warning {
+  background: rgba(231, 76, 60, 0.06);
 }
 
-.ix-card--caution {
-  background: rgba(245, 158, 11, 0.05);
+[data-theme="light"] .ix-card--caution {
+  background: rgba(230, 126, 34, 0.06);
 }
 
-.ix-card__headline {
+[data-theme="light"] .ix-card__headline {
   color: var(--veda-text);
 }
 
-.ix-card__detail {
+[data-theme="light"] .ix-card__detail {
   color: var(--veda-text-muted);
 }
 
-.ix-card__chip {
-  background: var(--alpha-subtle);
+[data-theme="light"] .ix-card__chip {
+  background: rgba(0, 0, 0, 0.05);
   color: var(--veda-text-muted);
 }
 
-/* Exposure chart (dashboard) */
-.expo-range-toggle {
-  background: var(--alpha-subtle);
+/* Exposure chart (dashboard) in light mode */
+[data-theme="light"] .expo-range-toggle {
+  background: rgba(0, 0, 0, 0.04);
 }
 
-.expo-range-toggle__btn {
+[data-theme="light"] .expo-range-toggle__btn {
   color: var(--veda-text-muted);
 }
 
-.expo-range-toggle__btn--active {
-  background: rgba(37, 99, 235, 0.10);
+[data-theme="light"] .expo-range-toggle__btn--active {
+  background: rgba(46, 91, 255, 0.12);
   color: var(--veda-accent);
 }
 
-.sweetener-list {
-  border-top-color: var(--veda-border-soft);
+[data-theme="light"] .sweetener-list {
+  border-top-color: rgba(0, 0, 0, 0.06);
 }
 
-.sweetener-list__chip {
+[data-theme="light"] .sweetener-list__chip {
   background: rgba(245, 158, 11, 0.08);
   border-color: rgba(245, 158, 11, 0.18);
-  color: #B45309;
+  color: #b45309;
 }
-
-/* ── Page canvas (main content area) ── */
-.veda-canvas {
-  background: transparent;
-}
-
-/* ── Sidebar / nav ── */
-.veda-sidebar {
-  background: var(--nav-bg);
-  border-right: 1px solid var(--nav-border);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-/* ── Cards ── */
-.veda-card {
-  background: var(--veda-surface);
-  border: 1px solid var(--veda-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-.veda-card--flat {
-  background: var(--veda-surface-solid);
-  border: 1px solid var(--veda-border);
-  border-radius: var(--radius-xl);
-}
-.veda-card-muted {
-  background: var(--veda-surface-soft);
-  border: 1px solid var(--veda-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-/* ── Hero panel (premium glow behind top section) ── */
-.veda-hero {
-  position: relative;
-  overflow: hidden;
-}
-.veda-hero::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  background:
-    radial-gradient(700px 220px at 35% 0%, rgba(37, 99, 235, 0.14), transparent 60%),
-    radial-gradient(700px 220px at 70% 10%, rgba(99, 102, 241, 0.10), transparent 65%);
-  pointer-events: none;
-}
-.veda-hero > * { position: relative; z-index: 1; }
-
-/* ── Pills / tabs ── */
-.veda-pill {
-  background: rgba(255, 255, 255, 0.50);
-  border: 1px solid var(--veda-border);
-  color: var(--veda-text-muted);
-  border-radius: 999px;
-  padding: 7px 12px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset;
-}
-[data-theme="dark"] .veda-pill {
-  background: rgba(16, 28, 58, 0.50);
-}
-.veda-pill--active {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.20), rgba(99, 102, 241, 0.14));
-  border-color: rgba(96, 165, 250, 0.35);
-  color: var(--veda-text);
-}
-
-/* ── Buttons ── */
-.veda-btn-primary {
-  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 55%, #2457D8 100%);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: var(--radius-md);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
-  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
-}
-.veda-btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.36);
-  filter: brightness(1.02);
-}
-.veda-btn-primary:active {
-  transform: translateY(0px);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
-}
-.veda-btn-secondary {
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid var(--veda-border);
-  color: var(--veda-text-muted);
-  border-radius: var(--radius-md);
-  transition: filter .12s ease;
-}
-[data-theme="dark"] .veda-btn-secondary {
-  background: rgba(16, 28, 58, 0.52);
-}
-.veda-btn-secondary:hover {
-  filter: brightness(0.98);
-}
-
-/* ── Chips ── */
-.veda-chip {
-  background: var(--chip);
-  border: 1px solid var(--chip-border);
-  color: var(--chip-text);
-  border-radius: 999px;
-}
-
-/* ── Status banners ── */
-.veda-banner {
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--veda-border);
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0.62));
-  box-shadow: var(--shadow-md);
-}
-[data-theme="dark"] .veda-banner {
-  background: linear-gradient(135deg, rgba(96, 165, 250, 0.12), rgba(16, 28, 58, 0.55));
-}
-.veda-banner--outline {
-  border-color: rgba(245, 158, 11, 0.55);
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.18) inset, var(--shadow-md);
-}
-
-.veda-status-ok {
-  background: linear-gradient(135deg, var(--veda-balance-soft), #E6FFFA);
-  border: 1px solid var(--veda-balance-border);
-  color: #065F46;
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-}
-.veda-status-warn {
-  background: linear-gradient(135deg, var(--veda-caution-soft), #FFF7ED);
-  border: 1px solid var(--veda-caution-border);
-  color: #92400E;
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-}
-.veda-status-danger {
-  background: linear-gradient(135deg, var(--veda-issue-soft), #FFF1F2);
-  border: 1px solid var(--veda-issue-border);
-  color: #991B1B;
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-}
-
-/* ── AI panel styling ── */
-.veda-ai-panel {
-  background: linear-gradient(135deg, var(--veda-ai-soft), #F8FAFF);
-  border: 1px solid var(--veda-ai-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-}
-
-/* ── Inputs ── */
-.veda-input {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid var(--veda-border);
-  border-radius: var(--radius-sm);
-  color: var(--veda-text);
-  outline: none;
-}
-[data-theme="dark"] .veda-input {
-  background: rgba(16, 28, 58, 0.58);
-}
-.veda-input:focus {
-  border-color: rgba(96, 165, 250, 0.40);
-  box-shadow: var(--focus-ring);
-}
-
-/* ── Muted text helper ── */
-.veda-muted { color: var(--veda-text-subtle); }
-
-/* ── Links ── */
-a { color: var(--brand); }
-a:hover { color: var(--brand-2); }
-
-/* ── Dark mode component overrides ── */
-
-[data-theme="dark"] .add-scanned-modal__content,
-[data-theme="dark"] .buy-sheet {
-  background: rgba(15, 33, 74, 0.96);
-}
-
-[data-theme="dark"] .add-scanned-modal__backdrop,
-[data-theme="dark"] .buy-backdrop {
-  background: rgba(0, 0, 0, 0.55);
-}
-
-[data-theme="dark"] .auth-card,
-[data-theme="dark"] .profile-card,
-[data-theme="dark"] .plans-card {
-  background: rgba(16, 28, 58, 0.80);
-}
-
-[data-theme="dark"] .sweetener-list__chip {
-  background: rgba(251, 191, 36, 0.12);
-  border-color: rgba(251, 191, 36, 0.25);
-  color: #FCD34D;
-}
-
-[data-theme="dark"] .timing__dot--morning { background: #FBBF24; }
-[data-theme="dark"] .timing__dot--midday { background: #93C5FD; }
-[data-theme="dark"] .timing__dot--evening { background: #60A5FA; }

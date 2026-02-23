@@ -27,7 +27,7 @@
   cursor: pointer;
   text-align: center;
   border: 1px solid var(--veda-border);
-  background: var(--alpha-faint);
+  background: rgba(255, 255, 255, 0.03);
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
   font-family: inherit;
   color: inherit;
@@ -169,7 +169,7 @@
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--veda-text-muted);
-  background: var(--alpha-faint);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -177,7 +177,7 @@
 }
 
 .scan-status__frontOnly:hover {
-  background: var(--alpha-soft);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .scan-status__error {
@@ -291,7 +291,7 @@
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--veda-text-muted);
-  background: var(--alpha-subtle);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -299,7 +299,7 @@
 }
 
 .scan-status__dismissBtn:hover {
-  background: var(--alpha-medium);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Added confirmation */
@@ -371,7 +371,7 @@
 .scan-status__caffeineQBtn:hover { opacity: 0.85; }
 
 .scan-status__caffeineQBtn--decaf {
-  background: var(--alpha-subtle);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--veda-border);
   color: var(--veda-text-muted);
 }
@@ -472,7 +472,7 @@
   padding: 10px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--veda-border);
-  background: var(--alpha-faint);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--veda-text);
   font-size: 0.82rem;
   font-family: inherit;
@@ -510,7 +510,7 @@
 .scan-status__urlSpinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--alpha-medium);
+  border: 2px solid rgba(255, 255, 255, 0.08);
   border-top-color: var(--veda-accent);
   border-radius: 50%;
   animation: url-spin 0.7s linear infinite;

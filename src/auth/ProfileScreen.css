@@ -120,7 +120,7 @@
   font-weight: 600;
   font-family: inherit;
   color: var(--veda-text-muted);
-  background: var(--alpha-faint);
+  background: rgba(255, 255, 255, 0.03);
   border: none;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -156,7 +156,7 @@
   font-weight: 600;
   font-family: inherit;
   color: var(--veda-text-muted);
-  background: var(--alpha-faint);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -174,7 +174,7 @@
 .profile__inputWrap {
   display: flex;
   align-items: center;
-  background: var(--alpha-faint);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-md);
   overflow: hidden;

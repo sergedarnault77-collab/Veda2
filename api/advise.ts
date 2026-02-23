@@ -1,6 +1,7 @@
 export const config = { runtime: "edge" };
 
 import { requireAuth } from "./lib/auth";
+import { traceHeadersEdge } from "./lib/traceHeaders";
 
 type OverlapRisk = "low" | "medium" | "high";
 
@@ -32,10 +33,11 @@ function stubResponse(reason: string): AdviseResponse {
   };
 }
 
+let _traceH: Record<string, string> = {};
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { ..._traceH, "content-type": "application/json; charset=utf-8" },
   });
 }
 
@@ -71,6 +73,8 @@ function buildSchema() {
 }
 
 export default async function handler(req: Request): Promise<Response> {
+  _traceH = traceHeadersEdge(req);
+  console.log("[advise] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
   try {
     if (req.method !== "POST") {
       return json({ ok: false, error: "POST only" }, 405);

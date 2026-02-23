@@ -2,9 +2,10 @@
 // Backwards-compat wrapper: old clients still calling /api/parse-item
 // are transparently served by the new /api/analyze pipeline.
 
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
 import { requireAuth } from "./lib/auth";
+import { traceHeadersEdge } from "./lib/traceHeaders";
 
 type AnalyzeResponse = {
   ok: boolean;
@@ -40,14 +41,17 @@ type ParsedItem = {
   ingredientsDetected: string[];
 };
 
+let _traceH: Record<string, string> = {};
 function json(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { ..._traceH, "content-type": "application/json; charset=utf-8" },
   });
 }
 
 export default async function handler(req: Request): Promise<Response> {
+  _traceH = traceHeadersEdge(req);
+  console.log("[parse-item] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
   try {
     if (req.method !== "POST") {
       return json({ ok: false, error: "POST only" }, 405);

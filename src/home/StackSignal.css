@@ -35,9 +35,9 @@
   margin-top: 14px;
   padding: 8px 18px;
   border-radius: 999px;
-  border: 1px solid var(--alpha-medium);
-  background: var(--alpha-soft);
-  color: var(--veda-text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
@@ -46,7 +46,7 @@
 
 .stack-signal__explain-btn:hover {
   background: rgba(31, 58, 95, 0.18);
-  color: var(--veda-text);
+  color: rgba(255, 255, 255, 0.9);
   border-color: rgba(31, 58, 95, 0.35);
 }
 
@@ -66,9 +66,14 @@
   margin-top: 14px;
   padding: 12px 14px;
   border-radius: var(--radius-lg, 12px);
-  background: var(--alpha-subtle);
-  border: 1px solid var(--alpha-soft);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   text-align: left;
+}
+
+[data-theme="light"] .stack-signal__breakdown {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
 }
 
 .stack-signal__breakdown-title {
@@ -96,7 +101,11 @@
   justify-content: space-between;
   align-items: center;
   padding: 6px 0;
-  border-bottom: 1px solid var(--alpha-subtle);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="light"] .stack-signal__contributor {
+  border-bottom-color: rgba(0, 0, 0, 0.04);
 }
 
 .stack-signal__contributor:last-child {
@@ -104,11 +113,15 @@
 }
 
 .stack-signal__contributor--total {
-  border-top: 1px solid var(--alpha-medium);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: none;
   margin-top: 4px;
   padding-top: 8px;
   font-weight: 700;
+}
+
+[data-theme="light"] .stack-signal__contributor--total {
+  border-top-color: rgba(0, 0, 0, 0.08);
 }
 
 .stack-signal__contributor-name {

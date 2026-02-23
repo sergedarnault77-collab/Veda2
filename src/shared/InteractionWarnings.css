@@ -11,7 +11,7 @@
   gap: 10px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: var(--alpha-subtle);
+  background: rgba(255, 255, 255, 0.04);
   font-size: 0.82rem;
   color: var(--veda-text-dim, rgba(255,255,255,0.55));
 }
@@ -47,7 +47,7 @@
 
 .ix-card--info {
   background: var(--alpha-subtle);
-  border-left-color: var(--alpha-medium);
+  border-left-color: rgba(255, 255, 255, 0.2);
 }
 
 .ix-card__header {
@@ -85,6 +85,6 @@
   font-size: 0.7rem;
   padding: 2px 8px;
   border-radius: 6px;
-  background: var(--alpha-soft);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--veda-text-dim, rgba(255,255,255,0.55));
 }

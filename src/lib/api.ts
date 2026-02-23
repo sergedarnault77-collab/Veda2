@@ -1,165 +1,122 @@
+import { supabase } from "./supabase";
+
 /**
- * SDK-free auth + request layer.
- *
- * Uses XMLHttpRequest exclusively to avoid the Safari/WebKit bug where
- * fetch()'s internal Request constructor throws "The string did not
- * match the expected pattern" for large string bodies.
- * XHR uses a completely different WebKit code path and is not affected.
+ * Last-resort fallback: read the Supabase access_token directly from
+ * localStorage when the SDK's getSession/refreshSession throws (Safari bug).
  */
-
-const SUPABASE_URL = (
-  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_SUPABASE_URL) || ""
-).trim();
-const SUPABASE_ANON_KEY = (
-  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY) || ""
-).trim();
-
-function findAuthStorageKey(): string | null {
+function getTokenFromStorage(): string | null {
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) return key;
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        const token = parsed?.access_token || parsed?.currentSession?.access_token;
+        if (token && typeof token === "string") return token;
+      }
     }
-  } catch {}
+  } catch {
+    // localStorage unavailable or corrupt — give up
+  }
   return null;
 }
 
-function readSession(): { access_token: string; refresh_token: string } | null {
+async function getToken(): Promise<string | null> {
   try {
-    const key = findAuthStorageKey();
-    if (!key) return null;
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const access = parsed?.access_token ?? parsed?.currentSession?.access_token;
-    const refresh = parsed?.refresh_token ?? parsed?.currentSession?.refresh_token;
-    if (typeof access === "string" && access) return { access_token: access, refresh_token: refresh ?? "" };
-  } catch {}
-  return null;
+    const { data } = await supabase.auth.getSession();
+    return data?.session?.access_token ?? null;
+  } catch (e) {
+    console.warn("[apiFetch] getSession failed, trying localStorage:", e);
+    return getTokenFromStorage();
+  }
 }
 
-function isTokenExpired(token: string): boolean {
+async function refreshAndGetToken(): Promise<string | null> {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (typeof payload.exp !== "number") return false;
-    return payload.exp * 1000 < Date.now() - 30_000;
-  } catch {
-    return false;
+    const { data } = await supabase.auth.refreshSession();
+    return data?.session?.access_token ?? null;
+  } catch (e) {
+    console.warn("[apiFetch] refreshSession failed, trying localStorage:", e);
+    return getTokenFromStorage();
   }
 }
 
-async function refreshTokenDirect(): Promise<string | null> {
-  try {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
-    const session = readSession();
-    if (!session?.refresh_token) return null;
-
-    const resp = await xhrRequest(
-      `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
-      "POST",
-      {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-      JSON.stringify({ refresh_token: session.refresh_token }),
-    );
-
-    if (resp.status < 200 || resp.status >= 300) return null;
-    const data = JSON.parse(resp.body);
-    if (!data?.access_token) return null;
-
-    const storageKey = findAuthStorageKey();
-    if (storageKey) {
-      try { localStorage.setItem(storageKey, JSON.stringify(data)); } catch {}
-    }
-    return data.access_token as string;
-  } catch {
-    return null;
+function buildHeaders(init: RequestInit | undefined, token: string | null): Headers {
+  const headers = new Headers(init?.headers);
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
+  return headers;
 }
 
-function collectHeaders(init: RequestInit | undefined, token: string | null): Record<string, string> {
-  const out: Record<string, string> = {};
-  const src = init?.headers;
-  if (src) {
-    if (src instanceof Headers) {
-      src.forEach((v, k) => { out[k] = v; });
-    } else if (Array.isArray(src)) {
-      for (const [k, v] of src) out[k] = v;
-    } else {
-      Object.assign(out, src);
-    }
-  }
-  if (token && !out["Authorization"] && !out["authorization"]) {
-    out["Authorization"] = `Bearer ${token}`;
-  }
-  return out;
-}
-
-interface XhrResult { status: number; body: string; contentType: string }
-
-/**
- * Pure XMLHttpRequest — avoids fetch() entirely.
- */
-function xhrRequest(
-  url: string,
-  method: string,
-  headers: Record<string, string>,
-  body?: string | null,
-): Promise<XhrResult> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open(method, url, true);
-    for (const [k, v] of Object.entries(headers)) {
-      try { xhr.setRequestHeader(k, v); } catch {}
-    }
-    xhr.timeout = 120_000;
-    xhr.onload = () => {
-      resolve({
-        status: xhr.status,
-        body: xhr.responseText,
-        contentType: xhr.getResponseHeader("content-type") || "",
-      });
-    };
-    xhr.onerror = () => reject(new Error("Network error"));
-    xhr.ontimeout = () => reject(new Error("Request timed out (120s)"));
-    xhr.send(body ?? null);
-  });
+function isPatternError(e: unknown): boolean {
+  return String((e as any)?.message || e).includes("did not match the expected pattern");
 }
 
 /**
- * Wrapper that injects the Supabase auth token and sends via XHR.
- * Drop-in replacement for fetch() — returns a standard Response object.
+ * Wrapper around fetch() that injects the Supabase auth token.
+ * Falls back to reading the token from localStorage if the SDK throws
+ * (common Safari/WebKit bug). Auth failures never block the API call.
+ * Retries once on the Safari "pattern" error with a brief delay.
  */
 export async function apiFetch(
   input: string | URL | RequestInfo,
   init?: RequestInit,
 ): Promise<Response> {
-  let session = readSession();
-  let token = session?.access_token ?? null;
+  return apiFetchInner(input, init, 0);
+}
 
-  if (token && isTokenExpired(token)) {
-    token = await refreshTokenDirect() ?? token;
+async function apiFetchInner(
+  input: string | URL | RequestInfo,
+  init: RequestInit | undefined,
+  attempt: number,
+): Promise<Response> {
+  let token: string | null = null;
+
+  try {
+    token = await getToken();
+    if (!token) {
+      token = await refreshAndGetToken();
+    }
+    if (!token) {
+      token = getTokenFromStorage();
+    }
+  } catch (e) {
+    if (isPatternError(e) && attempt === 0) {
+      console.warn("[apiFetch] Safari pattern error on token, retrying in 500ms");
+      await new Promise((r) => setTimeout(r, 500));
+      return apiFetchInner(input, init, 1);
+    }
+    console.warn("[apiFetch] All token methods failed, trying localStorage:", e);
+    token = getTokenFromStorage();
   }
 
-  const url = typeof input === "string" ? input : String(input);
-  const method = init?.method ?? "GET";
-  const body = typeof init?.body === "string" ? init.body : null;
-  const headers = collectHeaders(init, token);
+  let res: Response;
+  try {
+    const headers = buildHeaders(init, token);
+    res = await fetch(input, { ...init, headers });
+  } catch (fetchErr) {
+    if (isPatternError(fetchErr) && attempt === 0) {
+      console.warn("[apiFetch] Safari pattern error on fetch, retrying in 500ms");
+      await new Promise((r) => setTimeout(r, 500));
+      return apiFetchInner(input, init, 1);
+    }
+    throw fetchErr;
+  }
 
-  let result = await xhrRequest(url, method, headers, body);
-
-  if (result.status === 401 && token) {
-    const fresh = await refreshTokenDirect();
-    if (fresh && fresh !== token) {
-      const freshHeaders = collectHeaders(init, fresh);
-      result = await xhrRequest(url, method, freshHeaders, body);
+  if (res.status === 401) {
+    try {
+      let freshToken = await refreshAndGetToken();
+      if (!freshToken) freshToken = getTokenFromStorage();
+      if (freshToken && freshToken !== token) {
+        const retryHeaders = buildHeaders(init, freshToken);
+        return fetch(input, { ...init, headers: retryHeaders });
+      }
+    } catch (e) {
+      console.warn("[apiFetch] Auth retry failed:", e);
     }
   }
 
-  return new Response(result.body, {
-    status: result.status,
-    headers: { "content-type": result.contentType },
-  });
+  return res;
 }

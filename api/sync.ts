@@ -2,6 +2,7 @@ export const config = { runtime: "edge" };
 
 import { neon } from "@neondatabase/serverless";
 import { requireAuth, unauthorized } from "./lib/auth";
+import { traceHeadersEdge } from "./lib/traceHeaders";
 
 const VALID_COLLECTIONS = ["user", "supps", "meds", "exposure", "scans", "taken"] as const;
 type Collection = (typeof VALID_COLLECTIONS)[number];
@@ -38,7 +39,9 @@ function stripImages(data: any): any {
 }
 
 export default async function handler(req: Request): Promise<Response> {
-  const headers = { "content-type": "application/json" };
+  const traceH = traceHeadersEdge(req);
+  const headers = { ...traceH, "content-type": "application/json; charset=utf-8" };
+  console.log("[sync] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ ok: false, error: "POST only" }), { status: 405, headers });

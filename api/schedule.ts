@@ -1,6 +1,7 @@
 export const config = { runtime: "edge" };
 
 import { requireAuth } from "./lib/auth";
+import { traceHeadersEdge } from "./lib/traceHeaders";
 
 type TimeSlot = "morning" | "afternoon" | "evening" | "night";
 
@@ -22,40 +23,44 @@ function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
 }
 
+let _traceH: Record<string, string> = {};
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ..._traceH, "content-type": "application/json; charset=utf-8" },
+  });
+}
+
 export default async function handler(req: Request): Promise<Response> {
+  _traceH = traceHeadersEdge(req);
+  console.log("[schedule] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
   let authUser: any = null;
   try { authUser = await requireAuth(req); } catch { /* best-effort */ }
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST only" }), {
-      status: 405, headers: { "content-type": "application/json" },
-    });
+    return json({ ok: false, error: "POST only" }, 405);
   }
 
   const apiKey = envOpenAIKey();
   if (!apiKey) {
-    return new Response(JSON.stringify({ ok: false, error: "API key missing" }), {
-      status: 500, headers: { "content-type": "application/json" },
-    });
+    return json({ ok: false, error: "API key missing" }, 500);
   }
 
   let body: any;
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "Invalid JSON" }), {
-      status: 400, headers: { "content-type": "application/json" },
-    });
+    return json({ ok: false, error: "Invalid JSON" }, 400);
   }
 
   const supplements: any[] = Array.isArray(body?.supplements) ? body.supplements : [];
   const medications: any[] = Array.isArray(body?.medications) ? body.medications : [];
 
   if (supplements.length === 0 && medications.length === 0) {
-    return new Response(JSON.stringify({
+    return json({
       ok: true,
       items: [],
       generalAdvice: "Add supplements or medications first, then I can recommend optimal timing.",
       disclaimer: "This is general information, not medical advice.",
-    }), { status: 200, headers: { "content-type": "application/json" } });
+    });
   }
 
   const itemList = [
@@ -150,24 +155,18 @@ export default async function handler(req: Request): Promise<Response> {
     clearTimeout(timer);
 
     if (!r.ok) {
-      return new Response(JSON.stringify({ ok: false, error: `AI error: ${r.status}` }), {
-        status: 200, headers: { "content-type": "application/json" },
-      });
+      return json({ ok: false, error: `AI error: ${r.status}` });
     }
 
     const resp = await r.json();
     const text = resp?.choices?.[0]?.message?.content;
     if (!text) {
-      return new Response(JSON.stringify({ ok: false, error: "No AI response" }), {
-        status: 200, headers: { "content-type": "application/json" },
-      });
+      return json({ ok: false, error: "No AI response" });
     }
 
     let parsed: any;
     try { parsed = JSON.parse(text); } catch {
-      return new Response(JSON.stringify({ ok: false, error: "Invalid AI response" }), {
-        status: 200, headers: { "content-type": "application/json" },
-      });
+      return json({ ok: false, error: "Invalid AI response" });
     }
 
     const validSlots = new Set(["morning", "afternoon", "evening", "night"]);
@@ -195,17 +194,11 @@ export default async function handler(req: Request): Promise<Response> {
         : "This is general information, not medical advice. Consult a healthcare professional for personalized recommendations.",
     };
 
-    return new Response(JSON.stringify(result), {
-      status: 200, headers: { "content-type": "application/json" },
-    });
+    return json(result);
   } catch (err: any) {
     if (err?.name === "AbortError") {
-      return new Response(JSON.stringify({ ok: false, error: "Request timed out" }), {
-        status: 200, headers: { "content-type": "application/json" },
-      });
+      return json({ ok: false, error: "Request timed out" });
     }
-    return new Response(JSON.stringify({ ok: false, error: "Unexpected error" }), {
-      status: 500, headers: { "content-type": "application/json" },
-    });
+    return json({ ok: false, error: "Unexpected error" }, 500);
   }
 }

@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { requireAuth } from "./lib/auth";
+import { setTraceHeaders } from "./lib/traceHeaders";
 
-export const config = { maxDuration: 60 };
+export const config = { runtime: "nodejs", maxDuration: 60 };
 
 type CategoryKey =
   | "Sweeteners"
@@ -681,12 +682,8 @@ function buildJsonSchema() {
    ══════════════════════════════════════════════════════════ */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const requestId = req.headers["x-veda-request-id"] || "none";
-  console.log("[analyze] handler entered", req.method, "rid=" + requestId);
-
-  res.setHeader("x-veda-handler-entered", "1");
-  res.setHeader("x-veda-request-id", String(requestId));
-  res.setHeader("content-type", "application/json");
+  setTraceHeaders(req, res);
+  console.log("[analyze] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
 
   try {
     if (req.method !== "POST") {
@@ -702,10 +699,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     const result = await innerHandler("POST", body);
-    const json = await result.json();
-    res.status(result.status).json(json);
+    const data = await result.json();
+    res.status(result.status).json(data);
   } catch (e: any) {
-    console.error("[analyze] fatal error:", e, "rid=" + requestId);
+    console.error("[analyze] fatal error:", e);
     res.status(200).json(stub(`handler error: ${String(e?.message || e).slice(0, 120)}`));
   }
 }

@@ -18,7 +18,7 @@
 }
 
 .signals__card {
-  background: var(--alpha-faint);
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-lg);
   padding: 16px 18px;

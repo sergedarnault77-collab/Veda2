@@ -22,7 +22,12 @@ export default async function handler(req: Request): Promise<Response> {
 
   try {
     const sql = neon(connStr);
-    const url = new URL(req.url);
+    let url: URL;
+    try {
+      url = new URL(req.url);
+    } catch {
+      return json(400, { ok: false, error: "Invalid request URL" });
+    }
     const status = url.searchParams.get("status");
 
     let rows: any[];

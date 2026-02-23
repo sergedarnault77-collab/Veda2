@@ -1,8 +1,9 @@
-export const config = { maxDuration: 60 };
+export const config = { runtime: "nodejs", maxDuration: 60 };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { neon } from "@neondatabase/serverless";
 import { requireAuth } from "./lib/auth";
+import { setTraceHeaders } from "./lib/traceHeaders";
 
 function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
@@ -113,6 +114,8 @@ function extractProductSection(fullText: string): string {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setTraceHeaders(req, res);
+  console.log("[parse-url] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ ok: false, error: "POST only" });

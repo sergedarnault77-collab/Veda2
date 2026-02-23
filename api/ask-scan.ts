@@ -1,15 +1,17 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
 import { requireAuth, unauthorized } from "./lib/auth";
+import { traceHeadersEdge } from "./lib/traceHeaders";
 
 function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
 }
 
+let _traceH: Record<string, string> = {};
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { ..._traceH, "content-type": "application/json; charset=utf-8" },
   });
 }
 
@@ -75,7 +77,8 @@ function buildUserPrompt(
 }
 
 export default async function handler(req: Request): Promise<Response> {
-  console.log("[ask-scan] handler entered", req.method);
+  _traceH = traceHeadersEdge(req);
+  console.log("[ask-scan] handler entered", { method: req.method, url: req.url, rid: req.headers.get("x-veda-request-id") });
   try {
     if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
 

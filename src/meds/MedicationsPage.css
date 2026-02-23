@@ -98,16 +98,26 @@
   padding: 20px;
   border-radius: var(--radius-xl);
   background: var(--veda-surface);
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   gap: 10px;
   transition: border-color 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .med-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .med-card {
+  border-color: rgba(0, 0, 0, 0.10);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .med-card:hover {
   border-color: rgba(0, 0, 0, 0.18);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
 }
@@ -235,7 +245,7 @@
 .med-nutrients {
   margin-top: 12px;
   border-radius: 14px;
-  border: 1px solid var(--alpha-medium);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   background: rgba(31, 58, 95, 0.08);
   padding: 10px 10px 8px;
 }
@@ -268,7 +278,7 @@
   padding: 6px 8px;
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.20);
-  border: 1px solid var(--alpha-medium);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .med-nutrients__name {

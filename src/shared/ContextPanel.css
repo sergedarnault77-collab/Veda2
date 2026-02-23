@@ -22,8 +22,8 @@
   max-width: 520px;
   max-height: 85vh;
   overflow-y: auto;
-  background: var(--veda-surface);
-  border: 1px solid var(--veda-border);
+  background: var(--veda-surface, rgba(20, 20, 45, 0.92));
+  border: 1px solid var(--veda-border, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius-xl, 20px) var(--radius-xl, 20px) 0 0;
   padding: 24px 22px 32px;
   backdrop-filter: blur(16px);
@@ -43,9 +43,9 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 1px solid var(--alpha-medium);
-  background: var(--alpha-soft);
-  color: var(--veda-text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 18px;
   display: flex;
   align-items: center;
@@ -55,7 +55,7 @@
 }
 
 .ctx-panel__close:hover {
-  background: var(--alpha-medium);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .ctx-panel__heading {
@@ -78,7 +78,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--veda-text-muted);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.85rem;
   padding: 20px 0;
 }
@@ -86,7 +86,7 @@
 .ctx-panel__spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid var(--alpha-medium);
+  border: 2px solid rgba(255, 255, 255, 0.15);
   border-top-color: var(--veda-accent, #2E5BFF);
   border-radius: 50%;
   animation: ctx-spin 0.7s linear infinite;
@@ -107,8 +107,8 @@
 .ctx-section {
   padding: 14px 16px;
   border-radius: var(--radius-lg, 14px);
-  background: var(--alpha-subtle);
-  border: 1px solid var(--alpha-soft);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .ctx-section__title {
@@ -116,7 +116,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--veda-text-subtle);
+  color: rgba(255, 255, 255, 0.55);
   margin: 0 0 10px;
 }
 
@@ -132,7 +132,7 @@
 .ctx-section__list li {
   font-size: 0.84rem;
   line-height: 1.5;
-  color: var(--veda-text);
+  color: rgba(255, 255, 255, 0.88);
   padding-left: 14px;
   position: relative;
 }
@@ -155,11 +155,11 @@
   margin-top: 4px;
   padding: 12px 14px;
   border-radius: var(--radius-md, 10px);
-  background: var(--alpha-faint);
-  border: 1px solid var(--alpha-soft);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 0.72rem;
   line-height: 1.5;
-  color: var(--veda-text-subtle);
+  color: rgba(255, 255, 255, 0.45);
   font-style: italic;
 }
 

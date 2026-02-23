@@ -6,8 +6,9 @@ import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
 import { analyzeScan } from "../lib/scanApi";
 import { apiFetchSafe } from "../lib/apiFetchSafe";
-import ScanDebugStrip from "../components/ScanDebugStrip";
-import type { ScanTrace } from "../components/ScanDebugStrip";
+import { VEDA_BUILD_ID, isWebKit } from "../lib/scan-proof";
+import type { ScanTrace } from "../lib/scan-proof";
+import ScanProofStrip from "../components/ScanProofStrip";
 import { track } from "../lib/analytics";
 import { extractExposureFromScan } from "./HomePage";
 import LoadingBanner from "../shared/LoadingBanner";
@@ -286,24 +287,25 @@ export default function ScanSection({ onScanComplete }: Props) {
       const json = await withMinDelay(
         (async () => {
           const r = await analyzeScan(payload);
-          const ct = r.headers?.["content-type"];
-          const vercelId = r.headers?.["x-vercel-id"];
-          const handlerEntered = r.headers?.["x-veda-handler-entered"];
+          const hdrs = r.headers ?? {};
 
-          setTrace({
+          const t: ScanTrace = {
             ts: Date.now(),
             endpoint: "analyze",
             url: r.url,
-            requestId: r.requestId,
             status: r.status,
-            contentType: ct,
-            vercelId,
-            handlerEntered,
-            message: r.ok ? "ok" : r.error.message,
-          });
+            rid: r.rid,
+            build: VEDA_BUILD_ID,
+            webkit: isWebKit() ? "1" : "0",
+            handler: hdrs["x-veda-handler-entered"],
+            vercel: hdrs["x-vercel-id"],
+            ct: hdrs["content-type"],
+            msg: r.ok ? "ok" : r.error.message,
+          };
+          setTrace(t);
 
           if (!r.ok) {
-            console.error("Scan failed (trace):", r);
+            console.error("Scan failed (trace):", t, r);
             throw new Error(`[scan] ${r.error.message}`);
           }
           return r.data;
@@ -800,7 +802,7 @@ export default function ScanSection({ onScanComplete }: Props) {
 
       {error && <div className="scan-status__error">{error}</div>}
 
-      <ScanDebugStrip trace={trace} />
+      <ScanProofStrip trace={trace} />
 
       {/* Current result (if active scan) */}
       {step === "done" && result && (

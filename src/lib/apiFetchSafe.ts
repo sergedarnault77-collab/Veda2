@@ -1,36 +1,10 @@
-import { shortId, VEDA_BUILD_ID } from "./debugBuild";
+import { headersToLowerRecord, safeParseResponse, shortRid, withCacheBust, VEDA_BUILD_ID } from "./scan-proof";
 
-export type ApiOk<T> = {
-  ok: true;
-  status: number;
-  data: T;
-  headers: Record<string, string>;
-  requestId: string;
-  url: string;
-};
-export type ApiErr = {
-  ok: false;
-  status: number;
-  error: {
-    code: string;
-    message: string;
-    details?: any;
-    contentType?: string | null;
-    rawTextSnippet?: string;
-  };
-  headers: Record<string, string>;
-  requestId: string;
-  url: string;
-};
-export type ApiResult<T> = ApiOk<T> | ApiErr;
+export type ApiResult<T> =
+  | { ok: true; status: number; data: T; headers: Record<string,string>; rid: string; url: string }
+  | { ok: false; status: number; error: { code: string; message: string; details?: any; ct?: string|null; snippet?: string }; headers: Record<string,string>; rid: string; url: string };
 
-function headersToRecord(h: Headers): Record<string, string> {
-  const out: Record<string, string> = {};
-  try { h.forEach((v, k) => (out[k.toLowerCase()] = v)); } catch {}
-  return out;
-}
-
-export function readAccessTokenFromStorage(): string | null {
+function readTokenFromStorage(): string | null {
   try {
     const direct = localStorage.getItem("access_token") || localStorage.getItem("sb-access-token");
     if (direct && direct.length > 10) return direct;
@@ -59,35 +33,19 @@ export function readAccessTokenFromStorage(): string | null {
   return null;
 }
 
-async function safeParse(resp: Response): Promise<{ kind: "json"; json: any } | { kind: "text"; text: string }> {
-  const ct = resp.headers.get("content-type")?.toLowerCase() || "";
-  if (ct.includes("application/json")) {
-    try { return { kind: "json", json: await resp.json() }; } catch {}
-  }
-  try { return { kind: "text", text: await resp.text() }; } catch { return { kind: "text", text: "" }; }
-}
-
-function withCacheBust(path: string, key: string): string {
-  const u = new URL(path, location.origin);
-  u.searchParams.set("__b", key);
-  return u.pathname + u.search;
-}
-
-export async function apiFetchSafe<T = any>(
+export async function apiFetchSafe<T=any>(
   path: string,
-  init?: RequestInit & { json?: any; timeoutMs?: number; cacheBustKey?: string }
+  init?: RequestInit & { json?: any; timeoutMs?: number; endpointName?: string }
 ): Promise<ApiResult<T>> {
-  const requestId = shortId();
-  const timeoutMs = init?.timeoutMs ?? 30000;
-  const cacheKey = init?.cacheBustKey || VEDA_BUILD_ID;
-  const url = withCacheBust(path, cacheKey);
+  const rid = shortRid();
+  const url = withCacheBust(path);
 
   const headers = new Headers(init?.headers || {});
-  if (!headers.has("accept")) headers.set("accept", "application/json");
-  headers.set("x-veda-request-id", requestId);
+  headers.set("accept", "application/json");
+  headers.set("x-veda-request-id", rid);
   headers.set("x-veda-build-id", VEDA_BUILD_ID);
 
-  const token = readAccessTokenFromStorage();
+  const token = readTokenFromStorage();
   if (token && !headers.has("authorization")) headers.set("authorization", `Bearer ${token}`);
 
   let body = init?.body;
@@ -97,62 +55,37 @@ export async function apiFetchSafe<T = any>(
   }
 
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
+  const t = setTimeout(() => controller.abort(), init?.timeoutMs ?? 60000);
 
   let resp: Response;
   try {
     resp = await fetch(url, { ...init, headers, body, signal: controller.signal });
-  } catch (e: any) {
+  } catch (e:any) {
     clearTimeout(t);
-    return {
-      ok: false,
-      status: 0,
-      requestId,
-      url,
-      headers: {},
-      error: { code: "FETCH_FAILED", message: String(e?.message || e), details: { name: e?.name, stack: e?.stack } },
-    };
+    return { ok:false, status:0, rid, url, headers:{}, error:{ code:"FETCH_FAILED", message:String(e?.message||e), details:{ name:e?.name, stack:e?.stack } } };
   } finally {
     clearTimeout(t);
   }
 
-  const hdrs = headersToRecord(resp.headers);
-  const parsed = await safeParse(resp);
+  const hdrs = headersToLowerRecord(resp.headers);
+  const parsed = await safeParseResponse(resp);
+  const ct = resp.headers.get("content-type");
 
   if (resp.ok && parsed.kind === "json") {
-    return { ok: true, status: resp.status, data: parsed.json as T, headers: hdrs, requestId, url };
+    return { ok:true, status:resp.status, data:parsed.json as T, headers:hdrs, rid, url };
   }
 
   if (!resp.ok && parsed.kind === "json") {
-    const j: any = parsed.json;
+    const j:any = parsed.json;
     return {
-      ok: false,
-      status: resp.status,
-      headers: hdrs,
-      requestId,
-      url,
-      error: {
-        code: j?.error?.code || j?.code || "HTTP_ERROR",
-        message: j?.error?.message || j?.message || j?.error || `HTTP ${resp.status}`,
-        details: j?.error?.details || j?.details || j,
-        contentType: resp.headers.get("content-type"),
-      },
+      ok:false, status:resp.status, rid, url, headers:hdrs,
+      error:{ code:j?.error?.code || j?.code || "HTTP_ERROR", message:j?.error?.message || j?.message || `HTTP ${resp.status}`, details:j?.error?.details || j?.details || j, ct }
     };
   }
 
   const text = parsed.kind === "text" ? parsed.text : "";
-  const ct = resp.headers.get("content-type");
   return {
-    ok: false,
-    status: resp.status,
-    headers: hdrs,
-    requestId,
-    url,
-    error: {
-      code: resp.ok ? "NON_JSON_SUCCESS" : "NON_JSON_ERROR",
-      message: resp.ok ? "Server returned non-JSON success response." : `HTTP ${resp.status} — Non-JSON response`,
-      contentType: ct,
-      rawTextSnippet: text.slice(0, 300),
-    },
+    ok:false, status:resp.status, rid, url, headers:hdrs,
+    error:{ code: resp.ok ? "NON_JSON_SUCCESS" : "NON_JSON_ERROR", message: resp.ok ? "Non-JSON success response" : `HTTP ${resp.status} — Non-JSON response`, ct, snippet:text.slice(0,300) }
   };
 }
