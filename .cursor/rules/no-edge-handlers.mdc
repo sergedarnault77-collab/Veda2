@@ -1,0 +1,46 @@
+---
+description: All Vercel API routes must use Node.js runtime with VercelRequest/VercelResponse — never Edge handler signatures
+globs: api/**/*.ts
+alwaysApply: false
+---
+
+# Vercel API Routes: Node.js Runtime Only
+
+Every API endpoint must use the Node.js runtime with `VercelRequest`/`VercelResponse`. Edge runtime causes `FUNCTION_INVOCATION_FAILED` crashes.
+
+## Required pattern
+
+```typescript
+export const config = { runtime: "nodejs" };
+
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("content-type", "application/json; charset=utf-8");
+  // ...
+  return res.status(200).json({ ok: true, data: ... });
+}
+```
+
+## Forbidden patterns
+
+- `export const config = { runtime: "edge" }` — causes module-load crashes
+- `(req: Request): Promise<Response>` — Edge handler signature
+- `return new Response(...)` — Edge response pattern
+- `NextRequest` / `NextResponse` — Next.js Edge types
+- `req.json()` — use `req.body` instead (Node.js parses automatically)
+- `req.headers.get(...)` — use `req.headers[...]` (Node.js uses plain object)
+
+## Response shape
+
+All endpoints must return JSON:
+
+```typescript
+// Success
+res.status(200).json({ ok: true, ... });
+
+// Error
+res.status(4xx).json({ ok: false, error: { code: "...", message: "..." } });
+```
+
+Never return `text/plain` or HTML. Even fatal errors must return JSON.

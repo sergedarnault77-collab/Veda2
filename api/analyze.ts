@@ -1,13 +1,7 @@
 export const config = { runtime: "nodejs", maxDuration: 60 };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-
-function setTraceHeadersLocal(req: VercelRequest, res: VercelResponse) {
-  const rid = (req.headers?.["x-veda-request-id"] as string) || "";
-  if (rid) res.setHeader("x-veda-request-id", rid);
-  res.setHeader("x-veda-handler-entered", "1");
-  res.setHeader("content-type", "application/json; charset=utf-8");
-}
+import { setTraceHeaders } from "./lib/traceHeaders";
 
 type CategoryKey =
   | "Sweeteners"
@@ -569,7 +563,7 @@ function extractOutputText(resp: any): string | null {
    ══════════════════════════════════════════════════════════ */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setTraceHeadersLocal(req, res);
+  setTraceHeaders(req, res);
   console.log("[analyze] handler entered", { method: req.method, url: req.url, rid: req.headers["x-veda-request-id"] });
 
   try {

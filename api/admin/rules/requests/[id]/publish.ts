@@ -1,38 +1,45 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
-import { neon } from "@neondatabase/serverless";
-import { requireAuth, unauthorized } from "../../../../lib/auth";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 
-export default async function handler(req: Request): Promise<Response> {
-  const authUser = await requireAuth(req);
-  if (!authUser) return unauthorized();
-  if (!ADMIN_EMAILS.includes(authUser.email.toLowerCase())) {
-    return json(403, { ok: false, error: "Admin access required" });
-  }
-  if (req.method !== "POST") return json(405, { ok: false, error: "POST only" });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("content-type", "application/json; charset=utf-8");
 
-  const id = extractId(req.url);
-  if (!id) return json(400, { ok: false, error: "Missing request id" });
+  let authUser: any = null;
+  try {
+    const { requireAuth } = await import("../../../../lib/auth");
+    authUser = await requireAuth(req);
+  } catch { /* best-effort */ }
+  if (!authUser) {
+    return res.status(401).json({ ok: false, error: "Authentication required" });
+  }
+  if (!ADMIN_EMAILS.includes(authUser.email.toLowerCase())) {
+    return res.status(403).json({ ok: false, error: "Admin access required" });
+  }
+  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
+
+  const id = req.query.id as string;
+  if (!id) return res.status(400).json({ ok: false, error: "Missing request id" });
 
   const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
-  if (!connStr) return json(500, { ok: false, error: "DATABASE_URL not set" });
+  if (!connStr) return res.status(500).json({ ok: false, error: "DATABASE_URL not set" });
 
   try {
+    const { neon } = await import("@neondatabase/serverless");
     const sql = neon(connStr);
 
     const reqRows = await sql`
       SELECT * FROM rule_change_requests WHERE id = ${id} AND status = 'verified'
     `;
     if (reqRows.length === 0) {
-      return json(400, { ok: false, error: "Request not in 'verified' status" });
+      return res.status(400).json({ ok: false, error: "Request not in 'verified' status" });
     }
 
     const payload = reqRows[0].rule_payload as any;
-
     const ruleKey = payload.ruleKey || payload.rule_key;
-    if (!ruleKey) return json(400, { ok: false, error: "rulePayload missing ruleKey" });
+    if (!ruleKey) return res.status(400).json({ ok: false, error: "rulePayload missing ruleKey" });
 
     const ruleRows = await sql`
       INSERT INTO interaction_rules
@@ -80,20 +87,8 @@ export default async function handler(req: Request): Promise<Response> {
       WHERE id = ${id}
     `;
 
-    return json(200, { ok: true, ruleId: publishedRuleId });
+    return res.status(200).json({ ok: true, ruleId: publishedRuleId });
   } catch (e: any) {
-    return json(500, { ok: false, error: String(e?.message || e) });
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
-}
-
-function extractId(url: string): string | null {
-  const m = url.match(/\/requests\/([^/]+)\/publish/);
-  return m?.[1] || null;
-}
-
-function json(status: number, body: object): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
 }

@@ -1,44 +1,41 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
-import { neon } from "@neondatabase/serverless";
-import { requireAuth, unauthorized } from "../../lib/auth";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(req: Request): Promise<Response> {
-  const authUser = await requireAuth(req);
-  if (!authUser) return unauthorized();
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("content-type", "application/json; charset=utf-8");
+
+  let authUser: any = null;
+  try {
+    const { requireAuth } = await import("../../lib/auth");
+    authUser = await requireAuth(req);
+  } catch { /* best-effort */ }
+  if (!authUser) {
+    return res.status(401).json({ ok: false, error: "Authentication required" });
+  }
 
   if (req.method !== "POST") {
-    return json(405, { ok: false, error: "POST only" });
+    return res.status(405).json({ ok: false, error: "POST only" });
   }
 
   const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
-  if (!connStr) return json(500, { ok: false, error: "DATABASE_URL not set" });
+  if (!connStr) return res.status(500).json({ ok: false, error: "DATABASE_URL not set" });
 
-  let body: any;
-  try { body = await req.json(); } catch {
-    return json(400, { ok: false, error: "Invalid JSON" });
-  }
-
+  const body = req.body || {};
   if (!body?.rulePayload) {
-    return json(400, { ok: false, error: "rulePayload required" });
+    return res.status(400).json({ ok: false, error: "rulePayload required" });
   }
 
   try {
+    const { neon } = await import("@neondatabase/serverless");
     const sql = neon(connStr);
     const rows = await sql`
       INSERT INTO rule_change_requests (status, proposed_by, rule_payload)
       VALUES ('proposed', ${authUser.id}, ${JSON.stringify(body.rulePayload)})
       RETURNING id
     `;
-    return json(200, { ok: true, id: rows[0]?.id });
+    return res.status(200).json({ ok: true, id: rows[0]?.id });
   } catch (e: any) {
-    return json(500, { ok: false, error: String(e?.message || e) });
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
-}
-
-function json(status: number, body: object): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
 }

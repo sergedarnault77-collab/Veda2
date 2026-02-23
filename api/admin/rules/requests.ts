@@ -1,34 +1,36 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
-import { neon } from "@neondatabase/serverless";
-import { requireAuth, unauthorized } from "../../lib/auth";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 
-export default async function handler(req: Request): Promise<Response> {
-  const authUser = await requireAuth(req);
-  if (!authUser) return unauthorized();
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("content-type", "application/json; charset=utf-8");
+
+  let authUser: any = null;
+  try {
+    const { requireAuth } = await import("../../lib/auth");
+    authUser = await requireAuth(req);
+  } catch { /* best-effort */ }
+  if (!authUser) {
+    return res.status(401).json({ ok: false, error: "Authentication required" });
+  }
 
   if (!ADMIN_EMAILS.includes(authUser.email.toLowerCase())) {
-    return json(403, { ok: false, error: "Admin access required" });
+    return res.status(403).json({ ok: false, error: "Admin access required" });
   }
 
   if (req.method !== "GET") {
-    return json(405, { ok: false, error: "GET only" });
+    return res.status(405).json({ ok: false, error: "GET only" });
   }
 
   const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
-  if (!connStr) return json(500, { ok: false, error: "DATABASE_URL not set" });
+  if (!connStr) return res.status(500).json({ ok: false, error: "DATABASE_URL not set" });
 
   try {
+    const { neon } = await import("@neondatabase/serverless");
     const sql = neon(connStr);
-    let url: URL;
-    try {
-      url = new URL(req.url);
-    } catch {
-      return json(400, { ok: false, error: "Invalid request URL" });
-    }
-    const status = url.searchParams.get("status");
+    const status = (req.query.status as string) || "";
 
     let rows: any[];
     if (status) {
@@ -46,15 +48,8 @@ export default async function handler(req: Request): Promise<Response> {
       `;
     }
 
-    return json(200, { ok: true, requests: rows });
+    return res.status(200).json({ ok: true, requests: rows });
   } catch (e: any) {
-    return json(500, { ok: false, error: String(e?.message || e) });
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
-}
-
-function json(status: number, body: object): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
 }

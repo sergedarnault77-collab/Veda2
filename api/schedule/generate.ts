@@ -3,16 +3,11 @@ export const config = { runtime: "nodejs" };
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { InteractionRule, ItemProfile, ScheduleInputItem } from "../../src/lib/timing/types";
 import { generateSchedule } from "../../src/lib/timing/scheduler";
-
-async function getDb() {
-  const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
-  if (!connStr) return null;
-  const { neon } = await import("@neondatabase/serverless");
-  return neon(connStr);
-}
+import { setTraceHeaders } from "../lib/traceHeaders";
+import { getNeonDb } from "../lib/neonDb";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader("content-type", "application/json; charset=utf-8");
+  setTraceHeaders(req, res);
 
   let authUser: any = null;
   try {
@@ -42,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       frequency: i.frequency || "daily",
     }));
   } else {
-    const sql = await getDb();
+    const sql = await getNeonDb();
     if (sql) {
       try {
         const rows = await sql`
@@ -78,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let profiles: ItemProfile[] = [];
   let additionalRules: InteractionRule[] = [];
 
-  const sql = await getDb();
+  const sql = await getNeonDb();
   if (sql) {
     try {
       const canonicals = inputItems.map((i) => i.canonicalName);
@@ -131,7 +126,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     wakeTime,
   });
 
-  const sql2 = await getDb();
+  const sql2 = await getNeonDb();
   if (sql2) {
     try {
       await sql2`

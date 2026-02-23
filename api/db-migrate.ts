@@ -1,35 +1,29 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
-import { neon } from "@neondatabase/serverless";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("content-type", "application/json; charset=utf-8");
+
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST only" }), {
-      status: 405,
-      headers: { "content-type": "application/json" },
-    });
+    return res.status(405).json({ ok: false, error: "POST only" });
   }
 
-  const secret = req.headers.get("x-migrate-secret") || "";
+  const secret = (req.headers["x-migrate-secret"] as string) || "";
   const envSecret = (process.env.MIGRATE_SECRET || "").trim();
   if (!envSecret || secret !== envSecret) {
-    return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
-      status: 401,
-      headers: { "content-type": "application/json" },
-    });
+    return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
   const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
   if (!connStr) {
-    return new Response(JSON.stringify({ ok: false, error: "DATABASE_URL or STORAGE_URL not set" }), {
-      status: 500,
-      headers: { "content-type": "application/json" },
-    });
+    return res.status(500).json({ ok: false, error: "DATABASE_URL or STORAGE_URL not set" });
   }
 
-  const sql = neon(connStr);
-
   try {
+    const { neon } = await import("@neondatabase/serverless");
+    const sql = neon(connStr);
+
     await sql`
       CREATE TABLE IF NOT EXISTS user_data (
         email       TEXT NOT NULL,
@@ -39,12 +33,7 @@ export default async function handler(req: Request): Promise<Response> {
         PRIMARY KEY (email, collection)
       )
     `;
-
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_user_data_email ON user_data (email)
-    `;
-
-    /* ── Product master dataset tables ── */
+    await sql`CREATE INDEX IF NOT EXISTS idx_user_data_email ON user_data (email)`;
 
     await sql`CREATE EXTENSION IF NOT EXISTS pg_trgm`;
 
@@ -64,12 +53,7 @@ export default async function handler(req: Request): Promise<Response> {
         UNIQUE(source, source_id)
       )
     `;
-
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_products_barcode
-      ON products (barcode) WHERE barcode IS NOT NULL
-    `;
-
+    await sql`CREATE INDEX IF NOT EXISTS idx_products_barcode ON products (barcode) WHERE barcode IS NOT NULL`;
     await sql`
       CREATE INDEX IF NOT EXISTS idx_products_name_trgm
       ON products USING gin (
@@ -88,13 +72,7 @@ export default async function handler(req: Request): Promise<Response> {
         pct_dv          NUMERIC
       )
     `;
-
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_pn_product_id
-      ON product_nutrients (product_id)
-    `;
-
-    /* ── Timing engine tables ── */
+    await sql`CREATE INDEX IF NOT EXISTS idx_pn_product_id ON product_nutrients (product_id)`;
 
     await sql`
       CREATE TABLE IF NOT EXISTS item_profiles (
@@ -128,7 +106,6 @@ export default async function handler(req: Request): Promise<Response> {
         updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
-
     await sql`CREATE INDEX IF NOT EXISTS interaction_rules_active_idx ON interaction_rules(is_active)`;
     await sql`CREATE INDEX IF NOT EXISTS interaction_rules_applies_to_idx ON interaction_rules USING GIN(applies_to)`;
     await sql`CREATE INDEX IF NOT EXISTS interaction_rules_tags_idx ON interaction_rules USING GIN(applies_if_tags)`;
@@ -145,7 +122,6 @@ export default async function handler(req: Request): Promise<Response> {
         created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
-
     await sql`CREATE INDEX IF NOT EXISTS user_intake_items_user_idx ON user_intake_items(user_id)`;
 
     await sql`
@@ -158,7 +134,6 @@ export default async function handler(req: Request): Promise<Response> {
         created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
-
     await sql`CREATE INDEX IF NOT EXISTS schedule_runs_user_date_idx ON schedule_runs(user_id, run_date)`;
 
     await sql`
@@ -176,14 +151,8 @@ export default async function handler(req: Request): Promise<Response> {
       )
     `;
 
-    return new Response(JSON.stringify({ ok: true, message: "Migration complete" }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+    return res.status(200).json({ ok: true, message: "Migration complete" });
   } catch (e: any) {
-    return new Response(
-      JSON.stringify({ ok: false, error: String(e?.message || e) }),
-      { status: 500, headers: { "content-type": "application/json" } },
-    );
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 }

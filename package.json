@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:smoke": "bash scripts/smoke-test.sh",
+    "test:imports": "bash scripts/check-imports.sh",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:critics": "node scripts/ai-vision-critic.mjs && node scripts/ai-data-sanity-critic.mjs && node scripts/critics-summary.mjs",

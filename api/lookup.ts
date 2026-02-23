@@ -2,13 +2,7 @@ export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { setTraceHeaders } from "./lib/traceHeaders";
-
-async function getDb() {
-  const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
-  if (!connStr) return null;
-  const { neon } = await import("@neondatabase/serverless");
-  return neon(connStr);
-}
+import { getNeonDb } from "./lib/neonDb";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setTraceHeaders(req, res);
@@ -19,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try { const { requireAuth } = await import("./lib/auth"); await requireAuth(req); } catch { /* best-effort */ }
 
-  const sql = await getDb();
+  const sql = await getNeonDb();
   if (!sql) return res.status(503).json({ ok: false, error: "Database not configured" });
 
   const barcode = (req.query.barcode as string || "").trim();

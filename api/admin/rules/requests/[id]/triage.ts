@@ -1,28 +1,35 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
-import { neon } from "@neondatabase/serverless";
-import { requireAuth, unauthorized } from "../../../../lib/auth";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 
-export default async function handler(req: Request): Promise<Response> {
-  const authUser = await requireAuth(req);
-  if (!authUser) return unauthorized();
-  if (!ADMIN_EMAILS.includes(authUser.email.toLowerCase())) {
-    return json(403, { ok: false, error: "Admin access required" });
-  }
-  if (req.method !== "POST") return json(405, { ok: false, error: "POST only" });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("content-type", "application/json; charset=utf-8");
 
-  const id = extractId(req.url);
-  if (!id) return json(400, { ok: false, error: "Missing request id" });
+  let authUser: any = null;
+  try {
+    const { requireAuth } = await import("../../../../lib/auth");
+    authUser = await requireAuth(req);
+  } catch { /* best-effort */ }
+  if (!authUser) {
+    return res.status(401).json({ ok: false, error: "Authentication required" });
+  }
+  if (!ADMIN_EMAILS.includes(authUser.email.toLowerCase())) {
+    return res.status(403).json({ ok: false, error: "Admin access required" });
+  }
+  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
+
+  const id = req.query.id as string;
+  if (!id) return res.status(400).json({ ok: false, error: "Missing request id" });
 
   const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
-  if (!connStr) return json(500, { ok: false, error: "DATABASE_URL not set" });
+  if (!connStr) return res.status(500).json({ ok: false, error: "DATABASE_URL not set" });
 
-  let body: any;
-  try { body = await req.json(); } catch { body = {}; }
+  const body = req.body || {};
 
   try {
+    const { neon } = await import("@neondatabase/serverless");
     const sql = neon(connStr);
     await sql`
       UPDATE rule_change_requests
@@ -31,20 +38,8 @@ export default async function handler(req: Request): Promise<Response> {
           updated_at = NOW()
       WHERE id = ${id} AND status = 'proposed'
     `;
-    return json(200, { ok: true });
+    return res.status(200).json({ ok: true });
   } catch (e: any) {
-    return json(500, { ok: false, error: String(e?.message || e) });
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
-}
-
-function extractId(url: string): string | null {
-  const m = url.match(/\/requests\/([^/]+)\/triage/);
-  return m?.[1] || null;
-}
-
-function json(status: number, body: object): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
 }

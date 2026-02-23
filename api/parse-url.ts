@@ -2,20 +2,14 @@ export const config = { runtime: "nodejs", maxDuration: 60 };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { setTraceHeaders } from "./lib/traceHeaders";
+import { getNeonDb } from "./lib/neonDb";
 
 function envOpenAIKey(): string | null {
   return process.env.OPENAI_API_KEY ?? null;
 }
 
-async function getDb() {
-  const connStr = (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
-  if (!connStr) return null;
-  const { neon } = await import("@neondatabase/serverless");
-  return neon(connStr);
-}
-
 async function tryDbLookup(productHint: string) {
-  const sql = await getDb();
+  const sql = await getNeonDb();
   if (!sql || !productHint || productHint.length < 3) return null;
 
   try {

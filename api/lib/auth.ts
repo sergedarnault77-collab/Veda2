@@ -1,39 +1,40 @@
-import { createClient } from "@supabase/supabase-js";
-
 export type AuthUser = { id: string; email: string };
 
-function env(key: string): string {
-  try {
-    // Edge Runtime: process is a direct global, not always on globalThis
-    if (typeof process !== "undefined" && process?.env) {
-      return (process.env[key] || "").trim();
-    }
-  } catch { /* ignore */ }
-  try {
-    const g = (globalThis as any)?.process?.env;
-    if (g) return (g[key] || "").trim();
-  } catch { /* ignore */ }
-  return "";
-}
-
 function getSupabaseConfig() {
-  const url = env("SUPABASE_URL") || env("VITE_SUPABASE_URL");
-  const key = env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_ANON_KEY") || env("VITE_SUPABASE_ANON_KEY");
+  const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").trim();
+  const key = (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    ""
+  ).trim();
   return { url, key };
 }
 
-/**
- * Verify a Supabase access token and return the user, or null if invalid.
- */
-export async function verifyToken(token: string): Promise<AuthUser | null> {
-  if (!token) return null;
+let _sb: any = null;
+let _sbConfigHash = "";
+
+async function getSupabase() {
   const { url, key } = getSupabaseConfig();
   if (!url || !key) return null;
 
+  const hash = url + "|" + key;
+  if (_sb && _sbConfigHash === hash) return _sb;
+
+  const { createClient } = await import("@supabase/supabase-js");
+  _sb = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  _sbConfigHash = hash;
+  return _sb;
+}
+
+export async function verifyToken(token: string): Promise<AuthUser | null> {
+  if (!token) return null;
+  const sb = await getSupabase();
+  if (!sb) return null;
+
   try {
-    const sb = createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
     const { data, error } = await sb.auth.getUser(token);
     if (error || !data.user) return null;
     return { id: data.user.id, email: data.user.email ?? "" };
@@ -42,7 +43,6 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
   }
 }
 
-/** Extract bearer token from a Web Request or Node IncomingMessage. */
 export function extractToken(req: Request | { headers: Record<string, any> }): string | null {
   let raw: string | undefined;
   if (typeof (req as any).headers?.get === "function") {
@@ -55,27 +55,8 @@ export function extractToken(req: Request | { headers: Record<string, any> }): s
   return token || null;
 }
 
-/**
- * Combined: extract + verify. Works with both Edge Request and Node VercelRequest.
- */
 export async function requireAuth(req: Request | { headers: Record<string, any> }): Promise<AuthUser | null> {
   const token = extractToken(req);
   if (!token) return null;
   return verifyToken(token);
-}
-
-export function unauthorized(message = "Authentication required") {
-  const { url, key } = getSupabaseConfig();
-  const hasConfig = Boolean(url && key);
-  return new Response(
-    JSON.stringify({
-      ok: false,
-      error: message,
-      hint: hasConfig ? "token_invalid" : "server_config_missing",
-    }),
-    {
-      status: 401,
-      headers: { "content-type": "application/json" },
-    },
-  );
 }

@@ -1,0 +1,30 @@
+name: Deploy checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  import-safety:
+    name: Import safety
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for top-level heavy SDK imports
+        run: bash scripts/check-imports.sh
+
+  smoke-test:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    needs: import-safety
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for Vercel deployment
+        run: sleep 90
+
+      - name: Run smoke tests
+        run: bash scripts/smoke-test.sh "${{ vars.DEPLOY_URL || 'https://veda2.vercel.app' }}"

@@ -2,20 +2,10 @@ export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { setTraceHeaders } from "./lib/traceHeaders";
+import { getNeonDb } from "./lib/neonDb";
 
 const VALID_COLLECTIONS = ["user", "supps", "meds", "exposure", "scans", "taken"] as const;
 type Collection = (typeof VALID_COLLECTIONS)[number];
-
-function getConnStr(): string {
-  return (process.env.DATABASE_URL || process.env.STORAGE_URL || "").trim();
-}
-
-async function getDb() {
-  const connStr = getConnStr();
-  if (!connStr) return null;
-  const { neon } = await import("@neondatabase/serverless");
-  return neon(connStr);
-}
 
 function stripImages(data: any): any {
   if (!data) return data;
@@ -55,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ ok: false, error: "Authentication required" });
   }
 
-  const sql = await getDb();
+  const sql = await getNeonDb();
   if (!sql) {
     return res.status(503).json({ ok: false, error: "Database not configured" });
   }
