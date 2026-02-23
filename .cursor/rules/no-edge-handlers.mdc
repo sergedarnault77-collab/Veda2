@@ -31,15 +31,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 - `req.json()` — use `req.body` instead (Node.js parses automatically)
 - `req.headers.get(...)` — use `req.headers[...]` (Node.js uses plain object)
 
-## Shared modules directory
+## No cross-file imports in api/
 
-All shared utility modules must live in `api/_lib/` (underscore prefix).
-Vercel treats files in `api/lib/` as serverless functions, causing crashes.
+Vercel's Node.js runtime with `moduleResolution: "bundler"` (from tsconfig.json)
+cannot resolve cross-file TypeScript imports in the `api/` directory. Static
+imports to other `.ts` files cause `FUNCTION_INVOCATION_FAILED`.
 
+Every endpoint must be **self-contained** — inline small helpers directly:
+
+```typescript
+// ✅ GOOD — inlined in each endpoint
+function setTraceHeaders(req: any, res: any) {
+  const rid = (req.headers?.["x-veda-request-id"] as string) || "";
+  if (rid) res.setHeader("x-veda-request-id", rid);
+  res.setHeader("x-veda-handler-entered", "1");
+  res.setHeader("content-type", "application/json; charset=utf-8");
+}
+
+// ❌ BAD — crashes at module load time on Vercel
+import { setTraceHeaders } from "./_lib/traceHeaders";
 ```
-api/_lib/auth.ts        ✅ correct — excluded from route processing
-api/_lib/traceHeaders.ts ✅ correct
-api/lib/auth.ts         ❌ WRONG — Vercel tries to invoke as a function
+
+Dynamic `await import()` inside try-catch is OK for optional dependencies:
+
+```typescript
+try {
+  const { requireAuth } = await import("./_lib/auth");
+  await requireAuth(req);
+} catch { /* best-effort — fails silently if import resolution breaks */ }
 ```
 
 ## Response shape
