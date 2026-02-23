@@ -1,7 +1,7 @@
 export const config = { runtime: "nodejs" };
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ping } from "./_helpers";
+import { ping } from "./shared-helpers";
 
 const BUILD_ID = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8)
   || process.env.VITE_BUILD_ID
