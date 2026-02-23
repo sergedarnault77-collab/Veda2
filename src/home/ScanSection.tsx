@@ -395,17 +395,7 @@ export default function ScanSection({ onScanComplete }: Props) {
 
   function addToIntake() {
     if (!result || added) return;
-    setAdded("supp");
-
-    const scanResult = buildScanResult();
-    const ents = scanResult.detectedEntities;
-    const summaryStr = ents.slice(0, 4).join(", ") + (ents.length > 4 ? ` +${ents.length - 4} more` : "");
-
-    const exposure = extractExposureFromScan(scanResult);
-    const day = persistScan(productName, summaryStr, exposure, scanResult.nutrients);
-    setTodayScans(day.scans);
-    track("scan_completed", { product: productName, entities: ents.length });
-    onScanComplete?.(scanResult);
+    saveAsSupp();
   }
 
   function saveAsSupp() {
