@@ -6,9 +6,7 @@ import { withMinDelay } from "../lib/minDelay";
 import { loadLS, saveLS } from "../lib/persist";
 import { analyzeScan } from "../lib/scanApi";
 import { apiFetchSafe } from "../lib/apiFetchSafe";
-import { VEDA_BUILD_ID, isWebKit } from "../lib/scan-proof";
-import type { ScanTrace } from "../lib/scan-proof";
-import ScanProofStrip from "../components/ScanProofStrip";
+import { DebugTraceBar, useVedaScanTrace } from "../components/DebugTraceBar";
 import { track } from "../lib/analytics";
 import { extractExposureFromScan } from "./HomePage";
 import LoadingBanner from "../shared/LoadingBanner";
@@ -157,7 +155,7 @@ export default function ScanSection({ onScanComplete }: Props) {
   const [ixLoading, setIxLoading] = useState(false);
   const [servingG, setServingG] = useState<number | null>(null);
   const [saveSchedule, setSaveSchedule] = useState<ScheduleTime | undefined>(undefined);
-  const [trace, setTrace] = useState<ScanTrace | null>(null);
+  const { trace, markStart, markFinish, markError } = useVedaScanTrace();
 
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
@@ -284,28 +282,21 @@ export default function ScanSection({ onScanComplete }: Props) {
       if (!frontOnly && ingredientsImages.length > 0) {
         payload.ingredientsImageDataUrls = ingredientsImages;
       }
+      markStart("/api/analyze");
       const json = await withMinDelay(
         (async () => {
           const r = await analyzeScan(payload);
           const hdrs = r.headers ?? {};
 
-          const t: ScanTrace = {
-            ts: Date.now(),
-            endpoint: "analyze",
-            url: r.url,
-            status: r.status,
-            rid: r.rid,
-            build: VEDA_BUILD_ID,
-            webkit: isWebKit() ? "1" : "0",
-            handler: hdrs["x-veda-handler-entered"],
-            vercel: hdrs["x-vercel-id"],
-            ct: hdrs["content-type"],
-            msg: r.ok ? "ok" : r.error.message,
-          };
-          setTrace(t);
+          markFinish({
+            httpStatus: r.status,
+            requestId: hdrs["x-veda-request-id"] || r.rid,
+            vercelId: hdrs["x-vercel-id"],
+            vercelError: hdrs["x-vercel-error"],
+          });
 
           if (!r.ok) {
-            console.error("Scan failed (trace):", t, r);
+            markError(r.error.message, "server");
             throw new Error(`[scan] ${r.error.message}`);
           }
           return r.data;
@@ -319,6 +310,7 @@ export default function ScanSection({ onScanComplete }: Props) {
       setProductName(pName);
       setStep("done");
     } catch (e: any) {
+      markError(e, "fetch");
       setError(String(e?.message || e));
       setStep("done");
     } finally {
@@ -802,7 +794,7 @@ export default function ScanSection({ onScanComplete }: Props) {
 
       {error && <div className="scan-status__error">{error}</div>}
 
-      <ScanProofStrip trace={trace} />
+      <DebugTraceBar trace={trace} />
 
       {/* Current result (if active scan) */}
       {step === "done" && result && (

@@ -32,31 +32,3 @@ export async function safeParseResponse(resp: Response): Promise<{ kind: "json";
   try { return { kind: "text", text: await resp.text() }; } catch { return { kind: "text", text: "" }; }
 }
 
-export type ScanTrace = {
-  ts: number;
-  endpoint: string;
-  url: string;
-  status: number;
-  rid: string;
-  build: string;
-  webkit: "1" | "0";
-  handler?: string;
-  vercel?: string;
-  ct?: string | null;
-  msg?: string;
-};
-
-export function formatTrace(t: ScanTrace): string {
-  return [
-    `build=${t.build}`,
-    `webkit=${t.webkit}`,
-    `endpoint=${t.endpoint}`,
-    `status=${t.status}`,
-    `rid=${t.rid}`,
-    `handler=${t.handler || "?"}`,
-    `vercel=${t.vercel || "?"}`,
-    `ct=${t.ct || "?"}`,
-    `url=${t.url}`,
-    t.msg ? `msg=${t.msg}` : "",
-  ].filter(Boolean).join(" | ");
-}
