@@ -1,0 +1,86 @@
+---
+description: Cross-project engineering standards for Veda, LastPath, Guidely, and Serge.ai. Prevents repeat failures, standardizes patterns, and defines Cursor operating behavior.
+alwaysApply: true
+---
+
+# Engineering North Star — Shared Rules
+
+## 0) Cursor Operating Rule
+- If a task can be completed by searching, reading, grepping, or editing code — DO IT.
+- Do NOT ask the user "where is X?" / "which file?" / "should I replace X?" — find it, do it, explain what changed.
+- Only ask the user for: missing secrets, business/UX decisions with multiple valid options, external dashboard access.
+- When unsure, make a reasonable assumption and proceed; state the assumption clearly.
+
+## 1) Project Identification
+- Start every response with: "This is for project **X** (LastPath / Veda / Guidely / Serge.ai)"
+- Before executing ANY code change, verify you are in the correct project directory.
+- Never write code intended for one project into another project's repo.
+
+## 2) Deployment + Environment Variables
+- Vite `import.meta.env.*` is inlined at build time → env var changes require redeploy.
+- Always verify correct Vercel project with `vercel link` before editing env vars.
+- One Git repo = one Vercel project. Never two Vercel projects for the same repo.
+
+## 3) Runtime Signatures (Vercel)
+- Node runtime: `(req: VercelRequest, res: VercelResponse)` → return via `res.status().json()`.
+- Edge runtime: `(req: Request) => Response`.
+- Never mix. If runtime is `nodejs`, do NOT use `return new Response(...)`.
+
+## 4) Browser vs Server Imports
+**Client (Safari/WebKit safety):**
+- Lazy-load heavy SDKs (Supabase, Stripe.js) — never top-level if they call `new URL()` at import time.
+- Use `const { createClient } = await import(...)` pattern.
+
+**Server (Vercel Node.js):**
+- Top-level imports are fine. Only lazy-load if measured cold-start issue or known module-load crash.
+
+## 5) Safari/WebKit Hard Rule
+- For request bodies >50KB on Safari: use `XMLHttpRequest` instead of `fetch()`.
+- WebKit bug: `fetch()` Request constructor throws "The string did not match the expected pattern" for large string bodies.
+- XHR uses a different WebKit code path and avoids this crash.
+- Implement a `postJson()` / `apiFetch()` abstraction that handles this transparently.
+
+## 6) API Response Discipline
+- All API handlers ALWAYS return JSON. Never let unhandled exceptions produce HTML/text 500s.
+- Standard shape: `{ ok: true, data }` or `{ ok: false, error: { code, message } }`.
+- Client code: check `content-type` before calling `r.json()`.
+
+## 7) Auth Patterns
+- `tryAuthSoft(req)`: best-effort, returns `user | null`, never blocks UX.
+- `requireAuthHard(req, res)`: blocks, returns 401 JSON.
+- Scan/preview/compute flows → soft auth. Admin/sync/billing → hard auth.
+- If Supabase SDK causes WebKit issues, read token from localStorage directly.
+
+## 8) Input Normalization
+- Normalize OCR/manual input at the boundary, before parsing:
+  - EU comma decimal → dot, `µg`/`μg` → `mcg`, `IE` → `IU`, collapse whitespace.
+- Keep normalization functions pure and tested. Never duplicate across projects.
+
+## 9) Database & Migrations
+- Idempotent migrations: `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`.
+- Avoid destructive migrations in Preview. Seed/teardown scripts must respect FK ordering.
+- For rapidly evolving fields, use `metadata JSONB` first, graduate to schema when stable.
+
+## 10) Observability (stage-appropriate)
+**Now:** Every handler logs `{ endpoint, method, durationMs, ok, error }`. Add `VITE_APP_BUILD_ID`.
+**Later:** Full trace headers, correlation IDs, Sentry enrichment, proof strips.
+
+## 11) Stop Conditions (save hours)
+- Blank white page → check browser console FIRST. It's a top-level throw (missing env var, failed import).
+- Same bug persists after 3 fix attempts → STOP. Add boundary logging at every layer before writing more fix code.
+- `FUNCTION_INVOCATION_FAILED` → it's a pre-handler crash. Check runtime signature + top-level imports.
+
+## 12) Bug Fix Checklist (Cursor must follow)
+1. Reproduce: add minimal smoke test.
+2. Confirm handler entry (log/header).
+3. Capture payload size + user agent if Safari.
+4. Add diagnostics at each boundary.
+5. Fix root cause, not symptom.
+6. Add regression test.
+7. Summarize: changes + files touched + how to verify.
+
+## 13) AI Integration Rules
+- AI outputs are non-authoritative: confidence caps, `[PLACEHOLDER]` removal, clarifying questions over guessing.
+- Prompts must be versioned + logged. Store AI events in audit tables.
+- Health/legal/finance domains: non-prescriptive language, "informational only" framing.
+- Never let AI write directly to canonical records without validation.

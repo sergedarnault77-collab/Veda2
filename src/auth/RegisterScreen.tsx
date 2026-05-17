@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { VedaUser } from "../lib/auth";
+import { AuthLegalConsent } from "./AuthLegalConsent";
 import "./RegisterScreen.css";
 
 const COUNTRIES = [
@@ -15,9 +16,10 @@ const COUNTRIES = [
 interface Props {
   onRegister: (user: VedaUser) => void;
   onGoToLogin: () => void;
+  onShowLegal: (view: "privacy" | "terms") => void;
 }
 
-export default function RegisterScreen({ onRegister, onGoToLogin }: Props) {
+export default function RegisterScreen({ onRegister, onGoToLogin, onShowLegal }: Props) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -227,6 +229,8 @@ export default function RegisterScreen({ onRegister, onGoToLogin }: Props) {
             ))}
           </div>
         )}
+
+        <AuthLegalConsent variant="register" onShowLegal={onShowLegal} />
 
         <button type="submit" className="register__cta" disabled={loading}>
           {loading ? "Creating account…" : "Create account"}

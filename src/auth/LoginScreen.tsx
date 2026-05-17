@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { loadLS } from "../lib/persist";
 import type { VedaUser } from "../lib/auth";
 import { setSyncEmail, pullAll } from "../lib/sync";
+import { AuthLegalConsent } from "./AuthLegalConsent";
 import "./LoginScreen.css";
 
 const USER_KEY = "veda.user.v1";
@@ -10,9 +11,10 @@ const USER_KEY = "veda.user.v1";
 interface Props {
   onLogin: (user: VedaUser) => void;
   onGoToRegister: () => void;
+  onShowLegal: (view: "privacy" | "terms") => void;
 }
 
-export default function LoginScreen({ onLogin, onGoToRegister }: Props) {
+export default function LoginScreen({ onLogin, onGoToRegister, onShowLegal }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -173,6 +175,8 @@ export default function LoginScreen({ onLogin, onGoToRegister }: Props) {
             Forgot password?
           </button>
         )}
+
+        <AuthLegalConsent variant="login" onShowLegal={onShowLegal} />
 
         <button type="submit" className="login__cta" disabled={loading}>
           {loading ? "Signing in…" : "Log in"}

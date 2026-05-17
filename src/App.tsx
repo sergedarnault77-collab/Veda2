@@ -245,11 +245,17 @@ export default function App() {
 
   // 1. Not registered → show auth screen
   if (!isRegistered) {
+    const showLegal = (view: "privacy" | "terms") => {
+      setLegalView(view);
+      window.location.hash = view;
+    };
+
     if (authView === "login") {
       return (
         <LoginScreen
           onLogin={handleLogin}
           onGoToRegister={() => setAuthView("register")}
+          onShowLegal={showLegal}
         />
       );
     }
@@ -257,6 +263,7 @@ export default function App() {
       <RegisterScreen
         onRegister={handleRegister}
         onGoToLogin={() => setAuthView("login")}
+        onShowLegal={showLegal}
       />
     );
   }
@@ -273,7 +280,15 @@ export default function App() {
 
   // 3. Profile complete but no plan → forced plan selection
   if (!hasPlan) {
-    return <PlanScreen onSelect={handleSelectPlan} />;
+    return (
+      <PlanScreen
+        onSelect={handleSelectPlan}
+        onShowLegal={(view) => {
+          setLegalView(view);
+          window.location.hash = view;
+        }}
+      />
+    );
   }
 
   // 3. Has plan → main app (with feature gating)

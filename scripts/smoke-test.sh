@@ -47,6 +47,22 @@ check "health" \
   "$BASE_URL/api/health" \
   "200" '"ok":true'
 
+# Verify backend env wiring when /api/health exposes services (deploy latest first)
+HEALTH_BODY=$(curl -s "$BASE_URL/api/health")
+if echo "$HEALTH_BODY" | grep -q '"services"'; then
+  for svc in database openai supabase; do
+    if ! echo "$HEALTH_BODY" | grep -q "\"$svc\":true"; then
+      echo "FAIL  health.services.$svc — not configured on server (check Vercel env)"
+      FAIL=$((FAIL + 1))
+    else
+      echo "PASS  health.services.$svc — configured"
+      PASS=$((PASS + 1))
+    fi
+  done
+else
+  echo "SKIP  health.services — endpoint has no services block yet (redeploy for env probe)"
+fi
+
 check "analyze (smoke)" \
   "$BASE_URL/api/analyze" \
   "200" '"ok":true' \

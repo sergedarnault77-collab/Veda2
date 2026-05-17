@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Veda</string>
+    <string name="title_activity_main">Veda</string>
+    <string name="package_name">com.veda.health</string>
+    <string name="custom_url_scheme">com.veda.health</string>
+</resources>

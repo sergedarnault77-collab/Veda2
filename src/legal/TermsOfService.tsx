@@ -1,4 +1,5 @@
 import "./Legal.css";
+import { LegalWebCanonical } from "./LegalWebCanonical";
 
 export default function TermsOfService({ onBack }: { onBack: () => void }) {
   return (
@@ -104,7 +105,24 @@ export default function TermsOfService({ onBack }: { onBack: () => void }) {
       </section>
 
       <section>
-        <h2>11. Contact</h2>
+        <h2>11. Subscriptions (mobile apps)</h2>
+        <p>
+          Paid plans purchased through the iOS or Android app are processed by Apple or Google.
+          Subscriptions renew automatically for the same term until you cancel. You can manage or
+          cancel your subscription in your Apple ID or Google Play account settings. If you cancel,
+          you keep access until the end of the current billing period. We do not refund charges
+          already processed by the platform; refund requests follow Apple&apos;s or Google&apos;s policies.
+        </p>
+        <p>
+          Free features remain available without a subscription. If a price changes, we will
+          communicate it in line with store rules before the change applies to you.
+        </p>
+      </section>
+
+      <LegalWebCanonical path="terms" />
+
+      <section>
+        <h2>12. Contact</h2>
         <p>
           For questions about these terms, contact us at{" "}
           <a href="mailto:legal@veda.health">legal@veda.health</a>.

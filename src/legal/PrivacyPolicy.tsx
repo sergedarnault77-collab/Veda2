@@ -1,4 +1,5 @@
 import "./Legal.css";
+import { LegalWebCanonical } from "./LegalWebCanonical";
 
 export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
   return (
@@ -17,6 +18,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
           <li><strong>Profile data</strong> — biological sex, age range, height, and weight (optional, used to personalise insights).</li>
           <li><strong>Usage data</strong> — supplements, medications, and scanned product labels you add to the app.</li>
           <li><strong>Device data</strong> — photos taken for label scanning are processed in-session and are not stored on our servers.</li>
+          <li><strong>Purchases (mobile)</strong> — subscriptions are billed by Apple or Google. We receive subscription status via RevenueCat, not your full payment card details.</li>
         </ul>
       </section>
 
@@ -77,6 +79,8 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
           communicated through the app. Continued use after changes constitutes acceptance.
         </p>
       </section>
+
+      <LegalWebCanonical path="privacy" />
 
       <section>
         <h2>8. Contact</h2>

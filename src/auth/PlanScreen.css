@@ -199,3 +199,64 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.plans__subscriptionNote {
+  margin-top: 20px;
+  max-width: 520px;
+  padding: 0 8px;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  color: var(--veda-text-muted);
+  text-align: center;
+}
+
+.plans__inlineLink {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--veda-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.plans__footerLinks {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 4px;
+  font-size: 0.72rem;
+}
+
+.plans__footerSep {
+  color: var(--veda-text-muted);
+  opacity: 0.5;
+  user-select: none;
+}
+
+.plans__footerLink {
+  padding: 4px 6px;
+  font: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--veda-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.plans__footerLink:hover {
+  color: var(--veda-text);
+}
+
+.plans__footerLink--anchor {
+  text-decoration: underline;
+}

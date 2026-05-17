@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
 import type { Plan } from "../lib/auth";
 import {
   isNativePlatform,
@@ -7,13 +8,15 @@ import {
   restorePurchases,
 } from "../lib/purchases";
 import type { VedaOffering } from "../lib/purchases";
+import { manageSubscriptionsUrl, openExternalUrl, supportMailto } from "../lib/storeLinks";
 import "./PlanScreen.css";
 
 interface Props {
   onSelect: (plan: Plan) => void;
+  onShowLegal: (view: "privacy" | "terms") => void;
 }
 
-export default function PlanScreen({ onSelect }: Props) {
+export default function PlanScreen({ onSelect, onShowLegal }: Props) {
   const [offerings, setOfferings] = useState<VedaOffering[]>([]);
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -27,6 +30,8 @@ export default function PlanScreen({ onSelect }: Props) {
   }, [isNative]);
 
   const aiOffering = offerings[0] ?? null;
+  const manageUrl = manageSubscriptionsUrl();
+  const supportMail = supportMailto();
 
   async function handlePurchase() {
     if (!aiOffering) return;
@@ -126,13 +131,51 @@ export default function PlanScreen({ onSelect }: Props) {
       )}
 
       {isNative && (
-        <button
-          className="plans__restore"
-          onClick={handleRestore}
-          disabled={restoring}
-        >
-          {restoring ? "Restoring…" : "Restore purchases"}
-        </button>
+        <>
+          <button
+            className="plans__restore"
+            onClick={handleRestore}
+            disabled={restoring}
+          >
+            {restoring ? "Restoring…" : "Restore purchases"}
+          </button>
+
+          {aiOffering && (
+            <p className="plans__subscriptionNote">
+              Payment is charged to your{" "}
+              {Capacitor.getPlatform() === "ios" ? "Apple ID" : "Google Play"} account. Subscriptions
+              renew automatically until you cancel at least 24 hours before the end of the current
+              period.{" "}
+              {manageUrl ? (
+                <button
+                  type="button"
+                  className="plans__inlineLink"
+                  onClick={() => void openExternalUrl(manageUrl)}
+                >
+                  Manage subscription
+                </button>
+              ) : null}
+            </p>
+          )}
+
+          <div className="plans__footerLinks">
+            <button type="button" className="plans__footerLink" onClick={() => onShowLegal("privacy")}>
+              Privacy Policy
+            </button>
+            <span className="plans__footerSep">·</span>
+            <button type="button" className="plans__footerLink" onClick={() => onShowLegal("terms")}>
+              Terms of Service
+            </button>
+            {supportMail ? (
+              <>
+                <span className="plans__footerSep">·</span>
+                <a className="plans__footerLink plans__footerLink--anchor" href={supportMail}>
+                  Support
+                </a>
+              </>
+            ) : null}
+          </div>
+        </>
       )}
     </div>
   );

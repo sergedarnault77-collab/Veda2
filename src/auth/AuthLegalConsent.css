@@ -1,0 +1,26 @@
+.auth-legal-consent {
+  margin: 20px 0 0;
+  max-width: 400px;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  color: var(--veda-text-muted);
+  text-align: center;
+}
+
+.auth-legal-consent__link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--veda-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-legal-consent__link:hover {
+  color: var(--veda-text);
+}
