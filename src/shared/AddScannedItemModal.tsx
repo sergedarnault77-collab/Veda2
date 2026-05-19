@@ -37,6 +37,10 @@ export type ScannedItem = {
     rescanHint?: string | null;
   };
   schedule?: "morning" | "afternoon" | "evening" | "night";
+  /** Best time to take today (24h HH:MM). Overrides coarse `schedule` for the day timeline. */
+  dailyTime?: string;
+  scheduleSource?: "ai" | "manual" | "doctor";
+  scheduleNote?: string;
   createdAtISO?: string;
 };
 

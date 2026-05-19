@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { VedaUser } from "../lib/auth";
 import { AuthLegalConsent } from "./AuthLegalConsent";
@@ -29,6 +29,14 @@ export default function RegisterScreen({ onRegister, onGoToLogin, onShowLegal }:
   const [city, setCity] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmPasswordRef = useRef<HTMLInputElement>(null);
+
+  const hasPasswordError = errors.some((e) => /password/i.test(e));
+
+  function clearPasswordErrors() {
+    setErrors((prev) => prev.filter((e) => !/password/i.test(e)));
+  }
 
   function validate(): string[] {
     const errs: string[] = [];
@@ -48,7 +56,18 @@ export default function RegisterScreen({ onRegister, onGoToLogin, onShowLegal }:
     e.preventDefault();
     const errs = validate();
     setErrors(errs);
-    if (errs.length > 0) return;
+    if (errs.length > 0) {
+      if (errs.some((e) => /password/i.test(e))) {
+        requestAnimationFrame(() => {
+          if (errs.some((e) => /do not match/i.test(e))) {
+            confirmPasswordRef.current?.focus();
+          } else {
+            passwordRef.current?.focus();
+          }
+        });
+      }
+      return;
+    }
 
     setLoading(true);
     try {
@@ -176,21 +195,33 @@ export default function RegisterScreen({ onRegister, onGoToLogin, onShowLegal }:
           <div className="register__field">
             <label className="register__label">Password</label>
             <input
-              className="register__input"
+              ref={passwordRef}
+              className={`register__input${hasPasswordError ? " register__input--error" : ""}`}
               type="password"
+              name="new-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearPasswordErrors();
+              }}
               autoComplete="new-password"
+              aria-invalid={hasPasswordError}
             />
           </div>
           <div className="register__field">
             <label className="register__label">Confirm password</label>
             <input
-              className="register__input"
+              ref={confirmPasswordRef}
+              className={`register__input${hasPasswordError ? " register__input--error" : ""}`}
               type="password"
+              name="confirm-password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                clearPasswordErrors();
+              }}
               autoComplete="new-password"
+              aria-invalid={hasPasswordError}
             />
           </div>
         </div>

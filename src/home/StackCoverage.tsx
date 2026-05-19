@@ -14,7 +14,7 @@ import type { NutrientComputed, IntakeLine, DietAnswers, FoodCoverage } from "..
 import type { ItemInsights } from "../shared/AddScannedItemModal";
 import { translateName } from "../lib/translate-nutrients";
 import { SCHEDULE_META, SCHEDULE_ORDER } from "../lib/schedule";
-import type { ScheduleTime } from "../lib/schedule";
+import { slotToDefaultTime, type ScheduleTime } from "../lib/schedule";
 import "./StackCoverage.css";
 
 const SUPPS_KEY = "veda.supps.v1";
@@ -134,13 +134,13 @@ function loadSupps(): SavedSupp[] {
 function barColor(n: NutrientComputed): string {
   if (n.flags.exceedsUl) return "var(--veda-red, #e74c3c)";
   if (n.flags.approachingUl) return "var(--veda-orange, #FF8C1A)";
-  return "var(--veda-accent, #2E5BFF)";
+  return "var(--veda-accent, var(--veda-accent))";
 }
 
 function riskColor(risk: string) {
   if (risk === "high") return "var(--veda-red, #f06292)";
   if (risk === "medium") return "var(--veda-orange, #FF8C1A)";
-  return "var(--veda-accent, #2E5BFF)";
+  return "var(--veda-accent, var(--veda-accent))";
 }
 
 const FOOD_COVERAGE_LABELS: Record<FoodCoverage, { text: string; cls: string }> = {
@@ -166,7 +166,13 @@ export function StackCoverage() {
   const [expandedUl, setExpandedUl] = useState<string | null>(null);
 
   // Schedule optimizer
-  type ScheduleRec = { id: string; name: string; recommended: ScheduleTime; reason: string };
+  type ScheduleRec = {
+    id: string;
+    name: string;
+    recommended: ScheduleTime;
+    recommendedTime?: string;
+    reason: string;
+  };
   const [scheduleRecs, setScheduleRecs] = useState<ScheduleRec[] | null>(null);
   const [scheduleAdvice, setScheduleAdvice] = useState<string>("");
   const [scheduleDisclaimer, setScheduleDisclaimer] = useState<string>("");
@@ -257,16 +263,26 @@ export function StackCoverage() {
     let medsChanged = false;
 
     for (const rec of scheduleRecs) {
+      const patch = {
+        schedule: rec.recommended,
+        dailyTime: rec.recommendedTime || slotToDefaultTime(rec.recommended),
+        scheduleSource: "ai" as const,
+        scheduleNote: rec.reason || undefined,
+      };
       const suppIdx = raw.findIndex((s: any) => s.id === rec.id);
       if (suppIdx >= 0) {
-        raw[suppIdx] = { ...raw[suppIdx], schedule: rec.recommended };
-        suppsChanged = true;
+        if (raw[suppIdx].scheduleSource !== "doctor") {
+          raw[suppIdx] = { ...raw[suppIdx], ...patch };
+          suppsChanged = true;
+        }
         continue;
       }
       const medIdx = meds.findIndex((m: any) => m.id === rec.id);
       if (medIdx >= 0) {
-        meds[medIdx] = { ...meds[medIdx], schedule: rec.recommended };
-        medsChanged = true;
+        if (meds[medIdx].scheduleSource !== "doctor") {
+          meds[medIdx] = { ...meds[medIdx], ...patch };
+          medsChanged = true;
+        }
       }
     }
 
@@ -278,6 +294,9 @@ export function StackCoverage() {
     if (medsChanged) {
       saveLS("veda.meds.v1", meds);
       window.dispatchEvent(new Event("veda:meds-updated"));
+    }
+    if (suppsChanged || medsChanged) {
+      window.dispatchEvent(new Event("veda:schedule-updated"));
     }
     setScheduleRecs(null);
     setScheduleAdvice("");

@@ -112,7 +112,7 @@
 .drink-builder__estimateBadge {
   padding: 3px 8px;
   border-radius: 6px;
-  background: rgba(46, 91, 255, 0.15);
+  background: rgba(var(--veda-apricot-rgb), 0.15);
   color: var(--veda-accent-light);
   font-size: 0.62rem;
   font-weight: 700;
@@ -150,7 +150,7 @@
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(46, 91, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(var(--veda-apricot-rgb), 0.2);
   transition: opacity 0.15s;
 }
 

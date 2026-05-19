@@ -14,8 +14,28 @@ type ScheduleItem = {
   id: string;
   name: string;
   recommended: TimeSlot;
+  recommendedTime: string;
   reason: string;
 };
+
+const SLOT_DEFAULT_TIME: Record<TimeSlot, string> = {
+  morning: "08:00",
+  afternoon: "13:00",
+  evening: "18:00",
+  night: "21:30",
+};
+
+function normalizeTime(raw: unknown, slot: TimeSlot): string {
+  if (typeof raw === "string") {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(raw.trim());
+    if (m) {
+      const h = Math.min(23, Math.max(0, Number(m[1])));
+      const min = Math.min(59, Math.max(0, Number(m[2])));
+      return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+    }
+  }
+  return SLOT_DEFAULT_TIME[slot];
+}
 
 type ScheduleResponse = {
   ok: true;
@@ -86,6 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     "You are Veda's supplement scheduling advisor. The user wants to know the OPTIMAL time of day to take each of their supplements and medications for best absorption and results.",
     "",
     "For each item, recommend ONE time slot: morning, afternoon, evening, or night.",
+    "Also provide recommendedTime as 24-hour HH:MM (e.g. 08:30) — the specific best clock time within that day.",
     "",
     "Key scheduling principles:",
     "• Fat-soluble vitamins (A, D, E, K) → take with meals containing fat (morning or evening with food)",
@@ -101,7 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     "• Caffeine → morning only (not after 2 PM)",
     "• Medications → follow prescriber guidance; if unknown, morning with food is safest default",
     "",
-    "Return JSON with: items (array of {id, name, recommended, reason}), generalAdvice (string), disclaimer (string).",
+    "Return JSON with: items (array of {id, name, recommended, recommendedTime, reason}), generalAdvice (string), disclaimer (string).",
     "",
     "Rules:",
     "- Return a recommendation for EVERY item",
@@ -150,6 +171,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           id: String(item.id),
           name: String(item.name).slice(0, 80),
           recommended: slot as TimeSlot,
+          recommendedTime: normalizeTime(item.recommendedTime, slot as TimeSlot),
           reason: typeof item.reason === "string" ? item.reason.slice(0, 200) : "",
         });
       }

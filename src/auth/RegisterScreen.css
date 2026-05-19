@@ -12,7 +12,7 @@
   font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--veda-accent), #5a80ff);
+  background: linear-gradient(135deg, var(--veda-accent), var(--veda-accent-light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -101,13 +101,15 @@
 }
 
 /* Light mode overrides for social buttons */
-[data-theme="light"] .register__social-btn--google {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: rgba(0, 0, 0, 0.12);
+[data-theme="light"] .register__social-btn--google,
+.register__social-btn--google {
+  background: var(--alpha-subtle);
+  border-color: var(--veda-border);
 }
 
-[data-theme="light"] .register__social-btn--google:hover {
-  background: rgba(0, 0, 0, 0.04);
+[data-theme="light"] .register__social-btn--google:hover,
+.register__social-btn--google:hover {
+  background: var(--alpha-medium);
 }
 
 .register__form {
@@ -153,15 +155,45 @@
   font-size: 0.9rem;
   font-family: inherit;
   color: var(--veda-text);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--veda-input-bg);
   border: 1px solid var(--veda-border);
   border-radius: var(--radius-md);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background-color 0.15s;
+  /* Keep password fields interactive in Safari (avoids “disabled” native styling). */
+  -webkit-appearance: none;
+  appearance: none;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .register__input:focus {
   border-color: var(--veda-accent);
+  background: var(--veda-input-bg-focus);
+}
+
+.register__input--error {
+  border-color: rgba(231, 76, 60, 0.55);
+  background: var(--veda-input-bg-focus);
+}
+
+/* Safari/WebKit autofill: match normal inputs (empty password fields looked “dead”). */
+.register__input:-webkit-autofill,
+.register__input:-webkit-autofill:hover,
+.register__input:-webkit-autofill:focus,
+.register__input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--veda-input-bg-focus) inset !important;
+  -webkit-text-fill-color: var(--veda-text) !important;
+  caret-color: var(--veda-text);
+  transition: background-color 9999s ease-out 0s;
+}
+
+.register__input {
+  color-scheme: light;
+}
+
+.register__input--error {
+  border-color: rgba(196, 92, 78, 0.55);
 }
 
 .register__select {
@@ -197,7 +229,7 @@
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, var(--veda-accent), var(--veda-accent-light));
-  box-shadow: 0 4px 16px rgba(46, 91, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(var(--veda-apricot-rgb), 0.25);
   border: none;
   border-radius: var(--radius-lg);
   cursor: pointer;

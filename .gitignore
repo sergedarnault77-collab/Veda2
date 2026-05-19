@@ -9,3 +9,4 @@ playwright-report/
 test-results/
 
 # Capacitor — `ios/` and `android/` are versioned; run `npm run release:prepare` before store builds. See each platform's `.gitignore` for build/sync artifacts.
+.vercel

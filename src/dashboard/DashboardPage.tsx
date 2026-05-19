@@ -505,7 +505,7 @@ export default function DashboardPage() {
             days={caffeineDays}
             getValue={(d) => d.caffeine}
             unit="mg"
-            color="linear-gradient(180deg, #2E5BFF 0%, rgba(46,91,255,0.4) 100%)"
+            color="linear-gradient(180deg, var(--veda-accent) 0%, rgba(46,91,255,0.4) 100%)"
             range={caffeineRange}
           />
         ) : (

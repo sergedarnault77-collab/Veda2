@@ -10,23 +10,23 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: "automatic",
     preferredContentMode: "mobile",
-    backgroundColor: "#0A0E1C",
+    backgroundColor: "#F3E4CC",
   },
   android: {
-    backgroundColor: "#0A0E1C",
+    backgroundColor: "#F3E4CC",
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
-      backgroundColor: "#0A0E1C",
+      backgroundColor: "#F3E4CC",
       showSpinner: false,
       androidScaleType: "CENTER_CROP",
       splashFullScreen: true,
       splashImmersive: true,
     },
     StatusBar: {
-      style: "DARK",
-      backgroundColor: "#0A0E1C",
+      style: "LIGHT",
+      backgroundColor: "#F3E4CC",
     },
   },
 };

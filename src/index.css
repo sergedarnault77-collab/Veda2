@@ -9,84 +9,144 @@
 }
 
 :root {
-  /* palette — dutch royal blue & orange */
-  --veda-bg: #0A0E1C;
-  --veda-bg-gradient: linear-gradient(145deg, #0A0E1C 0%, #10172D 50%, #0C1024 100%);
-  --veda-surface: rgba(16, 23, 45, 0.7);
-  --veda-surface-solid: #10172D;
-  --veda-surface-hover: #141D3A;
-  --veda-border: rgba(255, 255, 255, 0.07);
-  --veda-border-accent: rgba(46, 91, 255, 0.25);
-  --veda-text: #E8EBF2;
-  --veda-text-muted: #9AA4BF;
-  --veda-accent: #2E5BFF;
-  --veda-accent-light: #5a80ff;
-  --veda-accent-glow: rgba(46, 91, 255, 0.2);
-  --veda-royal-deep: #1F3A5F;
+  /* ── VEDA refined palette (warm cream / sand) ── */
+  --veda-cream: #F3E4CC;
+  --veda-beige: #D8C1A3;
+  --veda-apricot: #D98235;
+  --veda-powder: #8FAABC;
+  --veda-charcoal: #4A4035;
+  --veda-taupe: #7C6B5A;
+  --veda-divider: #C9B394;
+  --veda-sage: #9BAF8A;
 
-  /* status colors — no green; OK states use orange */
-  --veda-red: #f06292;
-  --veda-orange: #FF8C1A;
-  --veda-orange-soft: #FFB35C;
-  --veda-green: var(--veda-orange);
-  --veda-magenta: #e056a0;
+  /* RGB helpers for translucent surfaces */
+  --veda-apricot-rgb: 217, 130, 53;
+  --veda-powder-rgb: 143, 170, 188;
+  --veda-charcoal-rgb: 74, 64, 53;
+  --veda-sage-rgb: 155, 175, 138;
 
-  /* exposure bar fills */
-  --bar-sugar: #FF8C1A;
-  --bar-sweetener: #ab47bc;
-  --bar-calorie: #2E5BFF;
-  --bar-caffeine: #26c6da;
+  /* semantic tokens */
+  --veda-bg: var(--veda-cream);
+  --veda-bg-gradient: linear-gradient(155deg, #F3E4CC 0%, #E8D4B8 42%, #D8C1A3 100%);
+  --veda-surface: rgba(255, 252, 245, 0.82);
+  --veda-surface-solid: #FAF4E8;
+  --veda-surface-elevated: rgba(255, 255, 255, 0.58);
+  --veda-surface-hover: #EDE0CC;
+  --veda-border: var(--veda-divider);
+  --veda-border-accent: rgba(var(--veda-apricot-rgb), 0.38);
+  --veda-text: var(--veda-charcoal);
+  --veda-text-muted: var(--veda-taupe);
+  --veda-accent: var(--veda-apricot);
+  --veda-accent-light: #E59A52;
+  --veda-accent-secondary: var(--veda-powder);
+  --veda-accent-glow: rgba(var(--veda-apricot-rgb), 0.22);
+  --veda-royal-deep: #6E8799;
 
-  /* typography */
+  --veda-red: #C45C4E;
+  --veda-orange: var(--veda-apricot);
+  --veda-orange-soft: #E8B07A;
+  --veda-green: var(--veda-sage);
+  --veda-magenta: #B86B7A;
+
+  --bar-sugar: var(--veda-apricot);
+  --bar-sweetener: #A898B8;
+  --bar-calorie: var(--veda-powder);
+  --bar-caffeine: #6E9AA8;
+
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
-  /* drink builder */
-  --db-chip-bg: rgba(255, 255, 255, 0.05);
-  --db-chip-hover-bg: rgba(255, 255, 255, 0.1);
-  --db-estimate-bg: rgba(0, 0, 0, 0.2);
+  --db-chip-bg: rgba(var(--veda-charcoal-rgb), 0.05);
+  --db-chip-hover-bg: rgba(var(--veda-charcoal-rgb), 0.09);
+  --db-estimate-bg: rgba(var(--veda-charcoal-rgb), 0.04);
 
-  /* radii */
+  --veda-input-bg: rgba(255, 255, 255, 0.72);
+  --veda-input-bg-focus: #ffffff;
+
+  --alpha-subtle: rgba(var(--veda-charcoal-rgb), 0.05);
+  --alpha-medium: rgba(var(--veda-charcoal-rgb), 0.1);
+
+  --veda-nav-bg: rgba(255, 252, 245, 0.9);
+  --veda-nav-border: rgba(var(--veda-charcoal-rgb), 0.1);
+  --veda-nav-active-bg: rgba(var(--veda-apricot-rgb), 0.16);
+  --veda-nav-active-ring: rgba(var(--veda-apricot-rgb), 0.32);
+  --veda-tile-hover-bg: rgba(var(--veda-powder-rgb), 0.14);
+  --veda-tile-hover-border: rgba(var(--veda-powder-rgb), 0.35);
+  --veda-tile-primary-bg: linear-gradient(
+    135deg,
+    rgba(var(--veda-apricot-rgb), 0.14),
+    rgba(var(--veda-powder-rgb), 0.1)
+  );
+  --veda-tile-primary-border: rgba(var(--veda-apricot-rgb), 0.38);
+  --veda-tile-primary-glow: rgba(var(--veda-apricot-rgb), 0.12);
+  --veda-chip-tint-bg: rgba(var(--veda-powder-rgb), 0.16);
+  --veda-chip-tint-border: rgba(var(--veda-powder-rgb), 0.32);
+  --veda-info-bg: rgba(var(--veda-powder-rgb), 0.12);
+  --veda-info-border: rgba(var(--veda-powder-rgb), 0.28);
+  --veda-success-bg: rgba(var(--veda-sage-rgb), 0.2);
+  --veda-success-border: rgba(var(--veda-sage-rgb), 0.38);
+  --veda-scrollbar-thumb: rgba(var(--veda-charcoal-rgb), 0.18);
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
   --radius-xl: 24px;
 
-  /* responsive layout */
   --content-max: 480px;
   --sidebar-width: 0px;
   --nav-height: 72px;
 }
 
-/* ── Light mode overrides ── */
+/* ── Warm dark mode (optional toggle) ── */
+[data-theme="dark"] {
+  --veda-bg: #3A332C;
+  --veda-bg-gradient: linear-gradient(155deg, #3A332C 0%, #4A4035 50%, #352F28 100%);
+  --veda-surface: rgba(58, 51, 44, 0.88);
+  --veda-surface-solid: #4A4035;
+  --veda-surface-elevated: rgba(74, 64, 53, 0.72);
+  --veda-surface-hover: #5C5046;
+  --veda-border: rgba(201, 179, 148, 0.35);
+  --veda-border-accent: rgba(var(--veda-apricot-rgb), 0.45);
+  --veda-text: #F3E4CC;
+  --veda-text-muted: #C9B394;
+  --veda-accent: #E59A52;
+  --veda-accent-light: #F0B06A;
+  --veda-accent-glow: rgba(var(--veda-apricot-rgb), 0.28);
+
+  --veda-red: #E07A6E;
+  --veda-orange-soft: #F0C090;
+  --veda-magenta: #D88A9A;
+
+  --db-chip-bg: rgba(255, 255, 255, 0.06);
+  --db-chip-hover-bg: rgba(255, 255, 255, 0.1);
+  --db-estimate-bg: rgba(0, 0, 0, 0.22);
+
+  --veda-input-bg: rgba(74, 64, 53, 0.65);
+  --veda-input-bg-focus: rgba(74, 64, 53, 0.9);
+
+  --alpha-subtle: rgba(255, 255, 255, 0.06);
+  --alpha-medium: rgba(255, 255, 255, 0.1);
+
+  --veda-nav-bg: rgba(58, 51, 44, 0.92);
+  --veda-nav-border: rgba(255, 255, 255, 0.08);
+  --veda-nav-active-bg: rgba(var(--veda-apricot-rgb), 0.22);
+  --veda-nav-active-ring: rgba(var(--veda-apricot-rgb), 0.4);
+  --veda-tile-hover-bg: rgba(var(--veda-powder-rgb), 0.18);
+  --veda-tile-hover-border: rgba(var(--veda-powder-rgb), 0.4);
+  --veda-tile-primary-bg: linear-gradient(
+    135deg,
+    rgba(var(--veda-apricot-rgb), 0.22),
+    rgba(var(--veda-powder-rgb), 0.14)
+  );
+  --veda-chip-tint-bg: rgba(var(--veda-powder-rgb), 0.2);
+  --veda-info-bg: rgba(var(--veda-powder-rgb), 0.16);
+  --veda-success-bg: rgba(var(--veda-sage-rgb), 0.18);
+  --veda-scrollbar-thumb: rgba(255, 255, 255, 0.14);
+}
+
+/* light theme uses :root tokens; keep selector for existing overrides */
 [data-theme="light"] {
-  --veda-bg: #f4f4f8;
-  --veda-bg-gradient: linear-gradient(145deg, #f4f4f8 0%, #ecedf3 50%, #f0f0f6 100%);
-  --veda-surface: rgba(255, 255, 255, 0.75);
-  --veda-surface-solid: #ffffff;
-  --veda-surface-hover: #f0effa;
-  --veda-border: rgba(0, 0, 0, 0.08);
-  --veda-border-accent: rgba(31, 58, 95, 0.2);
-  --veda-text: #1a1a2e;
-  --veda-text-muted: #6b6b8a;
-  --veda-accent: #2E5BFF;
-  --veda-accent-light: #5a80ff;
-  --veda-accent-glow: rgba(46, 91, 255, 0.15);
-
-  --veda-red: #d84374;
-  --veda-orange: #e8920a;
-  --veda-orange-soft: #d4940a;
-  --veda-green: var(--veda-orange);
-  --veda-magenta: #c0408a;
-
-  --bar-sugar: #f09000;
-  --bar-sweetener: #9030a0;
-  --bar-calorie: #2088d0;
-  --bar-caffeine: #1aa8b8;
-
-  --db-chip-bg: rgba(0, 0, 0, 0.04);
-  --db-chip-hover-bg: rgba(0, 0, 0, 0.08);
-  --db-estimate-bg: rgba(0, 0, 0, 0.04);
+  color-scheme: light;
 }
 
 html {
@@ -120,7 +180,7 @@ button {
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--veda-scrollbar-thumb); border-radius: 3px; }
 
 /* ── Tablet (600–1024px) ── */
 @media (min-width: 600px) {
@@ -155,13 +215,29 @@ button {
   }
 }
 
-/* ── Light mode: global component overrides ── */
+/* ── Theme-aware component surfaces (light = :root, dark = [data-theme="dark"]) ── */
 
-[data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
+:root,
+[data-theme="light"] {
+  color-scheme: light;
 }
 
-/* Cards, sections, panels — glass surfaces */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Cards, sections, panels */
+:root .scan-status,
+:root .exposure,
+:root .coverage,
+:root .stack-signal,
+:root .signal-explainer,
+:root .explaining-signals,
+:root .context-panel,
+:root .supp-card,
+:root .med-card,
+:root .dashboard__section,
+:root .interaction-warnings,
 [data-theme="light"] .scan-status,
 [data-theme="light"] .exposure,
 [data-theme="light"] .coverage,
@@ -173,170 +249,222 @@ button {
 [data-theme="light"] .med-card,
 [data-theme="light"] .dashboard__section,
 [data-theme="light"] .interaction-warnings {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: rgba(0, 0, 0, 0.08);
+  background: var(--veda-surface);
+  border-color: var(--veda-border);
 }
 
-/* Tiles and secondary surfaces */
+[data-theme="dark"] .scan-status,
+[data-theme="dark"] .exposure,
+[data-theme="dark"] .coverage,
+[data-theme="dark"] .stack-signal,
+[data-theme="dark"] .signal-explainer,
+[data-theme="dark"] .explaining-signals,
+[data-theme="dark"] .context-panel,
+[data-theme="dark"] .supp-card,
+[data-theme="dark"] .med-card,
+[data-theme="dark"] .dashboard__section,
+[data-theme="dark"] .interaction-warnings {
+  background: var(--veda-surface);
+  border-color: var(--veda-border);
+}
+
+/* Tiles */
+:root .scan-status__tile,
 [data-theme="light"] .scan-status__tile {
-  border-color: rgba(0, 0, 0, 0.08);
-  background: rgba(0, 0, 0, 0.02);
+  border-color: var(--veda-border);
+  background: var(--alpha-subtle);
 }
 
+:root .scan-status__tile:hover,
 [data-theme="light"] .scan-status__tile:hover {
-  background: rgba(31, 58, 95, 0.06);
-  border-color: rgba(31, 58, 95, 0.2);
+  background: var(--veda-tile-hover-bg);
+  border-color: var(--veda-tile-hover-border);
 }
 
+:root .scan-status__tile--primary,
 [data-theme="light"] .scan-status__tile--primary {
-  background: linear-gradient(135deg, rgba(31, 58, 95, 0.1), rgba(31, 58, 95, 0.04));
-  border-color: rgba(31, 58, 95, 0.25);
-  box-shadow: 0 0 12px rgba(46, 91, 255, 0.08);
+  background: var(--veda-tile-primary-bg);
+  border-color: var(--veda-tile-primary-border);
+  box-shadow: 0 0 12px var(--veda-tile-primary-glow);
 }
 
+:root .scan-status__tile--primary:hover,
 [data-theme="light"] .scan-status__tile--primary:hover {
-  background: linear-gradient(135deg, rgba(31, 58, 95, 0.16), rgba(31, 58, 95, 0.06));
-  box-shadow: 0 0 18px rgba(46, 91, 255, 0.12);
+  box-shadow: 0 0 18px var(--veda-accent-glow);
 }
 
-/* Buttons — secondary / outline */
+:root .scan-status__dismissBtn,
+:root .scan-status__frontOnly,
 [data-theme="light"] .scan-status__dismissBtn,
 [data-theme="light"] .scan-status__frontOnly {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.1);
+  background: var(--alpha-subtle);
+  border-color: var(--veda-border);
   color: var(--veda-text-muted);
 }
 
+:root .scan-status__dismissBtn:hover,
+:root .scan-status__frontOnly:hover,
 [data-theme="light"] .scan-status__dismissBtn:hover,
 [data-theme="light"] .scan-status__frontOnly:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--alpha-medium);
 }
 
-/* Caffeine follow-up */
+:root .scan-status__caffeineQ,
 [data-theme="light"] .scan-status__caffeineQ {
-  background: rgba(31, 58, 95, 0.05);
-  border-color: rgba(31, 58, 95, 0.15);
+  background: var(--veda-info-bg);
+  border-color: var(--veda-info-border);
 }
 
+:root .scan-status__caffeineQBtn--decaf,
 [data-theme="light"] .scan-status__caffeineQBtn--decaf {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.1);
+  background: var(--alpha-subtle);
+  border-color: var(--veda-border);
   color: var(--veda-text-muted);
 }
 
-/* History divider */
+:root .scan-status__history,
 [data-theme="light"] .scan-status__history {
-  border-top-color: rgba(0, 0, 0, 0.08);
+  border-top-color: var(--veda-border);
 }
 
-/* Drink builder */
+:root .drink-builder,
 [data-theme="light"] .drink-builder {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: rgba(0, 0, 0, 0.08);
+  background: var(--veda-surface);
+  border-color: var(--veda-border);
 }
 
+:root .drink-chip,
 [data-theme="light"] .drink-chip {
-  border-color: rgba(0, 0, 0, 0.08);
-  background: rgba(0, 0, 0, 0.02);
+  border-color: var(--veda-border);
+  background: var(--alpha-subtle);
 }
 
+:root .drink-chip--selected,
 [data-theme="light"] .drink-chip--selected {
-  border-color: rgba(31, 58, 95, 0.3);
-  background: rgba(31, 58, 95, 0.08);
+  border-color: var(--veda-tile-primary-border);
+  background: var(--veda-chip-tint-bg);
 }
 
-/* Modals and sheets */
+:root .add-scanned-modal__content,
+:root .buy-sheet,
 [data-theme="light"] .add-scanned-modal__content,
 [data-theme="light"] .buy-sheet {
-  background: rgba(255, 255, 255, 0.96);
-  border-color: rgba(0, 0, 0, 0.08);
+  background: var(--veda-surface-solid);
+  border-color: var(--veda-border);
 }
 
+:root .add-scanned-modal__backdrop,
+:root .buy-backdrop,
 [data-theme="light"] .add-scanned-modal__backdrop,
 [data-theme="light"] .buy-backdrop {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(var(--veda-charcoal-rgb), 0.35);
 }
 
+:root .buy-sheet__row,
 [data-theme="light"] .buy-sheet__row {
-  border-color: rgba(0, 0, 0, 0.06);
+  border-color: var(--veda-border);
 }
 
-/* Dashboard chips and cards */
+:root .day__chip,
 [data-theme="light"] .day__chip {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.08);
+  background: var(--alpha-subtle);
+  border-color: var(--veda-border);
 }
 
+:root .overlap__card,
 [data-theme="light"] .overlap__card {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.06);
+  background: var(--alpha-subtle);
+  border-color: var(--veda-border);
 }
 
-[data-theme="light"] .timing__dot--morning { background: #e8920a; }
-[data-theme="light"] .timing__dot--midday { background: #2088d0; }
-[data-theme="light"] .timing__dot--evening { background: #2E5BFF; }
+:root .timing__dot--morning,
+[data-theme="light"] .timing__dot--morning { background: var(--veda-apricot); }
+:root .timing__dot--midday,
+[data-theme="light"] .timing__dot--midday { background: var(--veda-powder); }
+:root .timing__dot--evening,
+[data-theme="light"] .timing__dot--evening { background: var(--veda-sage); }
 
-/* Auth screens */
+:root .auth-card,
+:root .profile-card,
+:root .plans-card,
 [data-theme="light"] .auth-card,
 [data-theme="light"] .profile-card,
 [data-theme="light"] .plans-card {
-  background: rgba(255, 255, 255, 0.8);
-  border-color: rgba(0, 0, 0, 0.08);
+  background: var(--veda-surface-elevated);
+  border-color: var(--veda-border);
 }
 
+:root .auth-card input,
+:root .profile-card select,
+:root .scan-status__urlInput,
 [data-theme="light"] .auth-card input,
 [data-theme="light"] .profile-card select,
 [data-theme="light"] .scan-status__urlInput {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.12);
+  background: var(--veda-input-bg);
+  border-color: var(--veda-border);
   color: var(--veda-text);
 }
 
-/* Loading banner */
+:root .loading-banner,
 [data-theme="light"] .loading-banner {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: rgba(0, 0, 0, 0.08);
+  background: var(--veda-surface);
+  border-color: var(--veda-border);
 }
 
-/* Coverage bars / exposure bars */
+:root .exposure__bar-track,
+:root .coverage__bar-bg,
 [data-theme="light"] .exposure__bar-track,
 [data-theme="light"] .coverage__bar-bg {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--alpha-medium);
 }
 
-/* Stack signal states */
+:root .stack-signal__badge--balanced,
 [data-theme="light"] .stack-signal__badge--balanced {
-  background: rgba(46, 91, 255, 0.08);
+  background: var(--veda-success-bg);
 }
 
+:root .stack-signal__badge--redundant,
 [data-theme="light"] .stack-signal__badge--redundant {
-  background: rgba(232, 146, 10, 0.1);
+  background: rgba(var(--veda-apricot-rgb), 0.14);
 }
 
+:root .stack-signal__badge--excessive,
 [data-theme="light"] .stack-signal__badge--excessive {
-  background: rgba(216, 67, 116, 0.1);
+  background: rgba(196, 92, 78, 0.14);
 }
 
-/* ── Supplement & Medication cards: nutrient rows, ingredients, insights ── */
+/* ── Supplement & Medication cards ── */
 
+:root .supp-card:hover,
+:root .med-card:hover,
 [data-theme="light"] .supp-card:hover,
 [data-theme="light"] .med-card:hover {
-  border-color: rgba(0, 0, 0, 0.12);
+  border-color: var(--veda-border-accent);
 }
 
+:root .supp-nutrients,
+:root .med-nutrients,
 [data-theme="light"] .supp-nutrients,
 [data-theme="light"] .med-nutrients {
-  background: rgba(31, 58, 95, 0.05);
-  border-color: rgba(31, 58, 95, 0.12);
+  background: var(--veda-info-bg);
+  border-color: var(--veda-info-border);
 }
 
+:root .supp-nutrients__row,
+:root .med-nutrients__row,
 [data-theme="light"] .supp-nutrients__row,
 [data-theme="light"] .med-nutrients__row {
-  background: rgba(31, 58, 95, 0.08);
-  border-color: rgba(31, 58, 95, 0.12);
+  background: var(--veda-chip-tint-bg);
+  border-color: var(--veda-chip-tint-border);
   color: var(--veda-text);
 }
 
+:root .supp-nutrients__name,
+:root .med-nutrients__name,
+:root .supp-nutrients__amt,
+:root .med-nutrients__amt,
+:root .supp-nutrients__pct,
+:root .med-nutrients__pct,
 [data-theme="light"] .supp-nutrients__name,
 [data-theme="light"] .med-nutrients__name,
 [data-theme="light"] .supp-nutrients__amt,
@@ -347,27 +475,37 @@ button {
   opacity: 1;
 }
 
+:root .supp-nutrients__hdr,
+:root .med-nutrients__hdr,
 [data-theme="light"] .supp-nutrients__hdr,
 [data-theme="light"] .med-nutrients__hdr {
   color: var(--veda-text);
 }
 
+:root .supp-nutrients__sub,
+:root .med-nutrients__sub,
 [data-theme="light"] .supp-nutrients__sub,
 [data-theme="light"] .med-nutrients__sub {
   color: var(--veda-text-muted);
 }
 
+:root .item-ingredients__chip,
 [data-theme="light"] .item-ingredients__chip {
-  background: rgba(31, 58, 95, 0.06);
-  border-color: rgba(31, 58, 95, 0.14);
+  background: var(--veda-chip-tint-bg);
+  border-color: var(--veda-chip-tint-border);
   color: var(--veda-text);
 }
 
+:root .item-insights,
 [data-theme="light"] .item-insights {
-  background: rgba(31, 58, 95, 0.04);
-  border-color: rgba(31, 58, 95, 0.12);
+  background: var(--veda-info-bg);
+  border-color: var(--veda-info-border);
 }
 
+:root .item-insights__title,
+:root .item-insights__summary,
+:root .item-insights__what,
+:root .item-insights__note,
 [data-theme="light"] .item-insights__title,
 [data-theme="light"] .item-insights__summary,
 [data-theme="light"] .item-insights__what,
@@ -376,67 +514,81 @@ button {
   opacity: 1;
 }
 
-/* Interaction warning cards in light mode */
+/* Interaction warnings */
+:root .interaction-warnings__card,
 [data-theme="light"] .interaction-warnings__card {
-  border-color: rgba(0, 0, 0, 0.08);
+  border-color: var(--veda-border);
 }
 
+:root .ix-warnings--loading,
 [data-theme="light"] .ix-warnings--loading {
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--alpha-subtle);
   color: var(--veda-text-muted);
 }
 
+:root .ix-warnings__spinner,
 [data-theme="light"] .ix-warnings__spinner {
-  border-color: rgba(0, 0, 0, 0.1);
+  border-color: var(--veda-border);
   border-top-color: var(--veda-accent);
 }
 
+:root .ix-card--info,
 [data-theme="light"] .ix-card--info {
-  background: rgba(31, 58, 95, 0.04);
-  border-left-color: rgba(31, 58, 95, 0.2);
+  background: var(--veda-info-bg);
+  border-left-color: var(--veda-powder);
 }
 
+:root .ix-card--warning,
 [data-theme="light"] .ix-card--warning {
-  background: rgba(231, 76, 60, 0.06);
+  background: rgba(196, 92, 78, 0.1);
 }
 
+:root .ix-card--caution,
 [data-theme="light"] .ix-card--caution {
-  background: rgba(230, 126, 34, 0.06);
+  background: rgba(var(--veda-apricot-rgb), 0.12);
 }
 
+:root .ix-card__headline,
 [data-theme="light"] .ix-card__headline {
   color: var(--veda-text);
 }
 
+:root .ix-card__detail,
 [data-theme="light"] .ix-card__detail {
   color: var(--veda-text-muted);
 }
 
+:root .ix-card__chip,
 [data-theme="light"] .ix-card__chip {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--alpha-subtle);
   color: var(--veda-text-muted);
 }
 
-/* Exposure chart (dashboard) in light mode */
+/* Exposure chart */
+:root .expo-range-toggle,
 [data-theme="light"] .expo-range-toggle {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--alpha-subtle);
 }
 
+:root .expo-range-toggle__btn,
 [data-theme="light"] .expo-range-toggle__btn {
   color: var(--veda-text-muted);
 }
 
+:root .expo-range-toggle__btn--active,
 [data-theme="light"] .expo-range-toggle__btn--active {
-  background: rgba(46, 91, 255, 0.12);
+  background: rgba(var(--veda-apricot-rgb), 0.16);
   color: var(--veda-accent);
 }
 
+:root .sweetener-list,
 [data-theme="light"] .sweetener-list {
-  border-top-color: rgba(0, 0, 0, 0.06);
+  border-top-color: var(--veda-border);
 }
 
+:root .sweetener-list__chip,
 [data-theme="light"] .sweetener-list__chip {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.18);
-  color: #b45309;
+  background: rgba(var(--veda-apricot-rgb), 0.12);
+  border-color: rgba(var(--veda-apricot-rgb), 0.28);
+  color: var(--veda-charcoal);
 }

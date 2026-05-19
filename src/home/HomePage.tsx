@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import StackSignal from "./StackSignal";
+import DayTimeline from "./DayTimeline";
 import { DailyReferenceBars } from "./DailyReferenceBars";
 import ScanSection from "./ScanSection";
 import type { ScanResult } from "./ScanSection";
@@ -301,6 +302,8 @@ export default function HomePage({ isAI = false, userName }: Props) {
         <>
           {/* 1. PRIMARY — Overall Stack Signal (hero, full width) */}
           <StackSignal />
+
+          <DayTimeline />
 
           {/* 2. Scan entry (label + drink) */}
           <ScanSection onScanComplete={handleScanComplete} />

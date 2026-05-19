@@ -37,10 +37,10 @@ function pctDV(n: NutrientRow) {
 function riskColor(risk: string) {
   if (risk === "high") return "var(--veda-red, #e74c3c)";
   if (risk === "medium") return "var(--veda-orange, #e67e22)";
-  return "var(--veda-accent, #2E5BFF)";
+  return "var(--veda-accent, var(--veda-accent))";
 }
 
-import { SCHEDULE_SLOTS } from "../lib/schedule";
+import { SCHEDULE_SLOTS, slotToDefaultTime } from "../lib/schedule";
 import type { ScheduleTime } from "../lib/schedule";
 
 async function fetchInteractions(item: ScannedItem): Promise<Interaction[]> {
@@ -198,8 +198,26 @@ export default function MedicationsPage() {
 
   const updateSchedule = (id: string, schedule: ScheduleTime | undefined) => {
     persistUpdate((prev) =>
-      prev.map((it) => (it.id !== id ? it : { ...it, schedule }))
+      prev.map((it) => {
+        if (it.id !== id) return it;
+        if (!schedule) {
+          const next = { ...it };
+          delete (next as any).schedule;
+          if ((it as any).scheduleSource !== "doctor") {
+            delete (next as any).dailyTime;
+          }
+          return next;
+        }
+        if ((it as any).scheduleSource === "doctor") return { ...it, schedule };
+        return {
+          ...it,
+          schedule,
+          dailyTime: slotToDefaultTime(schedule),
+          scheduleSource: (it as any).scheduleSource === "ai" ? "manual" : ((it as any).scheduleSource || "manual"),
+        };
+      }),
     );
+    window.dispatchEvent(new Event("veda:schedule-updated"));
   };
 
   const editingItem = useMemo(() => {

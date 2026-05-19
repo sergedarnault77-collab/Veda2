@@ -63,15 +63,15 @@
   letter-spacing: 0.04em;
   padding: 2px 10px;
   border-radius: 999px;
-  background: rgba(31, 58, 95, 0.15);
+  background: rgba(var(--veda-powder-rgb), 0.15);
   color: var(--veda-accent-light, #a899f7);
 }
 
 .buy-sheet__equiv {
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(46, 91, 255, 0.06);
-  border: 1px solid rgba(46, 91, 255, 0.18);
+  background: rgba(var(--veda-apricot-rgb), 0.06);
+  border: 1px solid rgba(var(--veda-apricot-rgb), 0.18);
   margin-bottom: 14px;
 }
 
@@ -118,8 +118,8 @@
 }
 
 .buy-sheet__row:hover {
-  background: rgba(31, 58, 95, 0.1);
-  border-color: rgba(31, 58, 95, 0.25);
+  background: rgba(var(--veda-powder-rgb), 0.1);
+  border-color: rgba(var(--veda-powder-rgb), 0.25);
 }
 
 .buy-sheet__icon {

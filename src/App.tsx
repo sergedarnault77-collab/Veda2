@@ -27,8 +27,8 @@ type Theme = "dark" | "light";
 const THEME_KEY = "veda.theme";
 
 function loadTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  return (localStorage.getItem(THEME_KEY) as Theme) || "dark";
+  if (typeof window === "undefined") return "light";
+  return (localStorage.getItem(THEME_KEY) as Theme) || "light";
 }
 
 function applyTheme(theme: Theme) {

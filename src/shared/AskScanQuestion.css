@@ -15,16 +15,16 @@
   width: 100%;
   padding: 12px 14px;
   border-radius: var(--radius-lg);
-  background: rgba(46, 91, 255, 0.05);
-  border: 1px solid rgba(46, 91, 255, 0.15);
+  background: rgba(var(--veda-apricot-rgb), 0.05);
+  border: 1px solid rgba(var(--veda-apricot-rgb), 0.15);
   cursor: pointer;
   font-family: inherit;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .ask-scan__trigger:hover {
-  background: rgba(46, 91, 255, 0.1);
-  border-color: rgba(46, 91, 255, 0.25);
+  background: rgba(var(--veda-apricot-rgb), 0.1);
+  border-color: rgba(var(--veda-apricot-rgb), 0.25);
 }
 
 .ask-scan__triggerIcon {
@@ -50,8 +50,8 @@
 
 .ask-scan--expanded {
   padding: 14px;
-  background: rgba(46, 91, 255, 0.04);
-  border: 1px solid rgba(46, 91, 255, 0.15);
+  background: rgba(var(--veda-apricot-rgb), 0.04);
+  border: 1px solid rgba(var(--veda-apricot-rgb), 0.15);
   border-radius: var(--radius-lg);
   margin-top: 14px;
   border-top: none;
@@ -103,7 +103,7 @@
 }
 
 .ask-scan__input:focus {
-  border-color: rgba(46, 91, 255, 0.4);
+  border-color: rgba(var(--veda-apricot-rgb), 0.4);
 }
 
 .ask-scan__input:disabled {
@@ -119,7 +119,7 @@
   justify-content: center;
   border: none;
   border-radius: var(--radius-md);
-  background: var(--veda-accent, #2E5BFF);
+  background: var(--veda-accent, var(--veda-accent));
   color: #fff;
   font-size: 1.1rem;
   font-weight: 700;
@@ -223,7 +223,7 @@
 }
 
 .ask-scan__notes li::marker {
-  color: var(--veda-accent, #2E5BFF);
+  color: var(--veda-accent, var(--veda-accent));
 }
 
 .ask-scan__disclaimer {
@@ -242,7 +242,7 @@
   border: none;
   font-family: inherit;
   font-size: 0.72rem;
-  color: var(--veda-accent, #2E5BFF);
+  color: var(--veda-accent, var(--veda-accent));
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;

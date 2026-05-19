@@ -43,12 +43,12 @@ class GlobalErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 40, fontFamily: "system-ui", color: "#fff", background: "#0a0a1a", minHeight: "100vh" }}>
-          <h1 style={{ fontSize: 20, marginBottom: 12 }}>Something went wrong</h1>
-          <p style={{ opacity: 0.7, fontSize: 14, marginBottom: 16 }}>{this.state.error}</p>
+        <div style={{ padding: 40, fontFamily: "system-ui", color: "#4A4035", background: "#F3E4CC", minHeight: "100vh" }}>
+          <h1 style={{ fontSize: 20, marginBottom: 12, color: "#4A4035" }}>Something went wrong</h1>
+          <p style={{ opacity: 0.75, fontSize: 14, marginBottom: 16, color: "#7C6B5A" }}>{this.state.error}</p>
           <button
             onClick={() => { this.setState({ hasError: false, error: "" }); window.location.reload(); }}
-            style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "#6c5ce7", color: "#fff", cursor: "pointer", fontSize: 14 }}
+            style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "#D98235", color: "#fff", cursor: "pointer", fontSize: 14 }}
           >
             Reload app
           </button>

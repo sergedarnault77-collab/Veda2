@@ -20,13 +20,12 @@
   gap: 4px;
   padding: 8px;
   border-radius: var(--radius-lg);
-  background: rgba(10, 14, 28, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--veda-nav-bg);
+  border: 1px solid var(--veda-nav-border);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 
-/* Logo in nav (hidden on phone) */
 .app-nav__logo {
   display: none;
 }
@@ -47,38 +46,16 @@
 }
 
 .app-nav__btn--active {
-  background: rgba(46, 91, 255, 0.18);
+  background: var(--veda-nav-active-bg);
   color: var(--veda-text);
-  box-shadow: inset 0 0 0 1px rgba(46, 91, 255, 0.25);
+  box-shadow: inset 0 0 0 1px var(--veda-nav-active-ring);
 }
 
 .app-nav__btn:hover:not(.app-nav__btn--active) {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--alpha-subtle);
   color: var(--veda-text);
 }
 
-/* ── Light mode nav overrides ── */
-[data-theme="light"] .app-nav {
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="light"] .app-nav__btn {
-  color: var(--veda-text-muted);
-}
-
-[data-theme="light"] .app-nav__btn--active {
-  background: rgba(31, 58, 95, 0.12);
-  color: var(--veda-text);
-  box-shadow: inset 0 0 0 1px rgba(31, 58, 95, 0.2);
-}
-
-[data-theme="light"] .app-nav__btn:hover:not(.app-nav__btn--active) {
-  background: rgba(0, 0, 0, 0.04);
-  color: var(--veda-text);
-}
-
-/* ── Tablet (600px+) ── */
 @media (min-width: 600px) {
   .app-nav {
     left: 50%;
@@ -95,7 +72,6 @@
   }
 }
 
-/* ── Desktop (1024px+): left sidebar ── */
 @media (min-width: 1024px) {
   .app-nav {
     position: fixed;
@@ -112,8 +88,8 @@
     padding: 24px 16px;
     border-radius: 0;
     border: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.04);
-    background: rgba(10, 14, 28, 0.55);
+    border-right: 1px solid var(--veda-nav-border);
+    background: var(--veda-nav-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
@@ -139,12 +115,7 @@
   }
 
   .app-nav__btn--active {
-    background: rgba(46, 91, 255, 0.15);
-    box-shadow: inset 0 0 0 1px rgba(46, 91, 255, 0.2);
-  }
-
-  [data-theme="light"] .app-nav {
-    background: rgba(255, 255, 255, 0.6);
-    border-right-color: rgba(0, 0, 0, 0.06);
+    background: var(--veda-nav-active-bg);
+    box-shadow: inset 0 0 0 1px var(--veda-nav-active-ring);
   }
 }
