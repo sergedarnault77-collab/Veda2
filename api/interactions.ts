@@ -101,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .join("\n\n");
 
     const system = [
-      "You are Veda's interaction checker. A user is adding or scanning a NEW item. Check it against their EXISTING medications and supplements for known interactions.",
+      "You are Vedais's interaction checker. A user is adding or scanning a NEW item. Check it against their EXISTING medications and supplements for known interactions.",
       "",
       "Focus on:",
       "- Drug-drug interactions (e.g. two blood pressure medications)",

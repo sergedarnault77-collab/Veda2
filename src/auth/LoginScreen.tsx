@@ -97,7 +97,7 @@ export default function LoginScreen({ onLogin, onGoToRegister, onShowLegal }: Pr
 
   return (
     <div className="login">
-      <div className="login__logo">Veda</div>
+      <div className="login__logo">Vedais</div>
       <h1 className="login__title">Welcome back</h1>
       <p className="login__sub">Log in to continue tracking.</p>
 

@@ -30,7 +30,7 @@ function fallback(signal: any): ExplainResponse {
     whatWasDetected: [detail || `${label} was flagged as ${kind}.`],
     whyItMatters: ["Context depends on dose, timing, and individual factors."],
     whatPeopleDo: ["Some people review overlapping sources when flagged."],
-    disclaimer: "This is not medical advice. Veda does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
+    disclaimer: "This is not medical advice. Vedais does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
   };
 }
 
@@ -77,7 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : [];
 
   const systemPrompt = [
-    "You are Veda's contextual guidance engine. You explain detected signals clearly and neutrally.",
+    "You are Vedais's contextual guidance engine. You explain detected signals clearly and neutrally.",
     "",
     "You MUST return JSON with exactly 3 arrays of short strings:",
     "",
@@ -143,7 +143,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       whatWasDetected: cap(parsed.whatWasDetected, 3),
       whyItMatters: cap(parsed.whyItMatters, 3),
       whatPeopleDo: cap(parsed.whatPeopleDo, 3),
-      disclaimer: "This is not medical advice. Veda does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
+      disclaimer: "This is not medical advice. Vedais does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
     } as ExplainResponse);
   } catch {
     return res.status(200).json(fallback(signal));

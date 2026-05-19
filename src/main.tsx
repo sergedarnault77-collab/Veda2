@@ -16,7 +16,7 @@ window.addEventListener("unhandledrejection", (e) => {
   const msg = String(e?.reason?.message || e?.reason || "");
   if (msg.includes("did not match the expected pattern")) {
     e.preventDefault();
-    console.warn("[Veda] Suppressed Safari auth pattern error");
+    console.warn("[Vedais] Suppressed Safari auth pattern error");
   }
 });
 
@@ -29,14 +29,14 @@ class GlobalErrorBoundary extends Component<
   static getDerivedStateFromError(error: Error) {
     const msg = String(error?.message || error);
     if (msg.includes("did not match the expected pattern")) {
-      console.warn("[Veda] Suppressed Safari auth pattern error in boundary");
+      console.warn("[Vedais] Suppressed Safari auth pattern error in boundary");
       return { hasError: false, error: "" };
     }
     return { hasError: true, error: msg };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("[Veda] Uncaught render error:", error, info?.componentStack);
+    console.error("[Vedais] Uncaught render error:", error, info?.componentStack);
     Sentry.captureException(error, { contexts: { react: { componentStack: info?.componentStack ?? "" } } });
   }
 

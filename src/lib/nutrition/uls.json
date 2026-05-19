@@ -5,7 +5,7 @@
     "notes": [
       "UL = Tolerable Upper Intake Level (typical safety ceiling for chronic daily intake).",
       "UL generally applies to TOTAL intake (food + supplements) unless explicitly noted.",
-      "Some nutrients have no established UL; Veda should treat them as 'no_ul' and focus on overlap/waste instead."
+      "Some nutrients have no established UL; Vedais should treat them as 'no_ul' and focus on overlap/waste instead."
     ]
   },
   "units": {

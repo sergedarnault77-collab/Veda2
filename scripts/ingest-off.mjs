@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Ingest Open Food Facts supplement/drink products into the Veda products database.
+ * Ingest Open Food Facts supplement/drink products into the Vedais products database.
  *
  * Usage:
  *   DATABASE_URL="postgres://..." node scripts/ingest-off.mjs [--limit=N] [--category=CATEGORY]
@@ -46,7 +46,7 @@ async function fetchJson(url, retries = 3) {
     try {
       const r = await fetch(url, {
         headers: {
-          "User-Agent": "VedaApp/1.0 (health-tracker; contact@veda-app.com)",
+          "User-Agent": "VedaisApp/1.0 (health-tracker; https://vedais.ai)",
         },
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);

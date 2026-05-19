@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Ingest NIH DSLD supplement labels into the Veda products database.
+ * Ingest NIH DSLD supplement labels into the Vedais products database.
  *
  * Usage:
  *   DATABASE_URL="postgres://..." node scripts/ingest-dsld.mjs [--resume-from=ID] [--limit=N]

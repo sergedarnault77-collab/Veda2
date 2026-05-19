@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.veda.health",
-  appName: "Veda",
+  appName: "Vedais",
   webDir: "dist",
   server: {
     androidScheme: "https",

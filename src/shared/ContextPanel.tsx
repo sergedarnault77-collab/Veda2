@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { VedaisInText } from "../components/VedaisBrand";
 import { apiFetchSafe } from "../lib/apiFetchSafe";
 import "./ContextPanel.css";
 
@@ -35,7 +36,7 @@ export default function ContextPanel({ signal, onClose }: Props) {
       whyItMatters: ["Context depends on dose, timing, and individual factors."],
       whatPeopleDo: ["Some people review overlapping sources when flagged."],
       disclaimer:
-        "This is not medical advice. Veda does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
+        "This is not medical advice. Vedais does not diagnose or recommend treatment. For personal health decisions, consult a professional.",
     };
 
     apiFetchSafe("/api/explain", {
@@ -118,7 +119,9 @@ export default function ContextPanel({ signal, onClose }: Props) {
             )}
 
             {result.disclaimer && (
-              <div className="ctx-panel__disclaimer">{result.disclaimer}</div>
+              <div className="ctx-panel__disclaimer">
+                <VedaisInText text={result.disclaimer} />
+              </div>
             )}
           </div>
         ) : null}

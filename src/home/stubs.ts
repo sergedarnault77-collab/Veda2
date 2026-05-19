@@ -1,4 +1,4 @@
-/* ── Veda 2.0 — Tiny stub data for home screen ──
+/* ── Vedais 2.0 — Tiny stub data for home screen ──
    TODO: Replace with real data sources once persistence layer is wired. */
 
 // ── Types ──

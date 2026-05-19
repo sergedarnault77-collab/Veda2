@@ -1,5 +1,5 @@
 ---
-description: Cross-project engineering standards for Veda, LastPath, Guidely, and Serge.ai. Prevents repeat failures, standardizes patterns, and defines Cursor operating behavior.
+description: Cross-project engineering standards for Vedais, LastPath, Guidely, and Serge.ai. Prevents repeat failures, standardizes patterns, and defines Cursor operating behavior.
 alwaysApply: true
 ---
 
@@ -12,7 +12,7 @@ alwaysApply: true
 - When unsure, make a reasonable assumption and proceed; state the assumption clearly.
 
 ## 1) Project Identification
-- Start every response with: "This is for project **X** (LastPath / Veda / Guidely / Serge.ai)"
+- Start every response with: "This is for project **X** (LastPath / Vedais / Guidely / Serge.ai)"
 - Before executing ANY code change, verify you are in the correct project directory.
 - Never write code intended for one project into another project's repo.
 

@@ -7,6 +7,7 @@ import {
   purchasePackage,
   restorePurchases,
 } from "../lib/purchases";
+import { VedaisBrand } from "../components/VedaisBrand";
 import type { VedaOffering } from "../lib/purchases";
 import { manageSubscriptionsUrl, openExternalUrl, supportMailto } from "../lib/storeLinks";
 import "./PlanScreen.css";
@@ -64,7 +65,7 @@ export default function PlanScreen({ onSelect, onShowLegal }: Props) {
 
   return (
     <div className="plans">
-      <div className="plans__logo">Veda</div>
+      <div className="plans__logo">Vedais</div>
       <h1 className="plans__title">Choose your plan</h1>
       <p className="plans__sub">You can change your plan at any time.</p>
 
@@ -94,7 +95,7 @@ export default function PlanScreen({ onSelect, onShowLegal }: Props) {
         {/* AI */}
         <div className="plans__card plans__card--highlight">
           <div className="plans__cardTag plans__cardTag--accent">Recommended</div>
-          <h2 className="plans__cardTitle">Veda AI</h2>
+          <h2 className="plans__cardTitle"><VedaisBrand /> AI</h2>
           <p className="plans__cardDesc">
             {aiOffering ? aiOffering.priceString + "/mo" : "Smart insights"}
           </p>

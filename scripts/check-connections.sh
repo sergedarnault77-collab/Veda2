@@ -4,11 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-BASE_URL="${1:-https://veda2.vercel.app}"
+BASE_URL="${1:-https://vedais.ai}"
 LOCAL_ENV="${ROOT}/.env.local"
 MISSING_LOCAL=0
 
-echo "=== Veda connection check ==="
+echo "=== Vedais connection check ==="
 echo "Production: $BASE_URL"
 echo ""
 

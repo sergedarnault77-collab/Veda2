@@ -9,6 +9,7 @@ import MedicationsPage from "./meds/MedicationsPage";
 import SupplementsPage from "./supps/SupplementsPage";
 import PrivacyPolicy from "./legal/PrivacyPolicy";
 import TermsOfService from "./legal/TermsOfService";
+import { VedaisBrand } from "./components/VedaisBrand";
 import { loadUser, saveUser, setPlan as persistPlan, setProfile as persistProfile } from "./lib/auth";
 import type { VedaUser, Plan, BiologicalSex, AgeRange } from "./lib/auth";
 import { supabase } from "./lib/supabase";
@@ -297,7 +298,7 @@ export default function App() {
     return (
       <div className="app-shell" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
         <div style={{ textAlign: "center", color: "var(--veda-text-muted)" }}>
-          <div style={{ fontSize: "1.8rem", marginBottom: 12 }}>Veda</div>
+          <div className="vedais-logo" style={{ fontSize: "1.8rem", marginBottom: 12 }}>Vedais</div>
           <div style={{ fontSize: "0.82rem", opacity: 0.7 }}>Syncing your data…</div>
         </div>
       </div>
@@ -307,7 +308,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <nav className="app-nav">
-        <div className="app-nav__logo">Veda</div>
+        <div className="app-nav__logo">Vedais</div>
         <button data-testid="nav-scan" onClick={() => setTab("home")} className={`app-nav__btn ${tab === "home" ? "app-nav__btn--active" : ""}`}>Scan</button>
         <button onClick={() => setTab("dashboard")} className={`app-nav__btn ${tab === "dashboard" ? "app-nav__btn--active" : ""}`}>Dashboard</button>
         <button onClick={() => setTab("supps")} className={`app-nav__btn ${tab === "supps" ? "app-nav__btn--active" : ""}`}>Supps</button>
@@ -359,9 +360,7 @@ function AccountBar({
 }) {
   const [open, setOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const planLabel = user.plan === "ai" ? "Veda AI" : "Freemium";
   const otherPlan: Plan = user.plan === "ai" ? "freemium" : "ai";
-  const otherLabel = user.plan === "ai" ? "Freemium" : "Veda AI";
 
   const btnBorder = theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)";
   const btnBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)";
@@ -439,7 +438,7 @@ function AccountBar({
                 {user.email}
               </div>
               <div style={{ fontSize: "0.72rem", color: "var(--veda-text-muted)", marginBottom: 16 }}>
-                Plan: <strong>{planLabel}</strong> · {user.country}
+                Plan: <strong>{user.plan === "ai" ? <><VedaisBrand /> AI</> : "Freemium"}</strong> · {user.country}
               </div>
 
               <button onClick={() => setShowProfile(true)} style={btnStyle}>
@@ -454,7 +453,7 @@ function AccountBar({
               </button>
 
               <button onClick={() => { onChangePlan(otherPlan); setOpen(false); }} style={btnStyle}>
-                Switch to {otherLabel}
+                Switch to {user.plan === "ai" ? "Freemium" : <><VedaisBrand /> AI</>}
               </button>
 
               <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>

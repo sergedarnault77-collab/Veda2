@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { VedaisBrand } from "../components/VedaisBrand";
 import type { BiologicalSex, AgeRange } from "../lib/auth";
 import "./ProfileScreen.css";
 
@@ -60,7 +61,7 @@ export default function ProfileScreen({ firstName, onComplete }: Props) {
 
   return (
     <div className="profile">
-      <div className="profile__logo">Veda</div>
+      <div className="profile__logo">Vedais</div>
       <h1 className="profile__title">Welcome, {firstName}</h1>
       <p className="profile__sub">One more step before we get started.</p>
 
@@ -70,7 +71,7 @@ export default function ProfileScreen({ firstName, onComplete }: Props) {
           <strong>Why do we need this?</strong>
           <span>
             Daily reference values for vitamins and minerals differ by sex, height, and weight.
-            Sharing this helps Veda show you accurate daily dose percentages
+            Sharing this helps <VedaisBrand /> show you accurate daily dose percentages
             rather than generic averages.
           </span>
         </div>

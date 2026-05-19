@@ -127,5 +127,5 @@ test("Home scan produces analyze JSON + screenshots", async ({ page, baseURL }) 
   }
 
   // Minimal assert: page did not crash
-  await expect(page).toHaveTitle(/veda/i);
+  await expect(page).toHaveTitle(/vedais/i);
 });

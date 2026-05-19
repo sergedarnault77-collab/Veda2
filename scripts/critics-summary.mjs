@@ -14,7 +14,7 @@ const d = fs.existsSync(dataMd) ? fs.readFileSync(dataMd, "utf8") : "## AI Data 
 
 const summary =
 `${marker}
-# Veda critics report
+# Vedais critics report
 
 ${v}
 

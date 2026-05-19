@@ -145,7 +145,7 @@ async function tryProductDbLookup(productName: string): Promise<AnalyzeResponse 
       signals: [{
         type: "no_notable_interaction", severity: "low", confidence: 0.6,
         headline: "Matched from product database",
-        explanation: `Found "${product.product_name}" in the Veda product database.`,
+        explanation: `Found "${product.product_name}" in the Vedais product database.`,
         relatedEntities: [],
       }],
       meta: {
@@ -621,7 +621,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     /* ── FRONT-ONLY MODE ── */
     if (frontOnly) {
       const frontOnlySystem = [
-        "You are Veda's product identifier. The user scanned ONLY the front of a product — no ingredients label is available.",
+        "You are Vedais's product identifier. The user scanned ONLY the front of a product — no ingredients label is available.",
         "",
         "Your task:",
         "1. Identify the product from the front image (name, brand, form, strength/dosage if visible).",
@@ -813,7 +813,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     /* ── Step 2: extract structured data ── */
 
     const extractSystem = [
-      "You are Veda's label extractor. You are given:",
+      "You are Vedais's label extractor. You are given:",
       "1. A front-of-product image (for product name / brand only).",
       "2. A COMPLETE TEXT TRANSCRIPTION of the ingredients/nutrition label (already transcribed from photos).",
       "",

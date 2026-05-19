@@ -1,4 +1,6 @@
 import "./Legal.css";
+import { VedaisBrand } from "../components/VedaisBrand";
+import { VEDAIS_PRIVACY_EMAIL } from "../lib/site";
 import { LegalWebCanonical } from "./LegalWebCanonical";
 
 export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
@@ -11,7 +13,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
       <section>
         <h2>1. What We Collect</h2>
         <p>
-          Veda collects the minimum information needed to provide its services:
+          <VedaisBrand /> collects the minimum information needed to provide its services:
         </p>
         <ul>
           <li><strong>Account data</strong> — name, email address, country, and city you provide during registration.</li>
@@ -35,7 +37,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
       <section>
         <h2>3. AI-Powered Features</h2>
         <p>
-          Veda uses AI (OpenAI) to analyse scanned product labels and provide contextual
+          <VedaisBrand /> uses AI (OpenAI) to analyse scanned product labels and provide contextual
           answers. When you scan a product or ask a question:
         </p>
         <ul>
@@ -67,7 +69,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
       <section>
         <h2>6. Children</h2>
         <p>
-          Veda is not intended for use by anyone under 18 years of age. We do not
+          <VedaisBrand /> is not intended for use by anyone under 18 years of age. We do not
           knowingly collect data from minors.
         </p>
       </section>
@@ -86,7 +88,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
         <h2>8. Contact</h2>
         <p>
           For questions about this privacy policy or your data, contact us at{" "}
-          <a href="mailto:privacy@veda.health">privacy@veda.health</a>.
+          <a href={`mailto:${VEDAIS_PRIVACY_EMAIL}`}>{VEDAIS_PRIVACY_EMAIL}</a>.
         </p>
       </section>
     </main>

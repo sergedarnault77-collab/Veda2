@@ -103,7 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ).join("\n");
 
   const systemPrompt = [
-    "You are Veda's supplement scheduling advisor. The user wants to know the OPTIMAL time of day to take each of their supplements and medications for best absorption and results.",
+    "You are Vedais's supplement scheduling advisor. The user wants to know the OPTIMAL time of day to take each of their supplements and medications for best absorption and results.",
     "",
     "For each item, recommend ONE time slot: morning, afternoon, evening, or night.",
     "Also provide recommendedTime as 24-hour HH:MM (e.g. 08:30) — the specific best clock time within that day.",

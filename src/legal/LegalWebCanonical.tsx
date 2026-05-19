@@ -1,10 +1,9 @@
+import { siteOriginFromEnv } from "../lib/site";
 import "./Legal.css";
 
-/** Shown when VITE_PUBLIC_SITE_URL is set — use the same URL in App Store / Play Console. */
+/** Public legal URL for store listings and support (vedais.ai). */
 export function LegalWebCanonical({ path }: { path: "privacy" | "terms" }) {
-  const raw = import.meta.env.VITE_PUBLIC_SITE_URL?.trim();
-  if (!raw) return null;
-  const base = raw.replace(/\/$/, "");
+  const base = siteOriginFromEnv();
   const href = `${base}/#${path}`;
   return (
     <p className="legal__canonical">

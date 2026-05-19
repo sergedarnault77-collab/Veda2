@@ -1,6 +1,6 @@
 {
   "schema_version": "veda_diet_quickcheck_v1",
-  "goal": "Provide low-friction food context so Veda does not imply deficiency when only supplements are logged.",
+  "goal": "Provide low-friction food context so Vedais does not imply deficiency when only supplements are logged.",
   "output_states": ["likely_covered_by_food", "maybe_covered", "unknown", "hard_to_cover_from_food"],
   "scoring": {
     "per_nutrient_food_score": "sum of triggered weights",

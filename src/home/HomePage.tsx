@@ -9,6 +9,7 @@ import type { ExposureEntry } from "./stubs";
 import { loadLS } from "../lib/persist";
 import { snapshotToday } from "../lib/exposureHistory";
 import type { StoredScansDay, ScanExposure } from "./ScanSection";
+import { VedaisBrand } from "../components/VedaisBrand";
 import "./HomePage.css";
 
 interface Props {
@@ -241,7 +242,7 @@ export function extractExposureFromScan(result: ScanResult): {
 }
 
 export default function HomePage({ isAI = false, userName }: Props) {
-  const [isVedaIntroOpen, setIsVedaIntroOpen] = useState(false);
+  const [isVedaisIntroOpen, setIsVedaisIntroOpen] = useState(false);
   const [exposure, setExposure] = useState<AggregatedExposure>(() => {
     const initial = deriveExposureFromScans();
     snapshotToday(initial);
@@ -291,9 +292,9 @@ export default function HomePage({ isAI = false, userName }: Props) {
           <button
             type="button"
             className="home__intro-link"
-            onClick={() => setIsVedaIntroOpen(true)}
+            onClick={() => setIsVedaisIntroOpen(true)}
           >
-            What is Veda?
+            What is <VedaisBrand />?
           </button>
         </div>
       </header>
@@ -317,9 +318,9 @@ export default function HomePage({ isAI = false, userName }: Props) {
       ) : (
         <div className="home__freemium">
           <div className="home__freemiumCard">
-            <div className="home__freemiumTitle">AI features are available on the Veda AI plan</div>
+            <div className="home__freemiumTitle">AI features are available on the <VedaisBrand /> AI plan</div>
             <p className="home__freemiumSub">
-              Scanning, analysis, signal interpretation, and stack insights are part of Veda AI.
+              Scanning, analysis, signal interpretation, and stack insights are part of <VedaisBrand /> AI.
               Upgrade from your account menu to unlock these features.
             </p>
             <div className="home__freemiumHint">
@@ -329,18 +330,18 @@ export default function HomePage({ isAI = false, userName }: Props) {
         </div>
       )}
 
-      {isVedaIntroOpen && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => setIsVedaIntroOpen(false)}>
+      {isVedaisIntroOpen && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => setIsVedaisIntroOpen(false)}>
           <div className="modal-card home__veda-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setIsVedaIntroOpen(false)} aria-label="Close">×</button>
-            <h2>What is Veda?</h2>
+            <button className="modal-close" onClick={() => setIsVedaisIntroOpen(false)} aria-label="Close">×</button>
+            <h2>What is <VedaisBrand />?</h2>
             <p className="home__veda-modal-text">
-              Veda gives you a single overview of your medications and supplements,
+              <VedaisBrand /> gives you a single overview of your medications and supplements,
               highlights potential overlaps, clashes, or overuse, and lets you preview
               how a new item might affect the rest of your routine.
             </p>
             <p className="home__veda-modal-disclaimer">
-              Veda provides general information — not medical advice.
+              <VedaisBrand /> provides general information — not medical advice.
             </p>
           </div>
         </div>

@@ -1,4 +1,6 @@
 import "./Legal.css";
+import { VedaisBrand } from "../components/VedaisBrand";
+import { VEDAIS_LEGAL_EMAIL } from "../lib/site";
 import { LegalWebCanonical } from "./LegalWebCanonical";
 
 export default function TermsOfService({ onBack }: { onBack: () => void }) {
@@ -11,7 +13,7 @@ export default function TermsOfService({ onBack }: { onBack: () => void }) {
       <section>
         <h2>1. Acceptance</h2>
         <p>
-          By using Veda ("the App"), you agree to these Terms of Service. If you do not
+          By using <VedaisBrand /> ("the App"), you agree to these Terms of Service. If you do not
           agree, please do not use the App.
         </p>
       </section>
@@ -19,7 +21,7 @@ export default function TermsOfService({ onBack }: { onBack: () => void }) {
       <section>
         <h2>2. Service Description</h2>
         <p>
-          Veda is a health-tracking tool that helps you monitor your supplement,
+          <VedaisBrand /> is a health-tracking tool that helps you monitor your supplement,
           medication, and dietary intake. The App uses AI to analyse product labels
           and provide informational insights about your daily exposure.
         </p>
@@ -28,7 +30,7 @@ export default function TermsOfService({ onBack }: { onBack: () => void }) {
       <section>
         <h2>3. Not Medical Advice</h2>
         <p>
-          <strong>Veda does not provide medical advice, diagnoses, or treatment
+          <strong><VedaisBrand /> does not provide medical advice, diagnoses, or treatment
           recommendations.</strong> All information provided by the App — including AI-generated
           analysis, interaction warnings, and exposure summaries — is for informational
           purposes only.
@@ -43,7 +45,7 @@ export default function TermsOfService({ onBack }: { onBack: () => void }) {
       <section>
         <h2>4. Accuracy</h2>
         <p>
-          While we strive for accuracy, Veda's AI analysis may contain errors. Product
+          While we strive for accuracy, <VedaisBrand suffix="'s" /> AI analysis may contain errors. Product
           label scanning depends on image quality and AI interpretation. Nutrient data,
           interaction flags, and exposure estimates are approximate and should not be
           relied upon as the sole source of health information.
@@ -63,7 +65,7 @@ export default function TermsOfService({ onBack }: { onBack: () => void }) {
       <section>
         <h2>6. Intellectual Property</h2>
         <p>
-          The App, its design, code, and content are owned by Veda and protected by
+          The App, its design, code, and content are owned by <VedaisBrand /> and protected by
           applicable intellectual property laws. You may not copy, modify, or
           redistribute any part of the App without written permission.
         </p>
@@ -72,7 +74,7 @@ export default function TermsOfService({ onBack }: { onBack: () => void }) {
       <section>
         <h2>7. Limitation of Liability</h2>
         <p>
-          To the maximum extent permitted by law, Veda and its operators shall not be
+          To the maximum extent permitted by law, <VedaisBrand /> and its operators shall not be
           liable for any indirect, incidental, special, or consequential damages arising
           from your use of the App. This includes, but is not limited to, health
           outcomes influenced by information provided through the App.
@@ -125,7 +127,7 @@ export default function TermsOfService({ onBack }: { onBack: () => void }) {
         <h2>12. Contact</h2>
         <p>
           For questions about these terms, contact us at{" "}
-          <a href="mailto:legal@veda.health">legal@veda.health</a>.
+          <a href={`mailto:${VEDAIS_LEGAL_EMAIL}`}>{VEDAIS_LEGAL_EMAIL}</a>.
         </p>
       </section>
     </main>

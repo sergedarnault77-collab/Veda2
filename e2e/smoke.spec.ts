@@ -30,7 +30,7 @@ test.describe("Smoke tests", () => {
   test("app title and logo are visible", async ({ page }) => {
     await seedAuthenticatedUser(page);
     await page.goto("/");
-    await expect(page.locator(".app-nav__logo")).toHaveText("Veda");
+    await expect(page.locator(".app-nav__logo")).toHaveText("Vedais");
   });
 
   test("privacy policy is accessible via hash", async ({ page }) => {

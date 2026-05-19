@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- App identity -->
-    <title>Veda</title>
+    <title>Vedais</title>
     <meta name="description" content="Track supplements, medications, and daily exposure. Scan labels, log drinks, and get AI-powered insights." />
     <meta name="theme-color" content="#F3E4CC" />
+    <link rel="canonical" href="https://vedais.ai/" />
 
     <!-- PWA manifest -->
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -20,17 +21,17 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Veda" />
+    <meta name="apple-mobile-web-app-title" content="Vedais" />
 
     <!-- Android / Chrome -->
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="application-name" content="Veda" />
+    <meta name="application-name" content="Vedais" />
   </head>
   <body>
     <div id="root">
       <div id="app-loading" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#F3E4CC;color:#4A4035;font-family:system-ui">
         <div style="text-align:center">
-          <h1 style="font-size:24px;font-weight:700;color:#D98235;margin:0 0 8px">Veda</h1>
+          <h1 style="font-size:24px;font-weight:700;color:#8FAABC;margin:0 0 8px">Vedais</h1>
           <p style="font-size:13px;opacity:0.5;margin:0">Track supplements, medications &amp; daily exposure</p>
         </div>
       </div>
@@ -41,7 +42,7 @@
         var root = document.getElementById('root');
         if (root && (!root.children.length || root.children.length === 1 && root.querySelector('#app-loading'))) {
           root.innerHTML = '<div style="padding:40px;font-family:system-ui;color:#4A4035;background:#F3E4CC;min-height:100vh">' +
-            '<h1 style="font-size:20px;color:#D98235">Veda</h1>' +
+            '<h1 style="font-size:20px;color:#8FAABC">Vedais</h1>' +
             '<p style="opacity:0.7;font-size:14px;margin:12px 0">Failed to load: ' + (e.message || 'unknown error') + '</p>' +
             '<button onclick="caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})}).then(function(){location.reload()})" ' +
             'style="padding:10px 20px;border-radius:8px;border:none;background:#D98235;color:#fff;cursor:pointer;font-size:14px">' +
@@ -52,7 +53,7 @@
         var loading = document.getElementById('app-loading');
         if (loading) {
           loading.innerHTML = '<div style="text-align:center">' +
-            '<div style="font-size:24px;font-weight:700;color:#D98235;margin-bottom:8px">Veda</div>' +
+            '<div style="font-size:24px;font-weight:700;color:#8FAABC;margin-bottom:8px">Vedais</div>' +
             '<div style="font-size:13px;opacity:0.5;margin-bottom:16px">Taking longer than expected…</div>' +
             '<button onclick="caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})}).then(function(){location.reload()})" ' +
             'style="padding:10px 20px;border-radius:8px;border:none;background:#D98235;color:#fff;cursor:pointer;font-size:14px">' +

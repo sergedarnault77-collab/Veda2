@@ -101,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .join("\n\n");
 
     const system = [
-      "You are Veda's supplement/medication advisor. Provide SHORT, grounded insights about the items below.",
+      "You are Vedais's supplement/medication advisor. Provide SHORT, grounded insights about the items below.",
       "",
       "Rules:",
       "- ONLY use the transcription, nutrients, and ingredients data provided. Do NOT guess or add external knowledge.",

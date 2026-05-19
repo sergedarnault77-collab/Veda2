@@ -1,4 +1,4 @@
-# Veda — App Store & Google Play release
+# Vedais — App Store & Google Play release
 
 Use this after you have developer accounts. Nothing here replaces legal review; adjust copy if your data practices differ.
 
@@ -21,8 +21,8 @@ Set in the env file you use for **production native builds** (and Vercel for web
 |----------|----------|--------|
 | `VITE_REVENUECAT_APPLE_KEY` | For iOS IAP | RevenueCat public SDK key |
 | `VITE_REVENUECAT_GOOGLE_KEY` | For Android IAP | RevenueCat public SDK key |
-| `VITE_PUBLIC_SITE_URL` | Recommended | Production origin for store URLs, e.g. `https://app.example.com` (no trailing slash). Enables “public link” lines on Privacy & Terms. |
-| `VITE_PUBLIC_SUPPORT_EMAIL` | Optional | Shown on the native plan screen (e.g. `support@veda.health`). |
+| `VITE_PUBLIC_SITE_URL` | Recommended | Production origin for store URLs: `https://vedais.ai` (no trailing slash). Enables “public link” lines on Privacy & Terms. |
+| `VITE_PUBLIC_SUPPORT_EMAIL` | Optional | Shown on the native plan screen (e.g. `support@vedais.ai`). |
 
 Other existing `VITE_*` secrets (Supabase, API, Sentry, PostHog, etc.) must be present in the same build you ship.
 
@@ -64,7 +64,7 @@ Declare based on actual SDK behavior:
 
 - **Account data** (name, email, country, city): collected, tied to account, required for account, encrypted in transit; used for app function, optional analytics if applicable.
 - **Health / fitness** (supplements, medications, scans): collected if user enters or scans; tied to account when logged in; used for app function; describe encryption and deletion (see Privacy Policy).
-- **Photos** (label scan): processed for analysis; state whether retained (Veda policy: not stored on servers after processing — confirm implementation).
+- **Photos** (label scan): processed for analysis; state whether retained (Vedais policy: not stored on servers after processing — confirm implementation).
 - **Purchase history**: via Google Play / RevenueCat; used for entitlements.
 - **Crash / diagnostics** (if Sentry): error logs, device info; not sold.
 - **Analytics** (if PostHog): product interaction as configured in `analytics.ts`.

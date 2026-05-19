@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Veda</string>
+        <string>Vedais</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,9 +27,9 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>Veda uses the camera to scan supplement and medication labels so you can log ingredients quickly.</string>
+	<string>Vedais uses the camera to scan supplement and medication labels so you can log ingredients quickly.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Veda can read photos you choose so you can scan labels from your library.</string>
+	<string>Vedais can read photos you choose so you can scan labels from your library.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

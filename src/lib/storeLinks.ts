@@ -3,6 +3,7 @@
  */
 
 import { Capacitor } from "@capacitor/core";
+import { siteOriginFromEnv, supportEmailFromEnv } from "./site";
 
 const APPLE_MANAGE_SUBSCRIPTIONS = "https://apps.apple.com/account/subscriptions";
 const GOOGLE_MANAGE_SUBSCRIPTIONS = "https://play.google.com/store/account/subscriptions";
@@ -33,14 +34,10 @@ export async function openExternalUrl(url: string): Promise<void> {
   window.open(u, "_blank", "noopener,noreferrer");
 }
 
-export function publicSiteOrigin(): string | null {
-  const raw = import.meta.env.VITE_PUBLIC_SITE_URL?.trim();
-  if (!raw) return null;
-  return raw.replace(/\/$/, "");
+export function publicSiteOrigin(): string {
+  return siteOriginFromEnv();
 }
 
-export function supportMailto(): string | null {
-  const e = import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL?.trim();
-  if (!e) return null;
-  return `mailto:${e}`;
+export function supportMailto(): string {
+  return `mailto:${supportEmailFromEnv()}`;
 }

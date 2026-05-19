@@ -72,7 +72,7 @@ export { computeDailyNutrients } from "./compute";
 export { computeFoodCoverageLabel, hasEnoughDietAnswers } from "./diet";
 export type * from "./types";
 
-/* ── Bridge: convert existing Veda data shapes → nutrition engine inputs ── */
+/* ── Bridge: convert existing Vedais data shapes → nutrition engine inputs ── */
 
 import type { AgeRange, BiologicalSex } from "../auth";
 import type { IntakeLine } from "./types";

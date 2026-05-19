@@ -85,7 +85,7 @@ export async function getOfferings(): Promise<VedaOffering[]> {
 
     return current.availablePackages.map((pkg: any) => ({
       id: pkg.identifier as string,
-      title: (pkg.product?.title || "Veda AI") as string,
+      title: (pkg.product?.title || "Vedais AI") as string,
       description: (pkg.product?.description || "Full AI-powered insights") as string,
       priceString: (pkg.product?.priceString || "") as string,
       identifier: pkg.identifier as string,

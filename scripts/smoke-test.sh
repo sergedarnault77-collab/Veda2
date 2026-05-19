@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${1:-https://veda2.vercel.app}"
+BASE_URL="${1:-https://vedais.ai}"
 PASS=0
 FAIL=0
 
@@ -39,7 +39,7 @@ check() {
   PASS=$((PASS + 1))
 }
 
-echo "=== Veda Smoke Tests ==="
+echo "=== Vedais Smoke Tests ==="
 echo "Target: $BASE_URL"
 echo ""
 

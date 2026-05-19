@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { detectMarket, getRetailersForMarket, getMarketLabel, buildSearchQuery } from "../lib/retailers";
 import type { Market, Retailer } from "../lib/retailers";
 import type { NutrientRow } from "../home/stubs";
+import { VedaisBrand } from "../components/VedaisBrand";
 import { loadUser } from "../lib/auth";
 import "./BuySheet.css";
 
@@ -93,7 +94,7 @@ export default function BuySheet({ productName, brand, nutrients, form, onClose 
         </div>
 
         <p className="buy-sheet__disclaimer">
-          You'll complete your purchase on the retailer's site. Veda does not sell products directly.
+          You&apos;ll complete your purchase on the retailer&apos;s site. <VedaisBrand /> does not sell products directly.
         </p>
 
         <button className="buy-sheet__close" onClick={onClose}>Close</button>

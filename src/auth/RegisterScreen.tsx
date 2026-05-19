@@ -129,7 +129,7 @@ export default function RegisterScreen({ onRegister, onGoToLogin, onShowLegal }:
 
   return (
     <div className="register">
-      <div className="register__logo">Veda</div>
+      <div className="register__logo">Vedais</div>
       <h1 className="register__title">Create your account</h1>
       <p className="register__sub">Track what you consume. Understand what it means.</p>
 
